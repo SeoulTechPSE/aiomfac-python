@@ -3,7 +3,7 @@
 Derived from AIOMFAC-web (Fortran) by A. Zuend et al.; GPL-3.0-or-later.
 See README.md for the citation requirements of the original model.
 """
-__version__ = "0.0.11"
+__version__ = "0.0.12"
 
 #: commit of https://github.com/andizuend/AIOMFAC (AIOMFAC-web v3.14) this port is validated against
 AIOMFAC_REFERENCE_COMMIT = "b9cb96d0eb22dc65a5e63edafe1ed97bd07662f2"
@@ -17,8 +17,13 @@ from .carbonate import CarbonateResult, CarbSulfResult, solve_carb_sulf, solve_c
 from .dissociation import BisulfateResult, ln_k_hso4_at_t, solve_bisulfate  # noqa: E402
 from .model import ActivityModel, ActivityTerms, activity_coefficients  # noqa: E402
 from .lle import AiomfacGFE, PhaseSplitResult, solve_pep, solve_pep_gfe  # noqa: E402
+from .spinodal import reduced_hessian, stability_determinant, stability_map  # noqa: E402
+from .gp_partition import VolatileSpecies, GPResult, gp_partition, distinct_phases  # noqa: E402
 
 __all__ = ["Component", "InputCase", "read_input_file", "MRParams", "SRParams", "SubgroupParams", "load_mr_params", "load_sr_params", "load_subgroup_params",
            "SRSystem", "build_sr_system", "SRTerms", "sr_terms",
            "CompletionResult", "complete_components", "CarbonateResult", "solve_carbonate", "CarbSulfResult", "solve_carb_sulf", "BisulfateResult", "ln_k_hso4_at_t", "solve_bisulfate", "ActivityModel", "ActivityTerms", "activity_coefficients",
-           "AiomfacGFE", "PhaseSplitResult", "solve_pep", "solve_pep_gfe", "AIOMFAC_REFERENCE_COMMIT", "__version__"]
+           "AiomfacGFE", "PhaseSplitResult", "solve_pep", "solve_pep_gfe",
+           "reduced_hessian", "stability_determinant", "stability_map",
+           "VolatileSpecies", "GPResult", "gp_partition", "distinct_phases",
+           "AIOMFAC_REFERENCE_COMMIT", "__version__"]
