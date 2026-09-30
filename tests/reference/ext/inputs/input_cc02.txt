@@ -1,0 +1,40 @@
+Input file for AIOMFAC-web model
+ 
+mixture components:
+----
+component no.:	01
+component name:	'x_Water'
+subgroup no., qty:	016,	01
+----
+component no.:	02
+component name:	'x_EthylAcetate'
+subgroup no., qty:	001,	01
+subgroup no., qty:	002,	01
+subgroup no., qty:	021,	01
+----
+component no.:	03
+component name:	'x_NaCl'
+subgroup no., qty:	202,	01
+subgroup no., qty:	242,	01
+----
+@@@@
+calculation options:
+smiles-based pure-component method?	0
+----
+++++
+mixture composition and temperature:
+mass fraction?	1
+mole fraction?	0
+----
+point,	T_K,	cp02,	cp03
+01		298.15	0.1584123419	0.03760698303
+02		298.15	0.1251109356	0.1040882959
+03		298.15	0.1448622262	0.1489838279
+04		298.15	0.02692859586	0.03932796636
+05		298.15	0.129835739	0.1295403718
+06		298.15	0.1963540334	0.1078475099
+07		298.15	0.09044698275	0.04103450386
+08		298.15	0.03135658584	0.03586804252
+09		298.15	0.1920706246	0.1435819845
+10		298.15	0.1384366151	0.05766125386
+====
