@@ -57,6 +57,13 @@ def test_unsupported_systems_are_rejected_loudly():
     case = read_input_file(REF / "inputs" / "input_0003.txt")
     with pytest.raises(NotImplementedError):
         build_sr_system(case.components)                                    # needs SetSystem completion
-    peg = [Component(1, "PEG", ((154, 4), (1, 2)))]
-    with pytest.raises(NotImplementedError):
-        build_sr_system(peg)
+
+
+def test_peg_system_is_supported_and_flagged():
+    """subgroup 154 (CH2OCH2[PEG]) is ported (see test_ext_coverage.py's cc07/cc08 for Fortran validation);
+    this just checks the is_peg_system flag and that build succeeds."""
+    peg = [Component(1, "PEG", ((16, 1),)), Component(2, "x_PEG", ((154, 4), (1, 2)))]
+    s = build_sr_system(peg)
+    assert s.is_peg_system is True
+    not_peg = [Component(1, "Water", ((16, 1),))]
+    assert build_sr_system(not_peg).is_peg_system is False

@@ -1,0 +1,40 @@
+Input file for AIOMFAC-web model
+ 
+mixture components:
+----
+component no.:	01
+component name:	'x_Water'
+subgroup no., qty:	016,	01
+----
+component no.:	02
+component name:	'x_PEG'
+subgroup no., qty:	150,	02
+subgroup no., qty:	153,	02
+subgroup no., qty:	154,	03
+----
+component no.:	03
+component name:	'x_AmmoniumSulfate'
+subgroup no., qty:	204,	02
+subgroup no., qty:	261,	01
+----
+@@@@
+calculation options:
+smiles-based pure-component method?	0
+----
+++++
+mixture composition and temperature:
+mass fraction?	1
+mole fraction?	0
+----
+point,	T_K,	cp02,	cp03
+01		298.15	0.0794483906	0.0740944063
+02		298.15	0.09293191682	0.04689330465
+03		298.15	0.1234528075	0.09486583972
+04		298.15	0.1111519581	0.01278542227
+05		298.15	0.1215582513	0.08226459719
+06		298.15	0.1225437159	0.06418437627
+07		298.15	0.1773409756	0.01370136084
+08		298.15	0.03555748298	0.03991594708
+09		298.15	0.1536455487	0.04404453803
+10		298.15	0.1676661076	0.0258440795
+====

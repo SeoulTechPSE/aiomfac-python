@@ -8,7 +8,12 @@ the composition-independent SR quantities. Conventions follow the Fortran arrays
   order of first appearance in the electrolyte components (component order, ascending subgroup number).
 
 Not ported yet (raises ``NotImplementedError``): the automatic completion of H+/HSO4-/SO4--/HCO3-/CO3--/OH-
-systems with CO2(aq) (SetSystem step 4) and PEG systems (subgroup 154).
+systems with CO2(aq) (SetSystem step 4).
+
+PEG systems (subgroup 154, main group 70 "CH2OCH2[PEG]") use special R/Q values for that subgroup instead of the
+tabulated Bondi (1964) ones (ModSRunifac.f90, ``isPEGsystem`` block in the RS(I)/QS(I) accumulation loop) --
+ported below (``_PEG_R``/``_PEG_Q``). The viscosity-only ``isPEGsystem`` special cases (``XieR``/``XieC``,
+gated by ``calcviscosity``) are out of scope like the rest of AIOMFAC-VISC.
 """
 from __future__ import annotations
 
@@ -22,6 +27,8 @@ from .params import load_sr_params, load_subgroup_params
 _EPS = np.finfo(float).eps
 _ARR_UNFITTED = -8.88888e5                     # SRsystm: arr_checkval
 _COMPLETION_TRIGGERS = (248, 250, 261, 262)        # HSO4-, HCO3-, SO4--, CO3--
+_PEG_R = 1.381433                              # ModSRunifac.f90: R(CH2OCH2[PEG]) override, fitSRparam(211)
+_PEG_Q = 3.0                                   # ModSRunifac.f90: Q(CH2OCH2[PEG]) override, fitSRparam(212)
 # (205 = H+ is deliberately not in this list: a plain acid such as HCl uses H+ paired with an ordinary
 # anion in one component and needs no special handling; only the presence of the ions above signals a
 # possible bisulfate/bicarbonate system.)
@@ -45,6 +52,7 @@ class SRSystem:
     QS: np.ndarray                   # (NK,) species surface parameters
     XL: np.ndarray                   # (NK,) l_i of UNIFAC
     parA: np.ndarray                 # (NG, NG); ion rows/columns are zero by definition
+    is_peg_system: bool = False      # subgroup 154 (CH2OCH2[PEG]) present -- isPEGsystem
 
     @property
     def n_species(self) -> int:
@@ -68,8 +76,7 @@ def build_sr_system(components: list[Component], *, assume_complete: bool = Fals
     """
     sp, sg = load_sr_params(), load_subgroup_params()
     used = {s for c in components for s, _ in c.subgroups}
-    if 154 in used:
-        raise NotImplementedError("PEG systems (subgroup 154) use special R/Q handling that is not ported yet")
+    is_peg_system = 154 in used
     if 240 in used:
         raise ValueError("cation subgroup 240 is handled inconsistently in the Fortran source (ITABsr) - unsupported")
     if not assume_complete and used & set(_COMPLETION_TRIGGERS):
@@ -115,6 +122,11 @@ def build_sr_system(components: list[Component], *, assume_complete: bool = Fals
 
     R = np.array([sp.R[s - 1] for s in all_subs])
     Q = np.array([sp.Q[s - 1] for s in all_subs])
+    if is_peg_system and 154 in col:
+        # ModSRunifac.f90: "use a special parametrisation for RS(I) ... rather than taking fixed Bondi (1964)
+        # values" -- overrides R/Q of subgroup 154 itself (affects every species containing it), not per-molecule.
+        R[col[154]] = _PEG_R
+        Q[col[154]] = _PEG_Q
 
     ngn = len(solv_subs)
     parA = np.zeros((ng, ng))
@@ -136,7 +148,7 @@ def build_sr_system(components: list[Component], *, assume_complete: bool = Fals
         solv_subs=solv_subs, elect_subs=elect_subs, cations=cations, anions=anions,
         cation_z=np.array([sg.ion_charge(s) for s in cations], dtype=float),
         anion_z=np.array([sg.ion_charge(s) for s in anions], dtype=float),
-        SRNY=SRNY, R=R, Q=Q, RS=RS, QS=QS, XL=XL, parA=parA)
+        SRNY=SRNY, R=R, Q=Q, RS=RS, QS=QS, XL=XL, parA=parA, is_peg_system=is_peg_system)
 
 
 @dataclass(frozen=True)
