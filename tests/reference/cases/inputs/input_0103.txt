@@ -1,0 +1,38 @@
+Input file for AIOMFAC-web model
+ 
+mixture components:
+----
+component no.:	01
+component name:	'Water'
+subgroup no., qty:	016,	01
+----
+component no.:	02
+component name:	'MgCl2'
+subgroup no., qty:	223,	01
+subgroup no., qty:	242,	02
+----
+++++
+mixture composition and temperature:
+mass fraction?	1
+mole fraction?	0
+----
+point,	T_K,	cp02
+01		298.15	0.002
+02		298.15	0.003437543855
+03		298.15	0.005908353878
+04		298.15	0.01015511278
+05		298.15	0.01745432277
+06		298.15	0.03
+07		298.15	0.06
+08		298.15	0.08454545455
+09		298.15	0.1090909091
+10		298.15	0.1336363636
+11		298.15	0.1581818182
+12		298.15	0.1827272727
+13		298.15	0.2072727273
+14		298.15	0.2318181818
+15		298.15	0.2563636364
+16		298.15	0.2809090909
+17		298.15	0.3054545455
+18		298.15	0.33
+====

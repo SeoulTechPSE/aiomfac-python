@@ -1,0 +1,1395 @@
+Input file for AIOMFAC-web model
+
+mixture components:
+----
+component no.:	01
+component name:	'Water'
+subgroup no., qty:	016,	01
+----
+component no.:	02
+component name:	'O=C(OON(=O)=O)CC(=O)CC(=O)C(=O)C'
+subgroup no., qty:	018,	01
+subgroup no., qty:	019,	02
+subgroup no., qty:	172,	01
+----
+component no.:	03
+component name:	'O=N(=O)OOC(=O)C(O)C(=O)C'
+subgroup no., qty:	018,	01
+subgroup no., qty:	151,	01
+subgroup no., qty:	153,	01
+subgroup no., qty:	172,	01
+----
+component no.:	04
+component name:	'O=CC=O'
+subgroup no., qty:	020,	02
+----
+component no.:	05
+component name:	'O=N(=O)OC1(C)C(=O)CC(=O)C(O)C1=O'
+subgroup no., qty:	001,	01
+subgroup no., qty:	019,	02
+subgroup no., qty:	020,	01
+subgroup no., qty:	153,	01
+subgroup no., qty:	157,	01
+----
+component no.:	06
+component name:	'CON(=O)=O'
+subgroup no., qty:	155,	01
+----
+component no.:	07
+component name:	'OCC(=O)C(=O)C=O'
+subgroup no., qty:	019,	01
+subgroup no., qty:	020,	02
+subgroup no., qty:	153,	01
+----
+component no.:	08
+component name:	'O=CCC(=O)CC(C(=O)C)C(C)(C)ON(=O)=O'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	157,	01
+----
+component no.:	09
+component name:	'CC(=O)C(=O)COO'
+subgroup no., qty:	018,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	158,	01
+----
+component no.:	10
+component name:	'CC(=O)C(=O)CC(=O)COO'
+subgroup no., qty:	018,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	158,	01
+----
+component no.:	11
+component name:	'O=CCC1CC(C(=O)CO)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	02
+subgroup no., qty:	003,	01
+subgroup no., qty:	004,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	150,	01
+subgroup no., qty:	153,	01
+----
+component no.:	12
+component name:	'O=CCC(C(=O)O)C(C)(C)OO'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	137,	01
+subgroup no., qty:	160,	01
+----
+component no.:	13
+component name:	'CC(=O)OON(=O)=O'
+subgroup no., qty:	001,	01
+subgroup no., qty:	172,	01
+----
+component no.:	14
+component name:	'CC(=O)CO'
+subgroup no., qty:	018,	01
+subgroup no., qty:	150,	01
+subgroup no., qty:	153,	01
+----
+component no.:	15
+component name:	'CC(=O)C(O)CC(=O)OO'
+subgroup no., qty:	002,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	151,	01
+subgroup no., qty:	153,	01
+subgroup no., qty:	161,	01
+----
+component no.:	16
+component name:	'OOC(=O)CC=O'
+subgroup no., qty:	002,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	161,	01
+----
+component no.:	17
+component name:	'O=CCC1CC(C(=O)OON(=O)=O)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	02
+subgroup no., qty:	003,	02
+subgroup no., qty:	004,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	172,	01
+----
+component no.:	18
+component name:	'OOC(=O)C1CC(C(=O)O)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	02
+subgroup no., qty:	004,	01
+subgroup no., qty:	137,	01
+subgroup no., qty:	161,	01
+----
+component no.:	19
+component name:	'O=CCC(=O)CC(C(=O)C)C(C)(C)O'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	152,	01
+subgroup no., qty:	153,	01
+----
+component no.:	20
+component name:	'OOC(=O)C=O'
+subgroup no., qty:	020,	01
+subgroup no., qty:	161,	01
+----
+component no.:	21
+component name:	'OCC(CC(=O)C(=O)C)C(C)(C)O'
+subgroup no., qty:	001,	02
+subgroup no., qty:	003,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	150,	01
+subgroup no., qty:	152,	01
+subgroup no., qty:	153,	02
+----
+component no.:	22
+component name:	'O=CCC(=O)CC(O)C(=O)C'
+subgroup no., qty:	002,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	151,	01
+subgroup no., qty:	153,	01
+----
+component no.:	23
+component name:	'OOC1CC(C(=O)O)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	01
+subgroup no., qty:	004,	01
+subgroup no., qty:	137,	01
+subgroup no., qty:	159,	01
+----
+component no.:	24
+component name:	'OOC(=O)CC(=O)CC(=O)C(=O)C'
+subgroup no., qty:	018,	01
+subgroup no., qty:	019,	02
+subgroup no., qty:	161,	01
+----
+component no.:	25
+component name:	'OCC1CC(C(=O)C)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	02
+subgroup no., qty:	004,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	150,	01
+subgroup no., qty:	153,	01
+----
+component no.:	26
+component name:	'CC(=O)C(=O)CC(O)CO'
+subgroup no., qty:	018,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	150,	01
+subgroup no., qty:	151,	01
+subgroup no., qty:	153,	02
+----
+component no.:	27
+component name:	'OCC(CC(=O)C(=O)O)C(C)(C)OO'
+subgroup no., qty:	001,	02
+subgroup no., qty:	003,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	137,	01
+subgroup no., qty:	150,	01
+subgroup no., qty:	153,	01
+subgroup no., qty:	160,	01
+----
+component no.:	28
+component name:	'O=C1CC(O)C(C)(ON(=O)=O)C(=O)C1'
+subgroup no., qty:	001,	01
+subgroup no., qty:	019,	02
+subgroup no., qty:	151,	01
+subgroup no., qty:	153,	01
+subgroup no., qty:	157,	01
+----
+component no.:	29
+component name:	'OOCC=O'
+subgroup no., qty:	020,	01
+subgroup no., qty:	158,	01
+----
+component no.:	30
+component name:	'O=CCC(=O)C(=O)C'
+subgroup no., qty:	018,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	020,	01
+----
+component no.:	31
+component name:	'CO'
+subgroup no., qty:	149,	01
+subgroup no., qty:	153,	01
+----
+component no.:	32
+component name:	'OCC(OO)CC(=O)C(=O)C'
+subgroup no., qty:	018,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	150,	01
+subgroup no., qty:	153,	01
+subgroup no., qty:	159,	01
+----
+component no.:	33
+component name:	'O=CCC(CC(=O)C(=O)C)C(C)(C)ON(=O)=O'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	157,	01
+----
+component no.:	34
+component name:	'OCC1CC(C(=O)O)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	02
+subgroup no., qty:	004,	01
+subgroup no., qty:	137,	01
+subgroup no., qty:	150,	01
+subgroup no., qty:	153,	01
+----
+component no.:	35
+component name:	'O=N(=O)OOC(=O)C1CC(C(=O)C)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	02
+subgroup no., qty:	004,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	172,	01
+----
+component no.:	36
+component name:	'O=CCC(CC(=O)C(=O)C)C(C)(C)OO'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	160,	01
+----
+component no.:	37
+component name:	'OOCC(=O)CC=O'
+subgroup no., qty:	019,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	158,	01
+----
+component no.:	38
+component name:	'O=CCC(OO)C(=O)O'
+subgroup no., qty:	002,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	137,	01
+subgroup no., qty:	159,	01
+----
+component no.:	39
+component name:	'CC(=O)C(O)CO'
+subgroup no., qty:	018,	01
+subgroup no., qty:	150,	01
+subgroup no., qty:	151,	01
+subgroup no., qty:	153,	02
+----
+component no.:	40
+component name:	'OCC(=O)CC(=O)C(=O)C'
+subgroup no., qty:	018,	01
+subgroup no., qty:	019,	02
+subgroup no., qty:	153,	01
+----
+component no.:	41
+component name:	'O=CCC(CC=O)ON(=O)=O'
+subgroup no., qty:	002,	02
+subgroup no., qty:	020,	02
+subgroup no., qty:	156,	01
+----
+component no.:	42
+component name:	'O=CCC(=O)CC(=O)OON(=O)=O'
+subgroup no., qty:	002,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	172,	01
+----
+component no.:	43
+component name:	'OCC(O)CC(=O)C(=O)CO'
+subgroup no., qty:	019,	02
+subgroup no., qty:	150,	01
+subgroup no., qty:	151,	01
+subgroup no., qty:	153,	03
+----
+component no.:	44
+component name:	'CC(=O)C(=O)CO'
+subgroup no., qty:	018,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	153,	01
+----
+component no.:	45
+component name:	'COO'
+subgroup no., qty:	158,	01
+----
+component no.:	46
+component name:	'OOC(C)(C)C1CC(=O)CC(=O)C1(C)ON(=O)=O'
+subgroup no., qty:	001,	03
+subgroup no., qty:	003,	01
+subgroup no., qty:	019,	02
+subgroup no., qty:	157,	01
+subgroup no., qty:	160,	01
+----
+component no.:	47
+component name:	'O=N(=O)OCC(O)C(=O)C'
+subgroup no., qty:	018,	01
+subgroup no., qty:	151,	01
+subgroup no., qty:	153,	01
+subgroup no., qty:	155,	01
+----
+component no.:	48
+component name:	'OOC(=O)CC(=O)C=O'
+subgroup no., qty:	019,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	161,	01
+----
+component no.:	49
+component name:	'O=CCC1CC(O)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	02
+subgroup no., qty:	003,	01
+subgroup no., qty:	004,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	151,	01
+subgroup no., qty:	153,	01
+----
+component no.:	50
+component name:	'O=CCC(OO)CC(=O)C(=O)C'
+subgroup no., qty:	002,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	159,	01
+----
+component no.:	51
+component name:	'CC(=O)COO'
+subgroup no., qty:	018,	01
+subgroup no., qty:	158,	01
+----
+component no.:	52
+component name:	'O=CCC1(ON(=O)=O)CC(C(=O)C)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	02
+subgroup no., qty:	003,	01
+subgroup no., qty:	004,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	157,	01
+----
+component no.:	53
+component name:	'O=CCC(CC=O)C(C)(C)OO'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	02
+subgroup no., qty:	003,	01
+subgroup no., qty:	020,	02
+subgroup no., qty:	160,	01
+----
+component no.:	54
+component name:	'C=O'
+subgroup no., qty:	020,	01
+----
+component no.:	55
+component name:	'O=CCC(C(=O)C)C(C)(C)OO'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	160,	01
+----
+component no.:	56
+component name:	'O=N(=O)OCC1CC(C(=O)C)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	02
+subgroup no., qty:	004,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	155,	01
+----
+component no.:	57
+component name:	'OOC(=O)CC1CC(C(=O)CO)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	02
+subgroup no., qty:	003,	01
+subgroup no., qty:	004,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	150,	01
+subgroup no., qty:	153,	01
+subgroup no., qty:	161,	01
+----
+component no.:	58
+component name:	'OCC(=O)C1CC(CC(=O)O)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	02
+subgroup no., qty:	003,	02
+subgroup no., qty:	004,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	137,	01
+subgroup no., qty:	153,	01
+----
+component no.:	59
+component name:	'O=CCC1(OO)CC(C(=O)C)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	02
+subgroup no., qty:	003,	01
+subgroup no., qty:	004,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	160,	01
+----
+component no.:	60
+component name:	'O=CC(=O)C(=O)C'
+subgroup no., qty:	018,	01
+subgroup no., qty:	020,	02
+----
+component no.:	61
+component name:	'O=CCC(OO)CC=O'
+subgroup no., qty:	002,	02
+subgroup no., qty:	020,	02
+subgroup no., qty:	159,	01
+----
+component no.:	62
+component name:	'OCC(OO)CC(=O)C(=O)O'
+subgroup no., qty:	019,	01
+subgroup no., qty:	137,	01
+subgroup no., qty:	150,	01
+subgroup no., qty:	153,	01
+subgroup no., qty:	159,	01
+----
+component no.:	63
+component name:	'OOCC1CC(C(=O)CO)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	01
+subgroup no., qty:	004,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	150,	01
+subgroup no., qty:	153,	01
+subgroup no., qty:	158,	01
+----
+component no.:	64
+component name:	'CC(=O)C(O)CC(=O)COO'
+subgroup no., qty:	018,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	151,	01
+subgroup no., qty:	153,	01
+subgroup no., qty:	158,	01
+----
+component no.:	65
+component name:	'O=CCC(CC(=O)C(=O)C)C(C)(C)O'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	152,	01
+subgroup no., qty:	153,	01
+----
+component no.:	66
+component name:	'O=CCC=O'
+subgroup no., qty:	002,	01
+subgroup no., qty:	020,	02
+----
+component no.:	67
+component name:	'O=CCC(=O)O'
+subgroup no., qty:	002,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	137,	01
+----
+component no.:	68
+component name:	'O=CCC(C(=O)C)C(C)(C)O'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	152,	01
+subgroup no., qty:	153,	01
+----
+component no.:	69
+component name:	'O=CC1CC(C(=O)O)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	02
+subgroup no., qty:	004,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	137,	01
+----
+component no.:	70
+component name:	'OCC(ON(=O)=O)CC(=O)C(=O)C'
+subgroup no., qty:	018,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	150,	01
+subgroup no., qty:	153,	01
+subgroup no., qty:	156,	01
+----
+component no.:	71
+component name:	'OCC(=O)C1CC(CC(=O)OON(=O)=O)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	02
+subgroup no., qty:	003,	02
+subgroup no., qty:	004,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	153,	01
+subgroup no., qty:	172,	01
+----
+component no.:	72
+component name:	'O=N(=O)OOC(=O)CC1CC(C(=O)O)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	02
+subgroup no., qty:	003,	02
+subgroup no., qty:	004,	01
+subgroup no., qty:	137,	01
+subgroup no., qty:	172,	01
+----
+component no.:	73
+component name:	'O=CCC(=O)C=O'
+subgroup no., qty:	019,	01
+subgroup no., qty:	020,	02
+----
+component no.:	74
+component name:	'OCC(=O)C(=O)CC(CO)C(C)(C)O'
+subgroup no., qty:	001,	02
+subgroup no., qty:	003,	01
+subgroup no., qty:	019,	02
+subgroup no., qty:	150,	01
+subgroup no., qty:	152,	01
+subgroup no., qty:	153,	03
+----
+component no.:	75
+component name:	'OC(=O)CC1CC(C(=O)O)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	02
+subgroup no., qty:	003,	02
+subgroup no., qty:	004,	01
+subgroup no., qty:	137,	02
+----
+component no.:	76
+component name:	'OOCC(=O)C(=O)CO'
+subgroup no., qty:	019,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	153,	01
+subgroup no., qty:	158,	01
+----
+component no.:	77
+component name:	'O=CC(=O)O'
+subgroup no., qty:	020,	01
+subgroup no., qty:	137,	01
+----
+component no.:	78
+component name:	'OOC1(C)C(O)CC(=O)CC1O'
+subgroup no., qty:	001,	01
+subgroup no., qty:	002,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	151,	02
+subgroup no., qty:	153,	02
+subgroup no., qty:	160,	01
+----
+component no.:	79
+component name:	'O=CC(=O)CC(=O)C(C)(ON(=O)=O)C(=O)OO'
+subgroup no., qty:	001,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	020,	02
+subgroup no., qty:	157,	01
+subgroup no., qty:	161,	01
+----
+component no.:	80
+component name:	'OCC(=O)OO'
+subgroup no., qty:	150,	01
+subgroup no., qty:	153,	01
+subgroup no., qty:	161,	01
+----
+component no.:	81
+component name:	'O=CC(=O)CC(=O)C(=O)C'
+subgroup no., qty:	018,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	020,	02
+----
+component no.:	82
+component name:	'OOC(=O)CC(=O)CC=O'
+subgroup no., qty:	002,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	161,	01
+----
+component no.:	83
+component name:	'O=CC(=O)CC(=O)C(C)(ON(=O)=O)C(=O)OON(=O)=O'
+subgroup no., qty:	001,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	020,	02
+subgroup no., qty:	157,	01
+subgroup no., qty:	172,	01
+----
+component no.:	84
+component name:	'O=N(=O)OOC(=O)CC1CC(C(=O)C)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	02
+subgroup no., qty:	003,	02
+subgroup no., qty:	004,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	172,	01
+----
+component no.:	85
+component name:	'O=CCC(CC=O)C(C)(C)ON(=O)=O'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	02
+subgroup no., qty:	003,	01
+subgroup no., qty:	020,	02
+subgroup no., qty:	157,	01
+----
+component no.:	86
+component name:	'O=C1CC(O)C(C)(ON(=O)=O)C(O)C1'
+subgroup no., qty:	001,	01
+subgroup no., qty:	002,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	151,	02
+subgroup no., qty:	153,	02
+subgroup no., qty:	157,	01
+----
+component no.:	87
+component name:	'OCC1CC(OO)(C(=O)O)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	01
+subgroup no., qty:	004,	01
+subgroup no., qty:	137,	01
+subgroup no., qty:	150,	01
+subgroup no., qty:	153,	01
+subgroup no., qty:	160,	01
+----
+component no.:	88
+component name:	'O=CCC1CC(OO)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	02
+subgroup no., qty:	003,	01
+subgroup no., qty:	004,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	159,	01
+----
+component no.:	89
+component name:	'O=CCC1(O)CC(C(=O)C)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	02
+subgroup no., qty:	003,	01
+subgroup no., qty:	004,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	152,	01
+subgroup no., qty:	153,	01
+----
+component no.:	90
+component name:	'O=CCC1CC(C(=O)O)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	02
+subgroup no., qty:	003,	02
+subgroup no., qty:	004,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	137,	01
+----
+component no.:	91
+component name:	'O=CCC1CC(C(=O)OO)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	02
+subgroup no., qty:	003,	02
+subgroup no., qty:	004,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	161,	01
+----
+component no.:	92
+component name:	'OOC(=O)CC1CC(C(=O)C)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	02
+subgroup no., qty:	003,	02
+subgroup no., qty:	004,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	161,	01
+----
+component no.:	93
+component name:	'OCC(=O)C(=O)CC(CO)C(C)(C)OO'
+subgroup no., qty:	001,	02
+subgroup no., qty:	003,	01
+subgroup no., qty:	019,	02
+subgroup no., qty:	150,	01
+subgroup no., qty:	153,	02
+subgroup no., qty:	160,	01
+----
+component no.:	94
+component name:	'OCC(=O)C1(OO)CC(CO)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	01
+subgroup no., qty:	004,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	150,	01
+subgroup no., qty:	153,	02
+subgroup no., qty:	160,	01
+----
+component no.:	95
+component name:	'OCC(CC(=O)C(=O)C)C(C)(C)OO'
+subgroup no., qty:	001,	02
+subgroup no., qty:	003,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	150,	01
+subgroup no., qty:	153,	01
+subgroup no., qty:	160,	01
+----
+component no.:	96
+component name:	'OCC(=O)C(=O)CC=O'
+subgroup no., qty:	019,	02
+subgroup no., qty:	020,	01
+subgroup no., qty:	153,	01
+----
+component no.:	97
+component name:	'O=C1CC(=O)C(C)(ON(=O)=O)C(=O)C1'
+subgroup no., qty:	001,	01
+subgroup no., qty:	019,	02
+subgroup no., qty:	020,	01
+subgroup no., qty:	157,	01
+----
+component no.:	98
+component name:	'OOC(=O)CC(=O)C(=O)CO'
+subgroup no., qty:	019,	02
+subgroup no., qty:	153,	01
+subgroup no., qty:	161,	01
+----
+component no.:	99
+component name:	'CC(=O)C(O)C(=O)OO'
+subgroup no., qty:	018,	01
+subgroup no., qty:	151,	01
+subgroup no., qty:	153,	01
+subgroup no., qty:	161,	01
+----
+component no.:	100
+component name:	'O=CCC(ON(=O)=O)CC(=O)C(=O)C'
+subgroup no., qty:	002,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	156,	01
+----
+component no.:	101
+component name:	'O=CCC1CC(O)(C(=O)C)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	02
+subgroup no., qty:	003,	01
+subgroup no., qty:	004,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	152,	01
+subgroup no., qty:	153,	01
+----
+component no.:	102
+component name:	'OCC=O'
+subgroup no., qty:	020,	01
+subgroup no., qty:	150,	01
+subgroup no., qty:	153,	01
+----
+component no.:	103
+component name:	'OOC(=O)C1CC(C(=O)C)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	02
+subgroup no., qty:	004,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	161,	01
+----
+component no.:	104
+component name:	'O=N(=O)OC(C)(C)C1CC=C(C)C(O)C1'
+subgroup no., qty:	001,	03
+subgroup no., qty:	002,	02
+subgroup no., qty:	003,	01
+subgroup no., qty:	008,	01
+subgroup no., qty:	151,	01
+subgroup no., qty:	153,	01
+subgroup no., qty:	157,	01
+----
+component no.:	105
+component name:	'OCC1CC(O)(C(=O)C)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	01
+subgroup no., qty:	004,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	150,	01
+subgroup no., qty:	152,	01
+subgroup no., qty:	153,	02
+----
+component no.:	106
+component name:	'O=CCC(=O)CC(C(=O)C)C(C)(C)OO'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	160,	01
+----
+component no.:	107
+component name:	'O=CCC1CC(C(=O)C)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	02
+subgroup no., qty:	003,	02
+subgroup no., qty:	004,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	020,	01
+----
+component no.:	108
+component name:	'CC(=O)C(O)COO'
+subgroup no., qty:	018,	01
+subgroup no., qty:	151,	01
+subgroup no., qty:	153,	01
+subgroup no., qty:	158,	01
+----
+component no.:	109
+component name:	'OCC(CC(=O)C(=O)O)C(C)(C)O'
+subgroup no., qty:	001,	02
+subgroup no., qty:	003,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	137,	01
+subgroup no., qty:	150,	01
+subgroup no., qty:	152,	01
+subgroup no., qty:	153,	02
+----
+component no.:	110
+component name:	'OOC(C)(C)C1CC=C(C)C(O)C1'
+subgroup no., qty:	001,	03
+subgroup no., qty:	002,	02
+subgroup no., qty:	003,	01
+subgroup no., qty:	008,	01
+subgroup no., qty:	151,	01
+subgroup no., qty:	153,	01
+subgroup no., qty:	160,	01
+----
+component no.:	111
+component name:	'OOCC(=O)C=O'
+subgroup no., qty:	020,	02
+subgroup no., qty:	158,	01
+----
+component no.:	112
+component name:	'O=CCC(OO)C(=O)C'
+subgroup no., qty:	002,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	159,	01
+----
+component no.:	113
+component name:	'OOCC(=O)C1CC(CC=O)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	02
+subgroup no., qty:	003,	01
+subgroup no., qty:	004,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	158,	01
+----
+component no.:	114
+component name:	'OOC1CC(=O)CC(=O)C1(C)ON(=O)=O'
+subgroup no., qty:	001,	01
+subgroup no., qty:	019,	02
+subgroup no., qty:	157,	01
+subgroup no., qty:	159,	01
+----
+component no.:	115
+component name:	'OCC(=O)O'
+subgroup no., qty:	137,	01
+subgroup no., qty:	150,	01
+subgroup no., qty:	153,	01
+----
+component no.:	116
+component name:	'O=CCC1CC(ON(=O)=O)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	02
+subgroup no., qty:	003,	01
+subgroup no., qty:	004,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	156,	01
+----
+component no.:	117
+component name:	'OCC(CC(=O)C(=O)C)C(C)(C)ON(=O)=O'
+subgroup no., qty:	001,	02
+subgroup no., qty:	003,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	150,	01
+subgroup no., qty:	153,	01
+subgroup no., qty:	157,	01
+----
+component no.:	118
+component name:	'OCC(=O)OON(=O)=O'
+subgroup no., qty:	150,	01
+subgroup no., qty:	153,	01
+subgroup no., qty:	172,	01
+----
+component no.:	119
+component name:	'OCC(=O)CC=O'
+subgroup no., qty:	002,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	153,	01
+----
+component no.:	120
+component name:	'O=CCC(O)CC=O'
+subgroup no., qty:	002,	02
+subgroup no., qty:	020,	02
+subgroup no., qty:	151,	01
+subgroup no., qty:	153,	01
+----
+component no.:	121
+component name:	'OOC(=O)CC(=O)C(=O)C'
+subgroup no., qty:	018,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	161,	01
+----
+component no.:	122
+component name:	'CC(=O)C'
+subgroup no., qty:	001,	01
+subgroup no., qty:	018,	01
+----
+component no.:	123
+component name:	'OOCC1CC(C(=O)O)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	02
+subgroup no., qty:	004,	01
+subgroup no., qty:	137,	01
+subgroup no., qty:	158,	01
+----
+component no.:	124
+component name:	'CC(=O)O'
+subgroup no., qty:	001,	01
+subgroup no., qty:	137,	01
+----
+component no.:	125
+component name:	'O=CC(=O)C=O'
+subgroup no., qty:	020,	03
+----
+component no.:	126
+component name:	'O=C1CC(=O)C(C)(ON(=O)=O)C(C1)C(C)(C)O'
+subgroup no., qty:	001,	03
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	152,	01
+subgroup no., qty:	153,	01
+subgroup no., qty:	157,	01
+----
+component no.:	127
+component name:	'O=CCC(O)CC(=O)C(=O)C'
+subgroup no., qty:	002,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	151,	01
+subgroup no., qty:	153,	01
+----
+component no.:	128
+component name:	'OOC1C(=O)CC(=O)C(C)(ON(=O)=O)C1=O'
+subgroup no., qty:	001,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	020,	02
+subgroup no., qty:	157,	01
+subgroup no., qty:	159,	01
+----
+component no.:	129
+component name:	'O=CC(O)C(=O)C'
+subgroup no., qty:	018,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	151,	01
+subgroup no., qty:	153,	01
+----
+component no.:	130
+component name:	'OOC1CC=C(C)C(O)C1'
+subgroup no., qty:	001,	01
+subgroup no., qty:	002,	02
+subgroup no., qty:	008,	01
+subgroup no., qty:	151,	01
+subgroup no., qty:	153,	01
+subgroup no., qty:	159,	01
+----
+component no.:	131
+component name:	'OCC(OO)CC(=O)C(=O)CO'
+subgroup no., qty:	019,	02
+subgroup no., qty:	150,	01
+subgroup no., qty:	153,	02
+subgroup no., qty:	159,	01
+----
+component no.:	132
+component name:	'O=CC(=O)C'
+subgroup no., qty:	018,	01
+subgroup no., qty:	020,	01
+----
+component no.:	133
+component name:	'OCC1CC(O)(C(=O)O)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	01
+subgroup no., qty:	004,	01
+subgroup no., qty:	137,	01
+subgroup no., qty:	150,	01
+subgroup no., qty:	152,	01
+subgroup no., qty:	153,	02
+----
+component no.:	134
+component name:	'OCC1CC(OO)(C(=O)C)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	01
+subgroup no., qty:	004,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	150,	01
+subgroup no., qty:	153,	01
+subgroup no., qty:	160,	01
+----
+component no.:	135
+component name:	'O=C1CC(O)C(C)(O)C(O)C1'
+subgroup no., qty:	001,	01
+subgroup no., qty:	002,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	151,	02
+subgroup no., qty:	152,	01
+subgroup no., qty:	153,	03
+----
+component no.:	136
+component name:	'O=CCC(C(=O)O)C(C)(C)O'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	137,	01
+subgroup no., qty:	152,	01
+subgroup no., qty:	153,	01
+----
+component no.:	137
+component name:	'OCC(O)CC(=O)C(=O)O'
+subgroup no., qty:	019,	01
+subgroup no., qty:	137,	01
+subgroup no., qty:	150,	01
+subgroup no., qty:	151,	01
+subgroup no., qty:	153,	02
+----
+component no.:	138
+component name:	'O=CCC1CC(OO)(C(=O)C)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	02
+subgroup no., qty:	003,	01
+subgroup no., qty:	004,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	160,	01
+----
+component no.:	139
+component name:	'OOCC1CC(C(=O)C)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	02
+subgroup no., qty:	004,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	158,	01
+----
+component no.:	140
+component name:	'O=CCC(=O)CC=O'
+subgroup no., qty:	002,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	020,	02
+----
+component no.:	141
+component name:	'O=CC(=O)CC(=O)OON(=O)=O'
+subgroup no., qty:	019,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	172,	01
+----
+component no.:	142
+component name:	'CC(=O)C1CC(O)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	01
+subgroup no., qty:	004,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	151,	01
+subgroup no., qty:	153,	01
+----
+component no.:	143
+component name:	'O=N(=O)OCC1CC(C(=O)O)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	02
+subgroup no., qty:	004,	01
+subgroup no., qty:	137,	01
+subgroup no., qty:	155,	01
+----
+component no.:	144
+component name:	'OCC(=O)C(=O)CO'
+subgroup no., qty:	019,	02
+subgroup no., qty:	153,	02
+----
+component no.:	145
+component name:	'OOC1CC(C(=O)C)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	01
+subgroup no., qty:	004,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	159,	01
+----
+component no.:	146
+component name:	'O=N(=O)OOC(=O)CC(O)C(=O)C'
+subgroup no., qty:	002,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	151,	01
+subgroup no., qty:	153,	01
+subgroup no., qty:	172,	01
+----
+component no.:	147
+component name:	'O=CCC(CC=O)C(C)(C)O'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	02
+subgroup no., qty:	003,	01
+subgroup no., qty:	020,	02
+subgroup no., qty:	152,	01
+subgroup no., qty:	153,	01
+----
+component no.:	148
+component name:	'O=CC1CC(C(=O)C)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	02
+subgroup no., qty:	004,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	020,	01
+----
+component no.:	149
+component name:	'OC(=O)CC1CC(C(=O)C)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	02
+subgroup no., qty:	003,	02
+subgroup no., qty:	004,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	137,	01
+----
+component no.:	150
+component name:	'OCC(=O)C1(O)CC(CO)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	01
+subgroup no., qty:	004,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	150,	01
+subgroup no., qty:	152,	01
+subgroup no., qty:	153,	03
+----
+component no.:	151
+component name:	'O=CCC(=O)C(=O)O'
+subgroup no., qty:	019,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	137,	01
+----
+component no.:	152
+component name:	'OC(=O)CC(O)C(=O)C'
+subgroup no., qty:	002,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	137,	01
+subgroup no., qty:	151,	01
+subgroup no., qty:	153,	01
+----
+component no.:	153
+component name:	'O=C(OON(=O)=O)CC(=O)CC(O)C(=O)C'
+subgroup no., qty:	002,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	151,	01
+subgroup no., qty:	153,	01
+subgroup no., qty:	172,	01
+----
+component no.:	154
+component name:	'OCC(=O)C=O'
+subgroup no., qty:	019,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	153,	01
+----
+component no.:	155
+component name:	'CC(=O)C(O)CC(=O)CO'
+subgroup no., qty:	018,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	150,	01
+subgroup no., qty:	151,	01
+subgroup no., qty:	153,	02
+----
+component no.:	156
+component name:	'O=N(=O)OOC(=O)CC(=O)C(=O)C'
+subgroup no., qty:	018,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	172,	01
+----
+component no.:	157
+component name:	'OOC(=O)CC1CC(C(=O)O)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	02
+subgroup no., qty:	003,	02
+subgroup no., qty:	004,	01
+subgroup no., qty:	137,	01
+subgroup no., qty:	161,	01
+----
+component no.:	158
+component name:	'O=CCC(=O)CC(OO)C(=O)C'
+subgroup no., qty:	002,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	159,	01
+----
+component no.:	159
+component name:	'O=N(=O)OC1CC=C(C)C(O)C1'
+subgroup no., qty:	001,	01
+subgroup no., qty:	002,	02
+subgroup no., qty:	008,	01
+subgroup no., qty:	151,	01
+subgroup no., qty:	153,	01
+subgroup no., qty:	156,	01
+----
+component no.:	160
+component name:	'O=CCC1CC(C(=O)C=O)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	02
+subgroup no., qty:	003,	01
+subgroup no., qty:	004,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	020,	02
+----
+component no.:	161
+component name:	'OC(=O)CC(=O)CC(O)C(=O)C'
+subgroup no., qty:	002,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	137,	01
+subgroup no., qty:	151,	01
+subgroup no., qty:	153,	01
+----
+component no.:	162
+component name:	'OOC(=O)CC(=O)CC(O)C(=O)C'
+subgroup no., qty:	002,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	151,	01
+subgroup no., qty:	153,	01
+subgroup no., qty:	161,	01
+----
+component no.:	163
+component name:	'O=CCC(=O)CC(=O)C(=O)C'
+subgroup no., qty:	018,	01
+subgroup no., qty:	019,	02
+subgroup no., qty:	020,	01
+----
+component no.:	164
+component name:	'OCC(=O)C1CC(CO)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	02
+subgroup no., qty:	004,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	150,	01
+subgroup no., qty:	153,	02
+----
+component no.:	165
+component name:	'O=CCC(=O)OON(=O)=O'
+subgroup no., qty:	002,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	172,	01
+----
+component no.:	166
+component name:	'O=CCC(O)C(=O)O'
+subgroup no., qty:	002,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	137,	01
+subgroup no., qty:	151,	01
+subgroup no., qty:	153,	01
+----
+component no.:	167
+component name:	'O=N(=O)OOC(=O)C1CC(C(=O)O)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	02
+subgroup no., qty:	004,	01
+subgroup no., qty:	137,	01
+subgroup no., qty:	172,	01
+----
+component no.:	168
+component name:	'CC(=O)OO'
+subgroup no., qty:	001,	01
+subgroup no., qty:	161,	01
+----
+component no.:	169
+component name:	'O=CC(=O)CC(O)C(=O)C'
+subgroup no., qty:	018,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	151,	01
+subgroup no., qty:	153,	01
+----
+component no.:	170
+component name:	'OCC(CC(=O)C(=O)O)C(C)(C)ON(=O)=O'
+subgroup no., qty:	001,	02
+subgroup no., qty:	003,	01
+subgroup no., qty:	019,	01
+subgroup no., qty:	137,	01
+subgroup no., qty:	150,	01
+subgroup no., qty:	153,	01
+subgroup no., qty:	157,	01
+----
+component no.:	171
+component name:	'O=CCC(O)C(=O)C'
+subgroup no., qty:	002,	01
+subgroup no., qty:	018,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	151,	01
+subgroup no., qty:	153,	01
+----
+component no.:	172
+component name:	'COON(=O)=O'
+subgroup no., qty:	001,	01
+subgroup no., qty:	157,	01
+----
+component no.:	173
+component name:	'OCC(=O)C(=O)CC(=O)OON(=O)=O'
+subgroup no., qty:	019,	02
+subgroup no., qty:	153,	01
+subgroup no., qty:	172,	01
+----
+component no.:	174
+component name:	'OC(=O)C1CC(O)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	01
+subgroup no., qty:	004,	01
+subgroup no., qty:	137,	01
+subgroup no., qty:	151,	01
+subgroup no., qty:	153,	01
+----
+component no.:	175
+component name:	'OC(=O)C1CC(C(=O)O)C1(C)C'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	02
+subgroup no., qty:	004,	01
+subgroup no., qty:	137,	02
+----
+++++
+mixture composition and temperature:
+mass fraction? 0
+mole fraction? 1
+----
+point, T_K, cp02, cp03, cp04, cp05, cp06, cp07, cp08, cp09, cp10, cp11, cp12, cp13, cp14, cp15, cp16, cp17, cp18, cp19, cp20, cp21, cp22, cp23, cp24, cp25, cp26, cp27, cp28, cp29, cp30, cp31, cp32, cp33, cp34, cp35, cp36, cp37, cp38, cp39, cp40, cp41, cp42, cp43, cp44, cp45, cp46, cp47, cp48, cp49, cp50, cp51, cp52, cp53, cp54, cp55, cp56, cp57, cp58, cp59, cp60, cp61, cp62, cp63, cp64, cp65, cp66, cp67, cp68, cp69, cp70, cp71, cp72, cp73, cp74, cp75, cp76, cp77, cp78, cp79, cp80, cp81, cp82, cp83, cp84, cp85, cp86, cp87, cp88, cp89, cp90, cp91, cp92, cp93, cp94, cp95, cp96, cp97, cp98, cp99, cp100, cp101, cp102, cp103, cp104, cp105, cp106, cp107, cp108, cp109, cp110, cp111, cp112, cp113, cp114, cp115, cp116, cp117, cp118, cp119, cp120, cp121, cp122, cp123, cp124, cp125, cp126, cp127, cp128, cp129, cp130, cp131, cp132, cp133, cp134, cp135, cp136, cp137, cp138, cp139, cp140, cp141, cp142, cp143, cp144, cp145, cp146, cp147, cp148, cp149, cp150, cp151, cp152, cp153, cp154, cp155, cp156, cp157, cp158, cp159, cp160, cp161, cp162, cp163, cp164, cp165, cp166, cp167, cp168, cp169, cp170, cp171, cp172, cp173, cp174, cp175
+1, 298.15, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12
+====

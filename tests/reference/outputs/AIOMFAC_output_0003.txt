@@ -1,0 +1,126 @@
+===========================================================================================================
+AIOMFAC-web, version 3.14
+===========================================================================================================
+ 
+Mixture name:  'Water + CO2(aq) + (K+) + (OH-) + (HCO3-) + (CO3--) + (H+)'
+Number of independent input components: 05
+Number of different neutral components: 02
+Number of different inorganic ions    : 05
+ 
+The AIOMFAC output is tabulated for each component/species individually below.
+ 
+---  Table key  -------------------------------------------------------------------------------------------
+no.              : composition point number;                                                        
+T [K]            : absolute temperature;                                                            
+RH [%]           : relative humidity in equilibrium with the liquid mixture (bulk conditions);      
+w(j) [-]         : weight fraction (mass fraction) of species "j";                                  
+x_i(j) [-]       : mole fraction of species "j", calculated on the basis of assuming completely     
+                   dissociated inorganic ions; exception: the partial dissociation of bisulfate     
+                   (HSO4- <--> H+ + SO4--) and bicarbonate (HCO3- <--> H+ + CO3--) is explicitly    
+                   considered when these species are present in the mixture;                        
+m_i(j) [mol/kg]  : molality of species "j" [mol(j)/(kg solvent mixture)], where "solvent mixture"   
+                   refers to the electrolyte-free mixture (water + organics);                       
+a_coeff_x(j) [-] : activity coefficient of "j", defined on mole fraction basis (used for non-ionic  
+                   components) with pure (liquid) component "j" reference state;                    
+a_coeff_m(j) [-] : activity coefficient of "j", defined on molality basis (used for inorg. ions)    
+                   with reference state of infinite dilution of "j" in pure water;                  
+a_x(j) [-]       : activity of "j", defined on mole fraction basis (pure component reference state);
+a_m(j) [-]       : activity of "j", defined on molality basis (used for inorg. ions) with reference 
+                   state of infinite dilution of "j" in pure water;                                 
+log10(eta/[Pa.s]): base-10 log of the predicted dynamic viscosity of the mixture;                   
++/-log10(eta sens./[Pa.s]): base-10 log of the estimated sensitivity/uncertainty of the dynamic     
+                   viscosity; see details on the "Hints & Examples" webpage;                        
+flag             : error/warning flag, a non-zero value (error/warning number) indicates that a     
+                   numerical issue or a warning occurred at this data point, suggesting evaluation  
+                   with caution (warnings) or exclusion (errors) of this data point.                
+-----------------------------------------------------------------------------------------------------------
+ 
+ 
+Properties of this phase: mixture viscosity
+-----------------------------------------------------------------------------------------------------------                                           
+  no.   T_[K]     RH_[%]   log10(eta/[Pa.s])   +/-log10(eta sens./[Pa.s])     flag 
+-----------------------------------------------------------------------------------------------------------                                           
+  001   298.00    96.49   -2.98995E+00           2.27968E-05                    0
+-----------------------------------------------------------------------------------------------------------                                           
+ 
+ 
+Mixture's component # : 01
+Component's name      : 'Water'
+Component's subgroups : '(H2O)'
+Subgroups, TeX format : '(H$_2$O)'
+-----------------------------------------------------------------------------------------------------------
+  no.   T_[K]     RH_[%]   w(01)          x_i(01)        m_i(01)        a_coeff_x(01)   a_x(01)        flag
+-----------------------------------------------------------------------------------------------------------                                           
+  001   298.00    96.49    9.45997E-01    9.64637E-01    5.55084E+01    1.00026E+00    9.64889E-01       0
+-----------------------------------------------------------------------------------------------------------
+ 
+ 
+Mixture's component # : 02
+Component's name      : 'CO2(aq)'
+Component's SMILES    : 'not_available (SMILES input required)'
+Component's subgroups : '(CO2)'
+Subgroups, TeX format : '(CO$_2$)'
+-----------------------------------------------------------------------------------------------------------
+  no.   T_[K]     RH_[%]   w(02)          x_i(02)        m_i(02)        a_coeff_m(02)   a_m(02)        flag
+-----------------------------------------------------------------------------------------------------------                                           
+  001   298.00    96.49    2.55164E-20    1.06508E-20    6.12885E-19    1.10936E+00    1.18156E-20       0
+-----------------------------------------------------------------------------------------------------------
+ 
+ 
+Mixture's species, #  : 03
+Cation's name         : 'K+'
+Cation's subgroups    : '(K+)'
+Subgroups, TeX format : '(K$^+$)'
+-----------------------------------------------------------------------------------------------------------
+  no.   T_[K]     RH_[%]   w(03)          x_i(03)        m_i(03)        a_coeff_m(03)   a_m(03)        flag
+-----------------------------------------------------------------------------------------------------------                                           
+  001   298.00    96.49    3.76326E-02    1.76817E-02    1.01747E+00    7.14325E-01    7.26802E-01       0
+-----------------------------------------------------------------------------------------------------------
+ 
+ 
+Mixture's species, #  : 04
+Anion's name          : 'OH-'
+Anion's subgroups     : '(OH-)'
+Subgroups, TeX format : '(OH$^-$)'
+-----------------------------------------------------------------------------------------------------------
+  no.   T_[K]     RH_[%]   w(04)          x_i(04)        m_i(04)        a_coeff_m(04)   a_m(04)        flag
+-----------------------------------------------------------------------------------------------------------                                           
+  001   298.00    96.49    1.63698E-02    1.76817E-02    1.01747E+00    7.75625E-01    7.89171E-01       0
+-----------------------------------------------------------------------------------------------------------
+ 
+ 
+Mixture's species, #  : 05
+Anion's name          : 'HCO3-'
+Anion's subgroups     : '(HCO3-)'
+Subgroups, TeX format : '(HCO$_3$$^-$)'
+-----------------------------------------------------------------------------------------------------------
+  no.   T_[K]     RH_[%]   w(05)          x_i(05)        m_i(05)        a_coeff_m(05)   a_m(05)        flag
+-----------------------------------------------------------------------------------------------------------                                           
+  001   298.00    96.49    3.53524E-12    1.06436E-12    6.12471E-11    3.88645E-01    2.38034E-11       0
+-----------------------------------------------------------------------------------------------------------
+ 
+ 
+Mixture's species, #  : 06
+Anion's name          : 'CO3--'
+Anion's subgroups     : '(CO3--)'
+Subgroups, TeX format : '(CO$_3$$^{2-}$)'
+-----------------------------------------------------------------------------------------------------------
+  no.   T_[K]     RH_[%]   w(06)          x_i(06)        m_i(06)        a_coeff_m(06)   a_m(06)        flag
+-----------------------------------------------------------------------------------------------------------                                           
+  001   298.00    96.49    3.20848E-08    9.82212E-09    5.65198E-07    1.60937E-01    9.09612E-08       0
+-----------------------------------------------------------------------------------------------------------
+ 
+ 
+Mixture's species, #  : 07
+Cation's name         : 'H+'
+Cation's subgroups    : '(H+)'
+Subgroups, TeX format : '(H$^+$)'
+-----------------------------------------------------------------------------------------------------------
+  no.   T_[K]     RH_[%]   w(07)          x_i(07)        m_i(07)        a_coeff_m(07)   a_m(07)        flag
+-----------------------------------------------------------------------------------------------------------                                           
+  001   298.00    96.49    2.06047E-17    3.75508E-16    2.16080E-14    5.66243E-01    1.22354E-14       0
+-----------------------------------------------------------------------------------------------------------
+ 
+ 
+ 
+===========================================================================================================

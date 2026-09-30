@@ -1,0 +1,92 @@
+--- a/FortranCode/ModSRunifac.f90
++++ b/FortranCode/ModSRunifac.f90
+@@ -47,12 +47,14 @@
+ integer,private :: grefcallID
+ integer,dimension(:,:),allocatable,private :: SRNY, SRNY_dimflip
+ real(wp),dimension(:),allocatable,private :: RS, QS, R, Q, XL, lnGaCinf, lnGaRref, XieRref
++real(wp),dimension(:),allocatable,public :: dbg_lnGaC, dbg_lnGaR, dbg_lnGaRref, dbg_lnGaCinf   !DEBUG (temporary)
+ real(wp),dimension(:,:),allocatable,private :: parA, parB, parC, PsiT, PsiT_dimflip
+ real(wp),dimension(:,:),allocatable,private :: Nvis
+ logical,private :: gcombrefresh
+ 
+ !$OMP THREADPRIVATE(parA, parB, parC, PsiT, PsiT_dimflip, grefcallID, SRNY, SRNY_dimflip, R, Q, RS, QS, XL, Nvis, &
+    !$OMP & lnGaCinf, lnGaRref, XieRref, gcombrefresh)
++!$OMP THREADPRIVATE(dbg_lnGaC, dbg_lnGaR, dbg_lnGaRref, dbg_lnGaCinf)
+ 
+ !==========================================================================================================================
+     contains
+@@ -106,6 +108,15 @@
+ 
+     call SRgres(X, lnGaR, NK, XieR)                         !Residual part
+     call SRgcomb(X, lnGaC, NK, XieC)                        !Combinatorial part
++    !DEBUG (temporary): keep the SR sub-terms of the latest call
++    dbg_lnGaC = lnGaC(1:NK)
++    dbg_lnGaR = lnGaR(1:NK)
++    dbg_lnGaRref = lnGaRref(1:NK)
++    if (allocated(lnGaCinf)) then
++        dbg_lnGaCinf = lnGaCinf
++    else
++        dbg_lnGaCinf = [0.0_wp]
++    endif
+     
+     if (calcviscosity) then
+         lnGaSR(1:NK) = lnGaC(1:NK) + lnGaR(1:NK) - lnGaRref(1:NK)
+--- a/FortranCode/AIOMFAC_inout.f90
++++ b/FortranCode/AIOMFAC_inout.f90
+@@ -49,6 +49,7 @@
+ use ModFiniteDiffSens, only : DeltaActivities
+ use ModSubgroupProp, only : SMWA, SMWC
+ use ModPureCompViscos, only : TgScale
++use ModSRunifac, only : dbg_lnGaC, dbg_lnGaR, dbg_lnGaRref, dbg_lnGaCinf   !DEBUG (temporary)
+ use, intrinsic :: IEEE_ARITHMETIC
+ 
+ implicit none
+@@ -144,6 +145,48 @@
+ endif
+ !.....
+ 
++!DEBUG (temporary) ---- dump of activity-coefficient terms at full precision (for validating a port) ----
++block
++    integer, save :: dbg_npoint = 0
++    integer :: dbgu, dbgi
++    character(len=*), parameter :: fm = '(ES26.17E3)'
++    dbg_npoint = dbg_npoint + 1
++    open(newunit=dbgu, file='Outputfiles/debug_terms.txt', status='unknown', position='append', action='write')
++    write(dbgu,'(A,I0)') 'POINT ', dbg_npoint
++    write(dbgu,'(A,ES26.17E3)') 'T_K ', T_K
++    write(dbgu,'(A,3(1X,I0))') 'DIMS nneutral Ncation Nanion', nneutral, Ncation, Nanion
++    write(dbgu,'(A,3(1X,L1))') 'FLAGS bisulfsyst bicarbsyst solvmixrefnd', bisulfsyst, bicarbsyst, solvmixrefnd
++    write(dbgu,'(A,*(1X,ES26.17E3))') 'Tmolal_TmolalSolvMix', Tmolal, TmolalSolvMix
++    write(dbgu,'(A,*(1X,ES26.17E3))') 'wtf', wtf(1:nindcomp)
++    write(dbgu,'(A,*(1X,ES26.17E3))') 'X', X
++    write(dbgu,'(A,*(1X,ES26.17E3))') 'XN', XN
++    write(dbgu,'(A,*(1X,ES26.17E3))') 'SMC', SMC(1:Ncation)
++    write(dbgu,'(A,*(1X,ES26.17E3))') 'SMA', SMA(1:Nanion)
++    write(dbgu,'(A,*(1X,ES26.17E3))') 'gnlrln', gnlrln(1:nneutral)
++    write(dbgu,'(A,*(1X,ES26.17E3))') 'gnmrln', gnmrln(1:nneutral)
++    write(dbgu,'(A,*(1X,ES26.17E3))') 'gnsrln', gnsrln(1:nneutral)
++    write(dbgu,'(A,*(1X,ES26.17E3))') 'gclrln', gclrln(1:Ncation)
++    write(dbgu,'(A,*(1X,ES26.17E3))') 'gcmrln', gcmrln(1:Ncation)
++    write(dbgu,'(A,*(1X,ES26.17E3))') 'gcsrln', gcsrln(1:Ncation)
++    write(dbgu,'(A,*(1X,ES26.17E3))') 'galrln', galrln(1:Nanion)
++    write(dbgu,'(A,*(1X,ES26.17E3))') 'gamrln', gamrln(1:Nanion)
++    write(dbgu,'(A,*(1X,ES26.17E3))') 'gasrln', gasrln(1:Nanion)
++    write(dbgu,'(A,*(1X,ES26.17E3))') 'solvmixcorrMRc', solvmixcorrMRc(1:Ncation)
++    write(dbgu,'(A,*(1X,ES26.17E3))') 'solvmixcorrMRa', solvmixcorrMRa(1:Nanion)
++    write(dbgu,'(A,*(1X,ES26.17E3))') 'SR_lnGaC', dbg_lnGaC
++    write(dbgu,'(A,*(1X,ES26.17E3))') 'SR_lnGaR', dbg_lnGaR
++    write(dbgu,'(A,*(1X,ES26.17E3))') 'SR_lnGaRref', dbg_lnGaRref
++    write(dbgu,'(A,*(1X,ES26.17E3))') 'SR_lnGaCinf', dbg_lnGaCinf
++    write(dbgu,'(A,*(1X,ES26.17E3))') 'lnactcoeff_n', lnactcoeff_n(1:nneutral)
++    write(dbgu,'(A,*(1X,ES26.17E3))') 'lnactcoeff_c', lnactcoeff_c(1:Ncation)
++    write(dbgu,'(A,*(1X,ES26.17E3))') 'lnactcoeff_a', lnactcoeff_a(1:Nanion)
++    write(dbgu,'(A,*(1X,ES26.17E3))') 'actcoeff_n', actcoeff_n(1:nneutral)
++    write(dbgu,'(A,*(1X,ES26.17E3))') 'activity', activity(1:nindcomp)
++    write(dbgu,'(A)') 'END'
++    close(dbgu)
++end block
++!DEBUG (temporary) ---- end of dump ----
++
+ !Output of the AIOMFAC calculated values species-wise to array outputvars (ions separately):
+ call MassFrac2SolvMolalities(wtf, m_neutral)
+ sum_ms = sum(m_neutral(1:nneutral))

@@ -1,0 +1,64 @@
+Input file for AIOMFAC-web model
+
+mixture components:
+----
+component no.:	01
+component name:	'Water'
+subgroup no., qty:	016,	01
+----
+component no.:	02
+component name:	'CCCCO'
+subgroup no., qty:	145,	01
+subgroup no., qty:	146,	02
+subgroup no., qty:	150,	01
+subgroup no., qty:	153,	01
+----
+component no.:	03
+component name:	'CCOCCOCCOCCOC(CC)C=O'
+subgroup no., qty:	001,	02
+subgroup no., qty:	002,	01
+subgroup no., qty:	003,	01
+subgroup no., qty:	020,	01
+subgroup no., qty:	025,	01
+subgroup no., qty:	154,	03
+----
+component no.:	04
+component name:	'OC(=O)CC(O)(C(=O)O)CC(=O)O'
+subgroup no., qty:	002,	02
+subgroup no., qty:	137,	03
+subgroup no., qty:	152,	01
+subgroup no., qty:	153,	01
+----
+component no.:	05
+component name:	'CCCCCC(O)O'
+subgroup no., qty:	145,	01
+subgroup no., qty:	146,	04
+subgroup no., qty:	151,	01
+subgroup no., qty:	153,	02
+----
+component no.:	06
+component name:	'C1CCC(CC1)O'
+subgroup no., qty:	142,	05
+subgroup no., qty:	151,	01
+subgroup no., qty:	153,	01
+----
+component no.:	07
+component name:	'C([C@@H]1[C@H]([C@@H]([C@H]([C@H](O1)O)O)O)O)O'
+subgroup no., qty:	026,	01
+subgroup no., qty:	150,	01
+subgroup no., qty:	151,	04
+subgroup no., qty:	153,	05
+----
+component no.:	08
+component name:	'c1ccc2c(c1)cc3ccc4cccc5c4c3c2cc5'
+subgroup no., qty:	009,	12
+subgroup no., qty:	010,	08
+----
+++++
+mixture composition and temperature:
+mass fraction? 0
+mole fraction? 1
+----
+point, T_K, cp02, cp03, cp04, cp05, cp06, cp07, cp08
+1, 298.15, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12
+====

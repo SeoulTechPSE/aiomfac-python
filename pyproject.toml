@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aiomfac_py"
+version = "0.0.8"
+description = "Pure-Python port of the AIOMFAC thermodynamic activity-coefficient model (work in progress)"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "GPL-3.0-or-later" }
+dependencies = ["numpy>=1.22"]
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+# needed only for aiomfac_py.carbonate (bicarbonate/bisulfate dissociation equilibria, uses scipy.optimize.root)
+carbonate = ["scipy>=1.9"]
+# needed only for aiomfac_py.s2as (SMILES -> AIOMFAC subgroups, uses the Indigo cheminformatics toolkit)
+smiles = ["epam.indigo"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+aiomfac_py = ["data/*.npz", "s2as/LICENSE_S2AS"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

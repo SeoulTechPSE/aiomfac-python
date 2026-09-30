@@ -1,0 +1,56 @@
+Input file for AIOMFAC-web model
+ 
+mixture components:
+----
+component no.:	01
+component name:	'Water'
+subgroup no., qty:	016,	01
+----
+component no.:	02
+component name:	'x_Methanol'
+subgroup no., qty:	149,	01
+subgroup no., qty:	153,	01
+----
+component no.:	03
+component name:	'x_1-Propanol'
+subgroup no., qty:	145,	01
+subgroup no., qty:	146,	01
+subgroup no., qty:	150,	01
+subgroup no., qty:	153,	01
+----
+component no.:	04
+component name:	'x_Acetone'
+subgroup no., qty:	001,	01
+subgroup no., qty:	018,	01
+----
+component no.:	05
+component name:	'x_2-Butanol'
+subgroup no., qty:	141,	01
+subgroup no., qty:	145,	01
+subgroup no., qty:	146,	01
+subgroup no., qty:	151,	01
+subgroup no., qty:	153,	01
+----
+component no.:	06
+component name:	'CaCl2'
+subgroup no., qty:	221,	01
+subgroup no., qty:	242,	02
+----
+++++
+mixture composition and temperature:
+mass fraction?	1
+mole fraction?	0
+----
+point,	T_K,	cp02,	cp03,	cp04,	cp05,	cp06
+01		275.00	0.08	0.06	0.05	0.07	0.1
+02		280.00	0.08	0.06	0.05	0.07	0.1
+03		285.00	0.08	0.06	0.05	0.07	0.1
+04		290.00	0.08	0.06	0.05	0.07	0.1
+05		295.00	0.08	0.06	0.05	0.07	0.1
+06		300.00	0.08	0.06	0.05	0.07	0.1
+07		305.00	0.08	0.06	0.05	0.07	0.1
+08		310.00	0.08	0.06	0.05	0.07	0.1
+09		315.00	0.08	0.06	0.05	0.07	0.1
+10		320.00	0.08	0.06	0.05	0.07	0.1
+11		325.00	0.08	0.06	0.05	0.07	0.1
+====
