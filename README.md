@@ -101,10 +101,15 @@ After this finishes, `import aiomfac_py` works directly (installed editable, so 
 edited and re-imported in the same Colab session without reinstalling).
 
 See [`notebooks/bootstrap_colab.ipynb`](notebooks/bootstrap_colab.ipynb) for the same steps as a ready-to-run
-notebook, and [`notebooks/01_quickstart.ipynb`](notebooks/01_quickstart.ipynb) for four worked examples: reading
+notebook, [`notebooks/01_quickstart.ipynb`](notebooks/01_quickstart.ipynb) for four worked examples: reading
 an AIOMFAC-web input file, building a mixture by hand (aqueous NaCl), the joint bisulfate+bicarbonate
 dissociation equilibrium (with and without Ca2+ precipitation), and SMILES → AIOMFAC subgroups via
-`aiomfac_py.s2as`.
+`aiomfac_py.s2as`; and [`notebooks/02_reproduce_zuend2008.ipynb`](notebooks/02_reproduce_zuend2008.ipynb),
+which reproduces (in style, not as a pixel-exact overlay) the activity-coefficient figures of the first
+AIOMFAC journal paper, Zuend et al. (2008, *Atmos. Chem. Phys.*, doi:10.5194/acp-8-4559-2008) — binary and
+quaternary electrolyte solutions, H2SO4/(NH4)2SO4 bisulfate dissociation, polyol+ammonium-sulfate ternaries,
+and salt+alcohol mean activity coefficients. Its Fig. 9 (liquid-liquid equilibrium) is explicitly out of
+scope: LLE phase-splitting is not implemented anywhere in this port.
 
 ### Manual / local install
 
