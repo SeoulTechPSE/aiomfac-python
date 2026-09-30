@@ -115,24 +115,45 @@ def main():
     run(pip_cmd, cwd=REPO_DIR)
     print()
 
-    print("Verifying installation...")
-    check = subprocess.run(
-        [sys.executable, "-c",
-         "import aiomfac_py as a; "
-         "print(f'aiomfac_py {a.__version__}  "
-         "(validated against AIOMFAC-web commit {a.AIOMFAC_REFERENCE_COMMIT[:12]})')"],
-        capture_output=True, text=True,
-    )
-    print(check.stdout.strip() or check.stderr.strip())
+    # This script is normally executed with `%run` from the notebook's Quick Start cell, which runs it in the
+    # *same* process as the rest of the notebook (that's the whole point of `%run` over `!python ...`). A pip
+    # install -- especially an editable one -- registers its import hooks (a .pth file / __editable__ finder
+    # under site-packages) that Python's `site` module only reads when a process *starts*, not while one is
+    # already running. So without the fix below, `import aiomfac_py` can fail in the notebook's own cells right
+    # after this script reports success, even though a fresh `python -c "import aiomfac_py"` subprocess works
+    # fine (that subprocess *did* just start, so it picks the new .pth file up) -- which is exactly what made
+    # the old version of this script's subprocess-based "Verifying installation" check misleadingly pass while
+    # the very next notebook cell failed with ModuleNotFoundError. Adding src/ directly to sys.path sidesteps
+    # relying on pip's editable-install machinery working correctly in an already-running process, and the
+    # verification below now actually imports in-process so a real failure is reported here, not one cell later.
+    src_dir = str(REPO_DIR / "src")
+    if src_dir not in sys.path:
+        sys.path.insert(0, src_dir)
+
+    print("Verifying installation (in this process, not a subprocess)...")
+    for mod_name in ("aiomfac_py",):
+        sys.modules.pop(mod_name, None)   # drop any earlier failed/partial import before retrying
+    try:
+        import aiomfac_py as _aiomfac
+        print(f"aiomfac_py {_aiomfac.__version__}  "
+              f"(validated against AIOMFAC-web commit {_aiomfac.AIOMFAC_REFERENCE_COMMIT[:12]})")
+    except ImportError as e:
+        print(f"WARNING: `import aiomfac_py` still failed after the sys.path fix: {e}")
+        print(f"         sys.path now includes: {src_dir}")
+        print("         Try Runtime -> Restart session in Colab, then re-run this cell.")
 
     if carbonate:
-        c = subprocess.run([sys.executable, "-c", "import scipy; print(f'scipy {scipy.__version__} OK')"],
-                           capture_output=True, text=True)
-        print(("  " + c.stdout.strip()) if c.returncode == 0 else "  WARNING: scipy import failed:\n" + c.stderr)
+        try:
+            import scipy
+            print(f"  scipy {scipy.__version__} OK")
+        except ImportError as e:
+            print(f"  WARNING: scipy import failed: {e}")
     if smiles:
-        c = subprocess.run([sys.executable, "-c", "from indigo import Indigo; print('epam.indigo OK, version', Indigo().version())"],
-                           capture_output=True, text=True)
-        print(("  " + c.stdout.strip()) if c.returncode == 0 else "  WARNING: epam.indigo import failed:\n" + c.stderr)
+        try:
+            from indigo import Indigo
+            print("  epam.indigo OK, version", Indigo().version())
+        except ImportError as e:
+            print(f"  WARNING: epam.indigo import failed: {e}")
 
     print()
     print("=" * 70)
