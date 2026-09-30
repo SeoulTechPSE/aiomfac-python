@@ -1,0 +1,118 @@
+===========================================================================================================
+AIOMFAC-web, version 3.14
+===========================================================================================================
+ 
+Mixture name:  'Water + x_Methanol + (Na+) + (Br-)'
+Number of independent input components: 03
+Number of different neutral components: 02
+Number of different inorganic ions    : 02
+ 
+The AIOMFAC output is tabulated for each component/species individually below.
+ 
+---  Table key  -------------------------------------------------------------------------------------------
+no.              : composition point number;                                                        
+T [K]            : absolute temperature;                                                            
+RH [%]           : relative humidity in equilibrium with the liquid mixture (bulk conditions);      
+w(j) [-]         : weight fraction (mass fraction) of species "j";                                  
+x_i(j) [-]       : mole fraction of species "j", calculated on the basis of assuming completely     
+                   dissociated inorganic ions; exception: the partial dissociation of bisulfate     
+                   (HSO4- <--> H+ + SO4--) and bicarbonate (HCO3- <--> H+ + CO3--) is explicitly    
+                   considered when these species are present in the mixture;                        
+m_i(j) [mol/kg]  : molality of species "j" [mol(j)/(kg solvent mixture)], where "solvent mixture"   
+                   refers to the electrolyte-free mixture (water + organics);                       
+a_coeff_x(j) [-] : activity coefficient of "j", defined on mole fraction basis (used for non-ionic  
+                   components) with pure (liquid) component "j" reference state;                    
+a_coeff_m(j) [-] : activity coefficient of "j", defined on molality basis (used for inorg. ions)    
+                   with reference state of infinite dilution of "j" in pure water;                  
+a_x(j) [-]       : activity of "j", defined on mole fraction basis (pure component reference state);
+a_m(j) [-]       : activity of "j", defined on molality basis (used for inorg. ions) with reference 
+                   state of infinite dilution of "j" in pure water;                                 
+log10(eta/[Pa.s]): base-10 log of the predicted dynamic viscosity of the mixture;                   
++/-log10(eta sens./[Pa.s]): base-10 log of the estimated sensitivity/uncertainty of the dynamic     
+                   viscosity; see details on the "Hints & Examples" webpage;                        
+flag             : error/warning flag, a non-zero value (error/warning number) indicates that a     
+                   numerical issue or a warning occurred at this data point, suggesting evaluation  
+                   with caution (warnings) or exclusion (errors) of this data point.                
+-----------------------------------------------------------------------------------------------------------
+ 
+ 
+Properties of this phase: mixture viscosity
+-----------------------------------------------------------------------------------------------------------                                           
+  no.   T_[K]     RH_[%]   log10(eta/[Pa.s])   +/-log10(eta sens./[Pa.s])     flag 
+-----------------------------------------------------------------------------------------------------------                                           
+  001   298.15   100.00   -3.05006E+00           0.00000E+00                    0
+  002   298.15    97.16   -3.07492E+00           1.43181E-05                    0
+  003   298.15   100.00   -3.05006E+00           0.00000E+00                    0
+  004   298.15    88.11   -3.15667E+00           2.81797E-04                    0
+  005   298.15    97.16   -3.07492E+00           1.43279E-05                    0
+  006   298.15    99.97   -3.05000E+00           2.80214E-10                    0
+-----------------------------------------------------------------------------------------------------------                                           
+ 
+ 
+Mixture's component # : 01
+Component's name      : 'Water'
+Component's subgroups : '(H2O)'
+Subgroups, TeX format : '(H$_2$O)'
+-----------------------------------------------------------------------------------------------------------
+  no.   T_[K]     RH_[%]   w(01)          x_i(01)        m_i(01)        a_coeff_x(01)   a_x(01)        flag
+-----------------------------------------------------------------------------------------------------------                                           
+  001   298.15   100.00    1.00000E+00    1.00000E+00    5.55084E+01    1.00000E+00    1.00000E+00       0
+  002   298.15    97.16    9.50000E-01    9.71259E-01    5.27330E+01    1.00035E+00    9.71598E-01       0
+  003   298.15   100.00    1.00000E+00    1.00000E+00    5.55084E+01    1.00000E+00    1.00000E+00       0
+  004   298.15    88.11    7.99990E-01    8.76758E-01    4.44066E+01    1.00493E+00    8.81081E-01       0
+  005   298.15    97.16    9.49900E-01    9.71221E-01    5.27327E+01    1.00035E+00    9.71557E-01       0
+  006   298.15    99.97    9.99000E-01    9.99650E-01    5.55084E+01    1.00001E+00    9.99660E-01       0
+-----------------------------------------------------------------------------------------------------------
+ 
+ 
+Mixture's component # : 02
+Component's name      : 'x_Methanol'
+Component's SMILES    : 'not_available (SMILES input required)'
+Component's subgroups : '(CH3[OH])(OH)'
+Subgroups, TeX format : '(CH$_3$$^{[OH]}$)(OH)'
+-----------------------------------------------------------------------------------------------------------
+  no.   T_[K]     RH_[%]   w(02)          x_i(02)        m_i(02)        a_coeff_x(02)   a_x(02)        flag
+-----------------------------------------------------------------------------------------------------------                                           
+  001   298.15   100.00    0.00000E+00    0.00000E+00    0.00000E+00    0.00000E+00    0.00000E+00       0
+  002   298.15    97.16    5.00000E-02    2.87411E-02    1.56045E+00    1.19953E+00    3.44757E-02       0
+  003   298.15   100.00    0.00000E+00    0.00000E+00    0.00000E+00    0.00000E+00    0.00000E+00       0
+  004   298.15    88.11    2.00000E-01    1.23239E-01    6.24187E+00    1.13166E+00    1.39465E-01       0
+  005   298.15    97.16    5.00000E-02    2.87430E-02    1.56061E+00    1.19966E+00    3.44817E-02       0
+  006   298.15    99.97    0.00000E+00    0.00000E+00    0.00000E+00    0.00000E+00    0.00000E+00       0
+-----------------------------------------------------------------------------------------------------------
+ 
+ 
+Mixture's species, #  : 03
+Cation's name         : 'Na+'
+Cation's subgroups    : '(Na+)'
+Subgroups, TeX format : '(Na$^+$)'
+-----------------------------------------------------------------------------------------------------------
+  no.   T_[K]     RH_[%]   w(03)          x_i(03)        m_i(03)        a_coeff_m(03)   a_m(03)        flag
+-----------------------------------------------------------------------------------------------------------                                           
+  001   298.15   100.00    0.00000E+00    0.00000E+00    0.00000E+00    0.00000E+00    0.00000E+00       0
+  002   298.15    97.16    2.23434E-10    1.79004E-10    9.71874E-09    1.19434E+00    1.16075E-08       0
+  003   298.15   100.00    2.23434E-08    1.75086E-08    9.71874E-07    9.98849E-01    9.70756E-07       0
+  004   298.15    88.11    2.23434E-06    1.91887E-06    9.71884E-05    2.01216E+00    1.95559E-04       0
+  005   298.15    97.16    2.23434E-05    1.79016E-05    9.71971E-04    1.15335E+00    1.12102E-03       0
+  006   298.15    99.97    2.23434E-04    1.75200E-04    9.72847E-03    9.06261E-01    8.81653E-03       0
+-----------------------------------------------------------------------------------------------------------
+ 
+ 
+Mixture's species, #  : 04
+Anion's name          : 'Br-'
+Anion's subgroups     : '(Br-)'
+Subgroups, TeX format : '(Br$^-$)'
+-----------------------------------------------------------------------------------------------------------
+  no.   T_[K]     RH_[%]   w(04)          x_i(04)        m_i(04)        a_coeff_m(04)   a_m(04)        flag
+-----------------------------------------------------------------------------------------------------------                                           
+  001   298.15   100.00    0.00000E+00    0.00000E+00    0.00000E+00    0.00000E+00    0.00000E+00       0
+  002   298.15    97.16    7.76566E-10    1.79004E-10    9.71874E-09    1.05089E+00    1.02133E-08       0
+  003   298.15   100.00    7.76566E-08    1.75086E-08    9.71874E-07    9.98849E-01    9.70756E-07       0
+  004   298.15    88.11    7.76566E-06    1.91887E-06    9.71884E-05    1.21036E+00    1.17633E-04       0
+  005   298.15    97.16    7.76566E-05    1.79016E-05    9.71971E-04    1.01383E+00    9.85418E-04       0
+  006   298.15    99.97    7.76566E-04    1.75200E-04    9.72847E-03    9.05916E-01    8.81317E-03       0
+-----------------------------------------------------------------------------------------------------------
+ 
+ 
+ 
+===========================================================================================================

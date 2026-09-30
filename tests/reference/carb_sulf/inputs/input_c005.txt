@@ -1,0 +1,35 @@
+Input file for AIOMFAC-web model
+
+mixture components:
+----
+component no.:	01
+component name:	'x_Water'
+subgroup no., qty:	016, 01
+----
+component no.:	02
+component name:	'x_NaHSO4'
+subgroup no., qty:	202,	01
+subgroup no., qty:	248,	01
+----
+component no.:	03
+component name:	'x_NaHCO3'
+subgroup no., qty:	202,	01
+subgroup no., qty:	250,	01
+----
+++++
+mixture composition and temperature:
+mass fraction?	1
+mole fraction?	0
+----
+point,	T_K,	cp02,	cp03
+01	298.15,	0.02,	0.02
+02	298.15,	0.05,	0.05
+03	298.15,	0.10,	0.05
+04	298.15,	0.05,	0.10
+05	298.15,	0.15,	0.15
+06	298.15,	0.005,	0.15
+07	298.15,	0.15,	0.005
+08	288.15,	0.08,	0.03
+09	308.15,	0.03,	0.08
+10	298.15,	0.001,	0.001
+====
