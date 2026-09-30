@@ -37,7 +37,7 @@ see "Validation status" below for what is and isn't covered. `aiomfac_py.s2as` a
 | `fortran_patches/` | patch that makes the Fortran model dump every activity-coefficient term at full precision, plus notes on how to rebuild the references |
 | `tests/reference/` | examples 0001/0003 (inputs, standard outputs, per-term dumps) |
 | `tests/reference/cases/` | 9 generated validation cases, 145 points (`tools/make_cases.py` + `tools/run_fortran_cases.sh`) |
-| `tests/reference/ext/` | 6 more generated cases, 80 points, targeting Qcca/Rcc, ester/ether/acid, aromatic/amine (`tools/make_cases_ext.py` + `tools/run_fortran_cases.sh`) |
+| `tests/reference/ext/` | 8 more generated cases, 106 points, targeting Qcca/Rcc, ester/ether/acid, aromatic/amine, PEG (`tools/make_cases_ext.py` + `tools/run_fortran_cases.sh`) |
 | `tests/reference/completion/` | NaHSO4, NaHCO3 and H2SO4 cases: structural completion (`DIMS`) and, for the two bisulfate cases, the full dissociation-equilibrium pipeline |
 | `tests/reference/carbonate/` | NaHCO3 and KHCO3 cases used to validate `carbonate.py`'s bicarbonate-only solve |
 | `tests/reference/carb_sulf/` | NaHSO4+NaHCO3 (`c005`) and Ca(IO3)2+NaHSO4+NaHCO3 (`c006`) cases used to validate `carbonate.py`'s joint `solve_carb_sulf` and the Ca2+/CaSO4(s) precipitation step |
@@ -155,8 +155,8 @@ unless noted:
   non-zero per-point flag anywhere is warning 10, "temperature outside the recommended electrolyte range", expected
   for the two temperature sweeps).
 * Parameter tables (SR, subgroup, MR) are bit-identical to the arrays the compiled Fortran model uses.
-* **6 more generated cases, 80 points** (`tools/make_cases_ext.py`, references regenerated the same way):
-  targeted coverage for three gaps identified below. `cc01` (NH4HSO4, 18 points) activates the `Qcca`/`Rcc`
+* **8 more generated cases, 106 points** (`tools/make_cases_ext.py`, references regenerated the same way):
+  targeted coverage for gaps identified below. `cc01` (NH4HSO4, 18 points) activates the `Qcca`/`Rcc`
   three-ion interaction terms (confirmed directly: `model._mr.QccaInteract`/`RccInteract` are both `True`, and
   NH4+/H+/HSO4- are all simultaneously present after dissociation) and matches Fortran to the same machine
   precision as every other case. `cc02`/`cc03`/`cc04` (ethyl acetate / dimethyl ether / acetic acid, each +
@@ -165,10 +165,11 @@ unless noted:
   electrolyte-free by necessity, since AIOMFAC's MR tables have no main-group<->ion parameters for either
   (Fortran errorflagmix 1; confirmed by the Python port raising the same error for e.g. toluene+NaCl, see
   `test_aromatic_and_amine_main_groups_have_no_electrolyte_mr_parameters`) -- a real limit of the
-  parameterization, not a porting gap. These inputs all set `smiles-based pure-component method? 0` (armeliON
-  = `.false.`) so the Fortran run skips the separately-licensed TgML_Armeli viscosity/Tg lookup, which is
-  irrelevant to activity coefficients and not installed here (verified: byte-identical `debug_terms.txt`
-  with/without it on an existing case).
+  parameterization, not a porting gap. `cc07`/`cc08` (PEG oligomer alone, and with (NH4)2SO4, 16 / 10 points)
+  cover the PEG subgroup 154 special-case parameters described below. These inputs all set
+  `smiles-based pure-component method? 0` (armeliON = `.false.`) so the Fortran run skips the separately-licensed
+  TgML_Armeli viscosity/Tg lookup, which is irrelevant to activity coefficients and not installed here (verified:
+  byte-identical `debug_terms.txt` with/without it on an existing case).
 
 For **example 0003** specifically: LR and MR of water and of all ions agree to 1e-12 when fed the Fortran molalities
 (CO2(aq) is excluded: the Fortran `GammaCO2()` overwrites its LR/MR/SR terms afterwards, not ported).
@@ -261,10 +262,23 @@ For **example 0003** specifically: LR and MR of water and of all ions agree to 1
   decoupling is not expected to -- and, by construction, does not -- bit-match Fortran's unreliable output for
   such inputs; `tests/test_carb_sulf.py` documents and tests this explicitly rather than silently working around
   it.
-* Also not ported: PEG systems (subgroup 154), the 3-parameter temperature dependence (BRR/CRR, dataset numbers
-  500-800 / 2000-2434), the solvent-mixture reference state (`solvmixrefnd`, never enabled by the Fortran web
-  driver), and dataset-specific input conversions (`SpecialInputConcConversion`; the web version uses the default
-  path).
+* **PEG systems (subgroup 154, "CH2OCH2[PEG]") are now ported**: `system.py` overrides R/Q of subgroup 154 in the
+  SR combinatorial term (this turns out to be a no-op against the *current* parameter tables -- the tabulated
+  Bondi values already equal the "special" ones -- but is kept for parity with the Fortran source and in case a
+  future table regeneration changes that), and `mr.py` overrides the CHn[OH,PEG] main group (52/68) <-> NH4+/SO4--
+  MR interaction coefficients (a real, active override). Validated against two Fortran cases (`cc07`/`cc08` in
+  `tests/reference/ext/`, a PEG oligomer alone and with (NH4)2SO4) to the same ~1e-14 precision as every other
+  case. The viscosity-only `isPEGsystem` special cases (`XieR`/`XieC`, gated by `calcviscosity`) remain out of
+  scope, like the rest of AIOMFAC-VISC.
+* **Not ported, and confirmed unreachable through any AIOMFAC-web input file, so not worth porting**: the
+  3-parameter temperature dependence (BRR/CRR, `case(500:800, 2000:2434)` in `ModSRunifac.f90`) is gated on a
+  Fortran variable `nd` ("dataset number") that the web driver hardcodes to `1` at its single call site
+  (`SubModDefSystem.f90`: `call SetSystem(1, ...)`, with the comment "nd = 1 for web-version"); the 500-800/2000-
+  2434 branch exists only for the AIOMFAC team's own internal parameter-fitting runs against numbered literature
+  datasets, never for a user-supplied input file. Likewise `solvmixrefnd` (solvent-mixture reference state) is
+  never set `.true.` anywhere in the Fortran source, and `SpecialInputConcConversion` is dataset-number-keyed
+  input-conversion logic for the same internal fitting mode (the web version always takes its `defaultcase`
+  path). All three are genuinely dead code from this port's perspective, not gaps.
 * Tmolal in example 0003 differs from the dump by ~1e-8 because the Fortran value comes from a different iterate of
   its dissociation loop; expected until the dissociation equilibria are ported.
 * **`aiomfac_py.s2as`** (SMILES -> AIOMFAC subgroups): the matching algorithm is vendored from upstream S2AS

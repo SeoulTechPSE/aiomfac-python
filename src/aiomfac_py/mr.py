@@ -47,6 +47,8 @@ def build_mr_state(mixture: Mixture) -> MRState:
             if nc > p.bTABnc.shape[1]:
                 raise ValueError(f"no main group <-> cation MR parameters for ion {ion}")
             bnc[i, j], cnc[i, j] = p.bTABnc[mg - 1, nc - 1], p.cTABnc[mg - 1, nc - 1]
+            if sr.is_peg_system and mg in (52, 68) and nc == 4:          # CHn[OH,PEG] <-> NH4+
+                bnc[i, j], cnc[i, j] = 3.0576783e-01, 4.0411133e-01      # ModMRpart.f90 fitparam(273)/(274)
             if bnc[i, j] < _UNDEFINED or cnc[i, j] < _UNDEFINED:
                 raise ValueError(f"main group {mg} <-> cation {ion} interaction is not defined (Fortran errorflagmix 1)")
         for j, ion in enumerate(sr.anions):
@@ -54,6 +56,8 @@ def build_mr_state(mixture: Mixture) -> MRState:
             if na > p.bTABna.shape[1]:
                 raise ValueError(f"no main group <-> anion MR parameters for ion {ion}")
             bna[i, j], cna[i, j] = p.bTABna[mg - 1, na - 1], p.cTABna[mg - 1, na - 1]
+            if sr.is_peg_system and mg in (52, 68) and na == 21:         # CHn[OH,PEG] <-> SO4--
+                bna[i, j], cna[i, j] = -2.1822703e-01, -1.2595744e-01    # ModMRpart.f90 fitparam(275)/(276)
             if bna[i, j] < _UNDEFINED or cna[i, j] < _UNDEFINED:
                 raise ValueError(f"main group {mg} <-> anion {ion} interaction is not defined (Fortran errorflagmix 2)")
 

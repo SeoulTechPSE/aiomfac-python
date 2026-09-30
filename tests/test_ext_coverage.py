@@ -13,6 +13,12 @@
   parameter tables have no entries for either main group with any cation (Fortran errorflagmix 1) -- confirmed
   directly against the Python port, which raises ValueError for e.g. toluene+NaCl. That is a genuine limit of
   what the (electrolyte-containing) AIOMFAC parameterization covers, not a porting gap.
+- ``cc07``/``cc08`` (PEG oligomer + water; PEG oligomer + (NH4)2SO4, 16 / 10 points): subgroup 154
+  (CH2OCH2[PEG], main group 70) and the ``isPEGsystem`` special-case parameters it triggers (system.py:
+  overrides R/Q of subgroup 154 itself in the SR combinatorial term, replacing the tabulated Bondi (1964)
+  values; mr.py: overrides the CHn[OH,PEG] main group (52/68) <-> NH4+/SO4-- MR interaction coefficients).
+  cc08 additionally confirms the MR override actually changes a value rather than being a no-op (see
+  ``test_peg_mr_override_actually_changes_a_value``).
 
 All reference inputs carry an explicit "smiles-based pure-component method? 0" (armeliON = .false.) so the
 Fortran run doesn't need the separately-licensed TgML_Armeli viscosity/Tg machine-learning lookup (not installed
@@ -32,6 +38,8 @@ CASES = {
     "cc04": "acetic acid + NaCl (carboxylic-acid main group)",
     "cc05": "toluene + water, electrolyte-free (aromatic-ring main group)",
     "cc06": "methylamine + water, electrolyte-free (amine main group)",
+    "cc07": "PEG oligomer + water, electrolyte-free (subgroup 154 R/Q override)",
+    "cc08": "PEG oligomer + (NH4)2SO4 (subgroup 154 R/Q override + MR CHn[OH,PEG]<->NH4+/SO4-- override)",
 }
 TOL = 1e-12
 
@@ -106,6 +114,40 @@ def test_qcca_and_rcc_actually_activate_for_cc01():
     assert model._mr.QccaInteract and model._mr.RccInteract
     r = model.evaluate(case.fractions[-1], case.T_K[-1], case.basis)   # most concentrated point
     assert np.all(np.isfinite(r.ln_gamma))
+
+
+def test_peg_sr_and_mr_overrides_actually_change_a_value():
+    """guards against cc07/cc08 silently exercising the *absence* of the isPEGsystem special-case code (i.e.
+    against a bug that made ``is_peg_system`` never fire). The SR override (system.py: R/Q of subgroup 154)
+    turns out to be a no-op against the *current* parameter tables -- the tabulated Bondi values for subgroup
+    154 already equal 1.38143/3.0, the same numbers ModSRunifac.f90 additionally hardcodes in its isPEGsystem
+    branch (a redundant safety net, not a live override) -- so it's confirmed by exact-value equality here
+    instead of by inequality. The MR override (mr.py: CHn[OH,PEG]<->NH4+/SO4--) is a real override: confirmed
+    by comparing cc08 against an otherwise-identical non-PEG system with the same OH main group."""
+    from aiomfac_py import Component
+    from aiomfac_py.params import load_sr_params
+    from aiomfac_py.system import _PEG_Q, _PEG_R
+
+    case = _load("cc07")[0]
+    model = ActivityModel(case.components)
+    assert model.mixture.sr.is_peg_system
+    sp = load_sr_params()
+    col154 = model.mixture.sr.solv_subs.index(154)
+    assert model.mixture.sr.R[col154] == pytest.approx(_PEG_R)
+    assert model.mixture.sr.R[col154] == pytest.approx(sp.R[153], rel=1e-5)   # table is single-precision-derived
+    assert model.mixture.sr.Q[col154] == pytest.approx(_PEG_Q) == pytest.approx(sp.Q[153])
+
+    case8 = _load("cc08")[0]
+    peg_model = ActivityModel(case8.components)
+    water = Component(1, "Water", ((16, 1),))
+    alc = Component(2, "x_alc", ((150, 2), (153, 2)))            # same OH main group (68), no subgroup 154
+    nh4so4 = Component(3, "x_AS", ((204, 2), (261, 1)))
+    control_model = ActivityModel([water, alc, nh4so4])
+    assert peg_model.mixture.sr.is_peg_system and not control_model.mixture.sr.is_peg_system
+    row68_peg = peg_model.mixture.imaingroup.index(68)
+    row68_ctrl = control_model.mixture.imaingroup.index(68)
+    assert peg_model._mr.bnc[row68_peg, 0] != pytest.approx(control_model._mr.bnc[row68_ctrl, 0])
+    assert peg_model._mr.bnc[row68_peg, 0] == pytest.approx(3.0576783e-01)
 
 
 def test_aromatic_and_amine_main_groups_have_no_electrolyte_mr_parameters():

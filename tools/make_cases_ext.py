@@ -1,5 +1,6 @@
-"""Generate stage-4 validation inputs: Qcca/Rcc coverage (NH4+/H+/HSO4-) and extended organic functional groups
-(ester, ether, carboxylic acid, aromatic ring, amine) not exercised by tools/make_cases.py.
+"""Generate stage-4 validation inputs: Qcca/Rcc coverage (NH4+/H+/HSO4-), extended organic functional groups
+(ester, ether, carboxylic acid, aromatic ring, amine) not exercised by tools/make_cases.py, and PEG systems
+(subgroup 154).
 
 usage: python tools/make_cases_ext.py <output_dir>
 
@@ -74,6 +75,21 @@ def main(out):
     # defined MR ion-interaction parameters either).
     w = np.concatenate([np.geomspace(1e-3, 0.02, 6), np.linspace(0.05, 0.50, 10)])
     cases["cc06"] = ("methylamine + water (electrolyte-free)", [WATER, ("x_Methylamine", [(28, 1)])], "mass", 298.15, w[:, None])
+
+    # cc07: PEG oligomer (HO-CH2CH2-(OCH2CH2)3-OH: CH2[OH] ends + 3x CH2OCH2[PEG] repeats), electrolyte-free --
+    # exercises the subgroup-154 R/Q override in the SR combinatorial term (isPEGsystem). CH2[OH] (150) needs a
+    # matching count of OH (153) subgroups (Fortran errorflagmix 13 otherwise).
+    PEG = ("x_PEG", [(150, 2), (153, 2), (154, 3)])
+    w = np.concatenate([np.geomspace(1e-3, 0.02, 6), np.linspace(0.05, 0.50, 10)])
+    cases["cc07"] = ("PEG oligomer + water (electrolyte-free)", [WATER, PEG], "mass", 298.15, w[:, None])
+
+    # cc08: same PEG oligomer + ammonium sulfate (NH4+/SO4--) -- additionally exercises the isPEGsystem MR
+    # main-group<->ion override for CHn[OH,PEG] (main group 52/68) <-> NH4+/SO4--.
+    rng = np.random.default_rng(24)
+    a = rng.uniform(0.02, 0.20, 10); b = rng.uniform(0.01, 0.10, 10)
+    cases["cc08"] = ("PEG oligomer + (NH4)2SO4",
+                     [WATER, PEG, ("x_AmmoniumSulfate", [(204, 2), (261, 1)])], "mass", 298.15,
+                     np.column_stack([a, b]))
 
     for k, (title, comps, basis, T, table) in cases.items():
         write_case(out / f"input_{k}.txt", title, comps, basis, T, np.asarray(table))
