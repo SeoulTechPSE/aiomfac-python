@@ -6,12 +6,21 @@ composition conversion) runs end-to-end, including the Fortran auto-completion a
 machinery for bisulfate, bicarbonate, and joint bisulfate+bicarbonate systems (with Ca2+/CaSO4(s) precipitation);
 see "Validation status" below for what is and isn't covered. `aiomfac_py.s2as` additionally integrates the
 (already-Python) S2AS tool for going straight from a SMILES string to an AIOMFAC component.
+`aiomfac_py.lle` adds a liquid-liquid equilibrium (LLE) solver built *on top of* `ActivityModel` -- a
+from-scratch port of the primal-dual interior-point Gibbs-energy-minimization algorithm behind the UHAERO
+aerosol model (Amundson et al., 2006, *J. Optim. Theory Appl.*, 130(3), 375-407), not part of AIOMFAC-web itself
+and not Fortran-validated (see `src/aiomfac_py/lle.py`'s module docstring for what is and isn't faithful to that
+paper, and `tests/test_lle.py` for how the solver itself, independent of AIOMFAC, is validated).
 
 * Reference implementation: <https://github.com/andizuend/AIOMFAC> (AIOMFAC-web v3.14, commit
   `b9cb96d0eb22dc65a5e63edafe1ed97bd07662f2`). This port is validated against that Fortran code.
 * `aiomfac_py.s2as` integrates <https://github.com/andizuend/S2AS__SMILES_to_AIOMFAC> (commit
   `88a2bffde1d375f8cb86a6e47ead6c3f0dad1833`) -- SMILES -> AIOMFAC subgroups, already pure Python upstream.
-* Scope of the first release: activity coefficients only. The viscosity module (AIOMFAC-VISC) is excluded.
+* `aiomfac_py.lle` ports the algorithm of Amundson, Caboussat, He & Seinfeld (2006), *J. Optim. Theory Appl.*,
+  130(3), 375-407, doi:10.1007/s10957-006-9110-z -- an independent algorithm, not part of AIOMFAC-web, so this
+  part of the package is not validated against the Fortran reference above.
+* Scope of the first release: activity coefficients (plus, now, LLE on top of them). The viscosity module
+  (AIOMFAC-VISC) is excluded.
 * License: **GPL-3.0-or-later**, because this is a derivative work of the (GPL-3.0) Fortran code (and, for
   `aiomfac_py.s2as`, of the GPL-3.0 S2AS tool).
 * If you use it, please cite the AIOMFAC publications listed at <https://aiomfac.lab.mcgill.ca/citation.html>
@@ -33,6 +42,7 @@ see "Validation status" below for what is and isn't covered. `aiomfac_py.s2as` a
 | `src/aiomfac_py/carbonate.py` | bicarbonate-only equilibrium (`solve_carbonate`, CO2(aq)/HCO3-/CO3--/OH-/H+, approximate ~1e-3 to 1e-4, see below) and the joint bisulfate+bicarbonate equilibrium (`solve_carb_sulf`, machine precision, plus Ca2+/CaSO4(s) precipitation) — both `scipy.optimize.root`-based, wired into `ActivityModel` |
 | `src/aiomfac_py/model.py` | `ActivityModel` / `activity_coefficients()` — end-to-end for simple systems |
 | `src/aiomfac_py/s2as/` | SMILES -> AIOMFAC subgroups (optional `epam.indigo` dependency) — integration of the upstream S2AS tool, validated bit-for-bit against it |
+| `src/aiomfac_py/lle.py` | liquid-liquid equilibrium (`solve_pep`/`solve_pep_gfe`) — primal-dual interior-point/active-set Gibbs-energy minimization on top of `ActivityModel`, port of Amundson et al. (2006, JOTA 130); **not** part of AIOMFAC-web, not Fortran-validated (see the module docstring and `tests/test_lle.py`) |
 | `tools/extract_params.py`, `tools/extract_mr_params.py` | regenerate `sr_params.npz`, `subgroup_params.npz`, `mr_params.npz` from the Fortran source (never edit tables by hand; `extract_mr_params` interprets `MRdata` statement by statement and reproduces Fortran literal kinds) |
 | `fortran_patches/` | patch that makes the Fortran model dump every activity-coefficient term at full precision, plus notes on how to rebuild the references |
 | `tests/reference/` | examples 0001/0003 (inputs, standard outputs, per-term dumps) |
@@ -108,8 +118,8 @@ dissociation equilibrium (with and without Ca2+ precipitation), and SMILES → A
 which reproduces (in style, not as a pixel-exact overlay) the activity-coefficient figures of the first
 AIOMFAC journal paper, Zuend et al. (2008, *Atmos. Chem. Phys.*, doi:10.5194/acp-8-4559-2008) — binary and
 quaternary electrolyte solutions, H2SO4/(NH4)2SO4 bisulfate dissociation, polyol+ammonium-sulfate ternaries,
-and salt+alcohol mean activity coefficients. Its Fig. 9 (liquid-liquid equilibrium) is explicitly out of
-scope: LLE phase-splitting is not implemented anywhere in this port.
+salt+alcohol mean activity coefficients, and (using the new `aiomfac_py.lle` module) Fig. 9's NaCl-induced
+liquid-liquid phase splitting.
 
 ### Manual / local install
 
