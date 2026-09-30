@@ -5,12 +5,13 @@ Fortran model silently adds the missing species so a dissociation equilibrium ca
 bicarbonate system additionally gets an OH- pairing (if missing) and a CO2(aq) neutral component. This module
 reproduces that *structural* bookkeeping only: which species end up present, in which components, in which order.
 
-It does **not** solve the dissociation equilibrium (Fortran HSO4_dissociation / HSO4_and_HCO3_dissociation, an
-iterative root-finding problem) -- that redistributes molalities between H+/HSO4-/SO4-- (and H+/HCO3-/CO3--) at
-each composition point and is not ported yet. Consequently ``ActivityModel`` still refuses to *evaluate* systems
-that trigger this completion (their activity coefficients would be wrong without the equilibrium solve); this
-module exists so that structure alone -- species set, ordering, component count -- can be produced and checked
-without hand-writing it (as the tests for examples 0003 above previously did).
+This module handles the *structural* bookkeeping only -- which species end up present, in which components, in
+which order. The dissociation equilibrium itself (Fortran HSO4_dissociation / HSO4_and_HCO3_dissociation, an
+iterative root-finding problem that redistributes molalities between H+/HSO4-/SO4-- and/or H+/HCO3-/CO3-- at
+each composition point) is ported separately: dissociation.py's ``solve_bisulfate`` for the bisulfate-only case,
+carbonate.py's ``solve_carbonate``/``solve_carb_sulf`` for the bicarbonate-only and joint cases. ``ActivityModel``
+(model.py) wires ``complete_components`` together with whichever of those three applies, so systems that trigger
+this completion are evaluated end-to-end, not rejected.
 """
 from __future__ import annotations
 

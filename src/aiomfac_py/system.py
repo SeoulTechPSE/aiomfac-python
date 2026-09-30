@@ -7,8 +7,12 @@ the composition-independent SR quantities. Conventions follow the Fortran arrays
 * group order (``AllSubs``): neutral subgroups in ascending subgroup number, then the ion subgroups in
   order of first appearance in the electrolyte components (component order, ascending subgroup number).
 
-Not ported yet (raises ``NotImplementedError``): the automatic completion of H+/HSO4-/SO4--/HCO3-/CO3--/OH-
-systems with CO2(aq) (SetSystem step 4).
+This module itself does not do the automatic completion of H+/HSO4-/SO4--/HCO3-/CO3--/OH- systems with CO2(aq)
+(SetSystem step 4): it raises ``NotImplementedError`` if it sees an incomplete such system directly (a caller
+must pass ``assume_complete=True`` with an already-completed component list). That completion step is ported
+separately, in completion.py, and ``ActivityModel`` (model.py) runs it automatically before calling here -- so
+this is a deliberate separation of concerns (structure-building vs. completion bookkeeping), not a missing
+feature; see completion.py's module docstring for what is and isn't handled end-to-end.
 
 PEG systems (subgroup 154, main group 70 "CH2OCH2[PEG]") use special R/Q values for that subgroup instead of the
 tabulated Bondi (1964) ones (ModSRunifac.f90, ``isPEGsystem`` block in the RS(I)/QS(I) accumulation loop) --

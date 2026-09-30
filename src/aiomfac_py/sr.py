@@ -6,7 +6,9 @@ Stateless: the Fortran code caches temperature-dependent and ion-reference value
 
 Notes
 * ``PsiT = exp(-parA/T)`` is the original UNIFAC temperature dependence, used for the web-version dataset
-  (nd = 1). The 3-parameter form (BRR, CRR) is only used for dataset numbers 500-800 / 2000-2434 and is not ported.
+  (nd = 1). The 3-parameter form (BRR, CRR) is only used for dataset numbers 500-800 / 2000-2434 -- Fortran's
+  own web driver hardcodes ``nd = 1`` at its one call site (``SubModDefSystem.f90``: "nd = 1 for web-version"),
+  so that branch is unreachable through any AIOMFAC-web input file and is deliberately not ported (see README.md).
 * ``solvmixrefnd`` (solvent mixture as ion reference state) is never enabled by the Fortran web driver; the
   branch is ported but has no Fortran reference data yet.
 """
