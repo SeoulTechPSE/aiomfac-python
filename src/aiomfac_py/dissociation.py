@@ -1,9 +1,10 @@
 """Bisulfate dissociation equilibrium HSO4- <-> H+ + SO4-- (SubModDissociationEquil.f90: HSO4_dissociation,
 DiffKsulfuricDissoc, fHSO4dissoc).
 
-Only the bisulfate-*only* case is ported (Fortran calls this routine when ``bisulfsyst`` is true and
-``bicarbsyst`` is false). Systems that also contain HCO3-/CO3--/CO2(aq) go through the Fortran joint 2-D solver
-``HSO4_and_HCO3_dissociation`` instead, which is not ported; such systems are rejected (see model.py).
+Only the bisulfate-*only* case is ported here (Fortran calls this routine when ``bisulfsyst`` is true and
+``bicarbsyst`` is false). Systems that also contain HCO3-/CO3--/CO2(aq) go through Fortran's joint solver
+``HSO4_and_HCO3_dissociation`` instead -- ported as ``carbonate.solve_carb_sulf``, not here; ``model.py`` routes
+between the two automatically based on which species are present, so both cases are evaluated end-to-end.
 """
 from __future__ import annotations
 
