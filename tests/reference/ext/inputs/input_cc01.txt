@@ -1,0 +1,42 @@
+Input file for AIOMFAC-web model
+ 
+mixture components:
+----
+component no.:	01
+component name:	'x_Water'
+subgroup no., qty:	016,	01
+----
+component no.:	02
+component name:	'x_NH4HSO4'
+subgroup no., qty:	204,	01
+subgroup no., qty:	248,	01
+----
+@@@@
+calculation options:
+smiles-based pure-component method?	0
+----
+++++
+mixture composition and temperature:
+mass fraction?	1
+mole fraction?	0
+----
+point,	T_K,	cp02
+01		298.15	0.002
+02		298.15	0.003169786385
+03		298.15	0.005023772863
+04		298.15	0.007962143411
+05		298.15	0.01261914689
+06		298.15	0.02
+07		298.15	0.04
+08		298.15	0.06363636364
+09		298.15	0.08727272727
+10		298.15	0.1109090909
+11		298.15	0.1345454545
+12		298.15	0.1581818182
+13		298.15	0.1818181818
+14		298.15	0.2054545455
+15		298.15	0.2290909091
+16		298.15	0.2527272727
+17		298.15	0.2763636364
+18		298.15	0.3
+====

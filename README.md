@@ -37,6 +37,7 @@ see "Validation status" below for what is and isn't covered. `aiomfac_py.s2as` a
 | `fortran_patches/` | patch that makes the Fortran model dump every activity-coefficient term at full precision, plus notes on how to rebuild the references |
 | `tests/reference/` | examples 0001/0003 (inputs, standard outputs, per-term dumps) |
 | `tests/reference/cases/` | 9 generated validation cases, 145 points (`tools/make_cases.py` + `tools/run_fortran_cases.sh`) |
+| `tests/reference/ext/` | 6 more generated cases, 80 points, targeting Qcca/Rcc, ester/ether/acid, aromatic/amine (`tools/make_cases_ext.py` + `tools/run_fortran_cases.sh`) |
 | `tests/reference/completion/` | NaHSO4, NaHCO3 and H2SO4 cases: structural completion (`DIMS`) and, for the two bisulfate cases, the full dissociation-equilibrium pipeline |
 | `tests/reference/carbonate/` | NaHCO3 and KHCO3 cases used to validate `carbonate.py`'s bicarbonate-only solve |
 | `tests/reference/carb_sulf/` | NaHSO4+NaHCO3 (`c005`) and Ca(IO3)2+NaHSO4+NaHCO3 (`c006`) cases used to validate `carbonate.py`'s joint `solve_carb_sulf` and the Ca2+/CaSO4(s) precipitation step |
@@ -154,18 +155,33 @@ unless noted:
   non-zero per-point flag anywhere is warning 10, "temperature outside the recommended electrolyte range", expected
   for the two temperature sweeps).
 * Parameter tables (SR, subgroup, MR) are bit-identical to the arrays the compiled Fortran model uses.
+* **6 more generated cases, 80 points** (`tools/make_cases_ext.py`, references regenerated the same way):
+  targeted coverage for three gaps identified below. `cc01` (NH4HSO4, 18 points) activates the `Qcca`/`Rcc`
+  three-ion interaction terms (confirmed directly: `model._mr.QccaInteract`/`RccInteract` are both `True`, and
+  NH4+/H+/HSO4- are all simultaneously present after dissociation) and matches Fortran to the same machine
+  precision as every other case. `cc02`/`cc03`/`cc04` (ethyl acetate / dimethyl ether / acetic acid, each +
+  NaCl, 10 points) cover the ester (CH3COO), ether (CH3O) and carboxylic-acid (COOH) main groups. `cc05`/`cc06`
+  (toluene / methylamine + water, no salt, 16 points each) cover the aromatic-ring and amine main groups --
+  electrolyte-free by necessity, since AIOMFAC's MR tables have no main-group<->ion parameters for either
+  (Fortran errorflagmix 1; confirmed by the Python port raising the same error for e.g. toluene+NaCl, see
+  `test_aromatic_and_amine_main_groups_have_no_electrolyte_mr_parameters`) -- a real limit of the
+  parameterization, not a porting gap. These inputs all set `smiles-based pure-component method? 0` (armeliON
+  = `.false.`) so the Fortran run skips the separately-licensed TgML_Armeli viscosity/Tg lookup, which is
+  irrelevant to activity coefficients and not installed here (verified: byte-identical `debug_terms.txt`
+  with/without it on an existing case).
 
 For **example 0003** specifically: LR and MR of water and of all ions agree to 1e-12 when fed the Fortran molalities
 (CO2(aq) is excluded: the Fortran `GammaCO2()` overwrites its LR/MR/SR terms afterwards, not ported).
 
 **Limits of that evidence -- please read before trusting results:**
 
-* No NH4+/H+/HSO4- system: the `Qcca`/`Rcc` three-ion interaction terms are ported but still untested (case 0108
-  has 4 cations x 2 anions = 8 pair combinations, but none of the ion triples that activate `Qcca`/`Rcc`).
-* No very high ionic strength: the `omega*sqrt(I) > 300` and `sqrt(I) > 250` guard branches in `mr.py` are untested.
-* All organic components in the generated cases are simple alcohols/acetone (chosen to avoid triggering the
-  Fortran SMILES/Tg lookup, which needs a Python script this environment does not have installed) -- no esters,
-  ethers, acids, aromatics, or amines.
+* No very high ionic strength against Fortran: the `omega*sqrt(I) > 300` and `sqrt(I) > 250` guard branches in
+  `mr.py` guard against sqrt(ionic strength) upward of ~250-375 mol/kg -- unreachable by any real electrolyte
+  solution (saturated CaCl2/LiCl, the most concentrated cases here, sit around sqrt(I) ~ 4-6) and not
+  constructible as an AIOMFAC-web input file, so there is no way to generate a Fortran comparison point either.
+  `tests/test_mr_high_ionic_strength.py` calls `mr_terms` directly with a synthetic, deliberately out-of-range
+  `si` to confirm the branches execute and return finite output, but "matches Fortran" isn't a meaningful claim
+  to make about them.
 * **Bisulfate systems** (HSO4- present, or H+ + SO4-- given directly, *without* any HCO3-/CO3--) are now handled
   automatically end-to-end: `ActivityModel` completes the component list with `completion.py` if needed, then
   solves the HSO4- <-> H+ + SO4-- equilibrium (`dissociation.py`, a 1-D root-find with a self-contained Brent's

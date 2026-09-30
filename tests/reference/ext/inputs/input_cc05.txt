@@ -1,0 +1,40 @@
+Input file for AIOMFAC-web model
+ 
+mixture components:
+----
+component no.:	01
+component name:	'x_Water'
+subgroup no., qty:	016,	01
+----
+component no.:	02
+component name:	'x_Toluene'
+subgroup no., qty:	009,	05
+subgroup no., qty:	011,	01
+----
+@@@@
+calculation options:
+smiles-based pure-component method?	0
+----
+++++
+mixture composition and temperature:
+mass fraction?	1
+mole fraction?	0
+----
+point,	T_K,	cp02
+01		298.15	0.001
+02		298.15	0.001820564203
+03		298.15	0.003314454017
+04		298.15	0.006034176337
+05		298.15	0.01098560543
+06		298.15	0.02
+07		298.15	0.05
+08		298.15	0.1111111111
+09		298.15	0.1722222222
+10		298.15	0.2333333333
+11		298.15	0.2944444444
+12		298.15	0.3555555556
+13		298.15	0.4166666667
+14		298.15	0.4777777778
+15		298.15	0.5388888889
+16		298.15	0.6
+====
