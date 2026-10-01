@@ -3,7 +3,7 @@
 Derived from AIOMFAC-web (Fortran) by A. Zuend et al.; GPL-3.0-or-later.
 See README.md for the citation requirements of the original model.
 """
-__version__ = "0.0.17"
+__version__ = "0.0.18"
 
 #: commit of https://github.com/andizuend/AIOMFAC (AIOMFAC-web v3.14) this port is validated against
 AIOMFAC_REFERENCE_COMMIT = "b9cb96d0eb22dc65a5e63edafe1ed97bd07662f2"
