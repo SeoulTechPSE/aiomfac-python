@@ -32,10 +32,11 @@ OPTIONS:
     --help, -h      show this help message
 
 NOTE on the 'tgml'/'tgml-smiles' extras (aiomfac_py.tgml_armeli, the machine-learning glass-transition-
-temperature predictor of Armeli, Peters and Koop, 2023): this script deliberately has no flag for them.
-They pin an old scikit-learn/numpy ABI that is a confirmed regression risk if installed into the same
-environment as the rest of this package (see aiomfac_py/tgml_armeli/__init__.py's module docstring) --
-install them in their own separate virtual environment instead, following that docstring and the README.
+temperature predictor of Armeli, Peters and Koop, 2023): this script deliberately has no flag for them,
+simply because they're rarely needed and pull in scikit-learn (and, for SMILES input, rdkit). Nothing
+stops installing them alongside the rest of this package -- they no longer pin an old scikit-learn/numpy
+ABI (see aiomfac_py/tgml_armeli/__init__.py's module docstring) -- just run, after this script:
+pip install -e ".[tgml,tgml-smiles]" (see the README for usage).
 """
 from pathlib import Path
 import subprocess

@@ -25,8 +25,8 @@ paper, and `tests/test_lle.py` for how the solver itself, independent of AIOMFAC
 * `aiomfac_py.tgml_armeli` loads the trained machine-learning Tg model of Armeli, Peters and Koop (2023,
   *ACS Omega* 8, 12298-12309) from the authors' own model files -- not part of AIOMFAC-web, and not a
   reimplementation of their model; see its own module docstring (`src/aiomfac_py/tgml_armeli/__init__.py`)
-  and `PROVENANCE.md` next to it for exactly what was loaded, from where, and why it needs an unusually
-  strict, separate dependency environment.
+  and `PROVENANCE.md` next to it for exactly what was loaded, from where, and (for `PROVENANCE.md`) how the
+  vendored pickle files were migrated so a modern `scikit-learn`/`numpy` can load them directly.
 * License: **GPL-3.0-or-later**, because this is a derivative work of the (GPL-3.0) Fortran code (and, for
   `aiomfac_py.s2as`, of the GPL-3.0 S2AS tool). `aiomfac_py.tgml_armeli`'s vendored model files are a
   separate case -- see its `PROVENANCE.md` for their license status, which is unstated upstream.
@@ -52,7 +52,7 @@ paper, and `tests/test_lle.py` for how the solver itself, independent of AIOMFAC
 | `src/aiomfac_py/lle.py` | liquid-liquid equilibrium (`solve_pep`/`solve_pep_gfe`) — primal-dual interior-point/active-set Gibbs-energy minimization on top of `ActivityModel`, port of Amundson et al. (2006, JOTA 130); **not** part of AIOMFAC-web, not Fortran-validated (see the module docstring and `tests/test_lle.py`) |
 | `src/aiomfac_py/gp_partition.py` | gas/particle partitioning at fixed RH (`gp_partition`) — joint Levenberg-Marquardt solver (default), a pseudo-transient RH-continuation fallback (inspired by Amundson et al., 2007, C. R. Acad. Sci.), and the original successive-substitution method, all on top of `ActivityModel`; **not** part of AIOMFAC-web (see the module docstring and `tests/test_gp_partition.py`) |
 | `src/aiomfac_py/viscosity.py` | AIOMFAC-VISC (`electrolyte_viscosity`, `water_viscosity_pas`) — predictive dynamic-viscosity model for **aqueous electrolyte** solutions, port of Lilek and Zuend (2022, *Atmos. Chem. Phys.* 22, 3203–3233); built on top of `ActivityModel`'s ion molal activities/activity coefficients. Covers the 17 ions and all cation–anion pairs the paper fits. Also covers the paper's organic-inorganic mixing extension (Sect. 3): `organic_mixture_viscosity`/`pure_organic_viscosity_vtf` port the group-contribution organic-viscosity engine of Gervasi, Pye and Zuend (2020, *Atmos. Chem. Phys.* 20, 2987–3008); `aquelec_viscosity`/`aquorg_viscosity` implement two of Lilek and Zuend's three mixing rules (Sect. 3.4.1–3.4.2); and `predict_tg_derieux2018` implements the closed-form glass-transition-temperature estimate of DeRieux et al. (2018, *Atmos. Chem. Phys.* 18, 6331–6351) that the organic-viscosity model's Tg-dependent pure-component estimate relies on. Does **not** implement the ZSR mixing rule (Sect. 3.4.3, needs an iterative nonlinear solve) — see the module docstring and `tests/test_viscosity.py` |
-| `src/aiomfac_py/tgml_armeli/` | `predict_tg_ml_fg`/`predict_tg_ml_smiles` — the newer, more accurate machine-learning Tg predictor of Armeli, Peters and Koop (2023, *ACS Omega* 8, 12298–12309; optional `tgml`/`tgml-smiles` dependencies). Not a reimplementation — loads the authors' own trained `scikit-learn` model files (`data/*.pkl`, from the paper's own Zenodo deposit, see `PROVENANCE.md`) directly, with no SMILES-featurization dependency on `deepchem`/`tensorflow` (confirmed unnecessary by reading `deepchem`'s own source, see `PROVENANCE.md`). Incidentally the same "TgML_Armeli" module the Fortran reference itself only ships as a separately-licensed, optional add-on (see the `smiles-based pure-component method?` note further down). **Unusually strict version pins** (`scikit-learn<1.3`, `numpy<2`; `rdkit-pypi==2022.3.2.1` on Python ≤3.10 for SMILES input) — install in its own virtual environment, confirmed in this repo's own development to otherwise break unrelated tests (see the module docstring) |
+| `src/aiomfac_py/tgml_armeli/` | `predict_tg_ml_fg`/`predict_tg_ml_smiles` — the newer, more accurate machine-learning Tg predictor of Armeli, Peters and Koop (2023, *ACS Omega* 8, 12298–12309; optional `tgml`/`tgml-smiles` dependencies). Not a reimplementation — loads the authors' own trained `scikit-learn` model files (`data/*.pkl`, from the paper's own Zenodo deposit, see `PROVENANCE.md`) directly, with no SMILES-featurization dependency on `deepchem`/`tensorflow` (confirmed unnecessary by reading `deepchem`'s own source, see `PROVENANCE.md`). Incidentally the same "TgML_Armeli" module the Fortran reference itself only ships as a separately-licensed, optional add-on (see the `smiles-based pure-component method?` note further down). Installs normally alongside the rest of this package (no separate environment needed) — the vendored pickle files were migrated (`tools/migrate_tgml_pickles.py`) so any reasonably current `scikit-learn` can load them directly, and SMILES-mode descriptors are looked up by name so any reasonably current `rdkit` works too (see `PROVENANCE.md` and the module docstring for the full story, including one small known accuracy caveat vs. the exact RDKit version A2023 trained on) |
 | `tools/extract_params.py`, `tools/extract_mr_params.py` | regenerate `sr_params.npz`, `subgroup_params.npz`, `mr_params.npz` from the Fortran source (never edit tables by hand; `extract_mr_params` interprets `MRdata` statement by statement and reproduces Fortran literal kinds) |
 | `fortran_patches/` | patch that makes the Fortran model dump every activity-coefficient term at full precision, plus notes on how to rebuild the references |
 | `tests/reference/` | examples 0001/0003 (inputs, standard outputs, per-term dumps) |
@@ -186,13 +186,11 @@ model = ActivityModel(result.components)
 res = model.evaluate([0.9, 0.1], 298.15, "mass")  # 90/10 mass-fraction water/butanol
 ```
 
-Predicting Tg with the machine-learning model of Armeli, Peters and Koop (2023) -- **install `tgml`/
-`tgml-smiles` in their own, separate virtual environment** (see `src/aiomfac_py/tgml_armeli/__init__.py`'s
-module docstring for why: old, narrow `scikit-learn`/`numpy`/`rdkit` version pins that are a confirmed
-regression risk if installed alongside the rest of this package):
+Predicting Tg with the machine-learning model of Armeli, Peters and Koop (2023) -- install the `tgml`/
+`tgml-smiles` extras normally, alongside the rest of this package:
 
 ```
-python3.10 -m venv .venv-tgml && .venv-tgml/bin/pip install -e ".[tgml,tgml-smiles]"
+pip install -e ".[tgml,tgml-smiles]"
 ```
 
 ```python
@@ -201,7 +199,8 @@ from aiomfac_py.tgml_armeli import predict_tg_ml_fg, predict_tg_ml_smiles
 # Functional Group Mode: ethanol (CH3=1, CH2=1, OH=1, O:C=0.5, M=46.07 g/mol), no rdkit needed
 predict_tg_ml_fg(1, 1, 0, 0, 1, 0, 0, 0, o_to_c=0.5, molar_mass_g_mol=46.07)   # TgMLResult(tg_K=..., ...)
 
-# SMILES Mode (needs rdkit-pypi==2022.3.2.1 specifically; Python <= 3.10 only -- see module docstring)
+# SMILES Mode (needs rdkit as well -- see module docstring for a small accuracy caveat vs. the exact RDKit
+# version A2023 trained on, if you need byte-exact reproduction of their own reported numbers)
 predict_tg_ml_smiles("CCO", Tm_K=159.0)
 ```
 

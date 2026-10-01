@@ -65,10 +65,12 @@ rules. This module now implements:
   database; reported MAE ~12-13 K, somewhat better than D2018's ~21 K prediction band). Unlike D2018's Eq. 2,
   this model has no closed-form expression to port -- it is implemented as a *separate*, opt-in subpackage,
   ``aiomfac_py.tgml_armeli``, that loads the authors' own trained model files directly (not reimplemented or
-  retrained), with unusually strict, pinned dependency versions (an old ``scikit-learn``/``numpy`` ABI
-  requirement for the pickle format, plus an exact ``rdkit`` version for its SMILES-input mode) that this
-  module (``viscosity.py``) does not require and is not affected by. See that subpackage's own module
-  docstring for the full dependency story and why it must be installed in a separate virtual environment.
+  retrained). It needs ``scikit-learn`` (the ``tgml`` extra) and, for its SMILES-input mode, ``rdkit`` as
+  well (the ``tgml-smiles`` extra) -- both install normally alongside the rest of this package, with no
+  special version pin, since the vendored model files were migrated to a format any reasonably current
+  ``scikit-learn`` can load and its SMILES-mode descriptors are looked up by name rather than position. See
+  that subpackage's own module docstring and ``PROVENANCE.md`` for the full story, including a small known
+  accuracy caveat for SMILES mode vs. the exact RDKit version the original authors trained on.
   ``predict_tg_derieux2018`` above remains the dependency-free option that works directly alongside the rest
   of this package.
 
