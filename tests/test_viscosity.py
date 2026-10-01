@@ -19,10 +19,12 @@ from aiomfac_py.io import Component
 from aiomfac_py.model import ActivityModel
 from aiomfac_py.viscosity import (
     CATION_ANION_C, CV, ION_C0_C1, ION_RTH, ION_SUBGROUP, V_REF_M3_PER_MOL, WATER_RTH,
-    electrolyte_viscosity, water_viscosity_pas,
+    aquelec_viscosity, aquorg_viscosity, electrolyte_viscosity, organic_mixture_viscosity,
+    pure_organic_viscosity_vtf, water_viscosity_pas,
 )
 
 WATER = Component(1, "Water", ((16, 1),))
+GLYCEROL = Component(2, "glycerol", ((150, 2), (151, 1), (153, 3)))
 
 
 def _binary(cation_subgroup, anion_subgroup, nu_cation=1, nu_anion=1, name="salt", number=2):
@@ -143,3 +145,109 @@ class TestUnsupportedIon:
         bad_model = SimpleNamespace(mixture=bad_mixture)
         with pytest.raises(KeyError):
             electrolyte_viscosity(bad_model, res, 298.15)
+
+
+class TestPureOrganicViscosityVTF:
+    def test_increases_toward_glass_transition(self):
+        # glycerol, Tg = 187 K (Angell, 1997, via Gervasi et al. 2020 Table S1)
+        eta_warm = pure_organic_viscosity_vtf(293.15, 187.0)
+        eta_cold = pure_organic_viscosity_vtf(263.15, 187.0)
+        eta_colder = pure_organic_viscosity_vtf(223.15, 187.0)
+        assert eta_warm < eta_cold < eta_colder
+
+    def test_default_fragility_switches_above_tg(self):
+        # D defaults to 30 (not 10) once Tg exceeds the simulation temperature (Gervasi et al. 2020 Sect. 2.3).
+        eta_d10 = pure_organic_viscosity_vtf(250.0, 300.0, D=10.0)
+        eta_default = pure_organic_viscosity_vtf(250.0, 300.0)
+        eta_d30 = pure_organic_viscosity_vtf(250.0, 300.0, D=30.0)
+        assert eta_default == pytest.approx(eta_d30)
+        assert eta_d30 != pytest.approx(eta_d10)
+
+    def test_raises_below_vogel_temperature(self):
+        with pytest.raises(ValueError):
+            pure_organic_viscosity_vtf(100.0, 187.0, D=10.0)
+
+
+class TestOrganicMixtureViscosityGlycerol:
+    """Validated directly against real CRC Handbook of Chemistry and Physics water+glycerol viscosity data at
+    293.15 K (Gervasi et al. 2020 Supplement, 'Aqueous Binary Systems/glycerol+water_viscosity_CRCHandbook
+    @293K.csv'), using glycerol's own measured pure-component viscosity (1.46 Pa s at 293.15 K, same source) --
+    not the VTF/Tg estimate, to isolate the correctness of the Eq. 1-9 mixing engine itself from the separately
+    tested (and, per Gervasi et al. 2020, considerably less certain) VTF pure-component viscosity estimate."""
+
+    ETA0_GLYCEROL_293K = 1.46
+
+    @pytest.mark.parametrize("wtf_glycerol, eta_measured", [
+        (0.2, 1.766e-3), (0.4, 3.73e-3), (0.6, 10.9e-3), (0.8, 60.6e-3),
+    ])
+    def test_matches_crc_handbook_data(self, wtf_glycerol, eta_measured):
+        model = ActivityModel([WATER, GLYCEROL])
+        res = model.evaluate([1 - wtf_glycerol, wtf_glycerol], 293.15, basis="mass")
+        result = organic_mixture_viscosity(model, res.x, 293.15, {2: self.ETA0_GLYCEROL_293K})
+        assert result.eta_pas == pytest.approx(eta_measured, rel=0.1)
+
+    def test_vanishing_glycerol_reproduces_water_viscosity(self):
+        model = ActivityModel([WATER, GLYCEROL])
+        res = model.evaluate([1 - 1e-9, 1e-9], 293.15, basis="mass")
+        result = organic_mixture_viscosity(model, res.x, 293.15, {2: self.ETA0_GLYCEROL_293K})
+        assert result.eta_pas == pytest.approx(water_viscosity_pas(293.15), rel=1e-4)
+
+    def test_requires_pure_component_viscosity_for_organics(self):
+        model = ActivityModel([WATER, GLYCEROL])
+        res = model.evaluate([0.8, 0.2], 293.15, basis="mass")
+        with pytest.raises(ValueError):
+            organic_mixture_viscosity(model, res.x, 293.15, {})
+
+    def test_rejects_mixtures_containing_ions(self):
+        nacl = Component(3, "NaCl", ((202, 1), (242, 1)))
+        model = ActivityModel([WATER, GLYCEROL, nacl])
+        res = model.evaluate([0.8, 0.1, 0.1], 293.15, basis="mass")
+        with pytest.raises(ValueError):
+            organic_mixture_viscosity(model, res.x, 293.15, {2: self.ETA0_GLYCEROL_293K})
+
+
+class TestOrganicInorganicMixing:
+    """aquelec/aquorg (Lilek and Zuend, 2022, Sect. 3.4.1-3.4.2) for a water + glycerol + NaCl ternary. No
+    independent reference value is available for either mixing rule (the paper itself does not single out a
+    "correct" one -- Sect. 3.4.4), so these only check basic consistency: both reduce to the pure-water/pure-
+    electrolyte/pure-organic limits correctly, agree with each other to within a reasonable tolerance (the paper
+    reports the two are "about equally fast" and does not report them as wildly divergent for well-behaved
+    systems), and stay finite and positive."""
+
+    NACL = Component(3, "NaCl", ((202, 1), (242, 1)))
+    ETA0 = {2: 1.0}  # a round, approximate glycerol pure-component viscosity -- only consistency is tested here
+
+    def _model_and_result(self, wtf_org, wtf_salt, T_K=298.15):
+        model = ActivityModel([WATER, GLYCEROL, self.NACL])
+        res = model.evaluate([1 - wtf_org - wtf_salt, wtf_org, wtf_salt], T_K, basis="mass")
+        return model, res
+
+    def test_vanishing_organic_and_salt_reproduces_water_viscosity(self):
+        model, res = self._model_and_result(1e-9, 1e-9)
+        eta_w = water_viscosity_pas(298.15)
+        assert aquelec_viscosity(model, res, 298.15, self.ETA0).eta_pas == pytest.approx(eta_w, rel=1e-3)
+        assert aquorg_viscosity(model, res, 298.15, self.ETA0).eta_pas == pytest.approx(eta_w, rel=1e-3)
+
+    def test_vanishing_salt_reproduces_organic_mixture_viscosity(self):
+        wtf_org = 0.2
+        model, res = self._model_and_result(wtf_org, 1e-9)
+        organic_only = ActivityModel([WATER, GLYCEROL])
+        organic_res = organic_only.evaluate([1 - wtf_org, wtf_org], 298.15, basis="mass")
+        expected = organic_mixture_viscosity(organic_only, organic_res.x, 298.15, self.ETA0).eta_pas
+        assert aquelec_viscosity(model, res, 298.15, self.ETA0).eta_pas == pytest.approx(expected, rel=1e-2)
+        assert aquorg_viscosity(model, res, 298.15, self.ETA0).eta_pas == pytest.approx(expected, rel=1e-2)
+
+    @pytest.mark.parametrize("wtf_org, wtf_salt", [(0.05, 0.05), (0.1, 0.05), (0.3, 0.1), (0.2, 0.2)])
+    def test_finite_positive_and_mutually_consistent(self, wtf_org, wtf_salt):
+        model, res = self._model_and_result(wtf_org, wtf_salt)
+        r1 = aquelec_viscosity(model, res, 298.15, self.ETA0)
+        r2 = aquorg_viscosity(model, res, 298.15, self.ETA0)
+        for r in (r1, r2):
+            assert np.isfinite(r.eta_pas) and r.eta_pas > 0
+        assert r1.eta_pas == pytest.approx(r2.eta_pas, rel=0.3)
+
+    def test_requires_at_least_one_organic(self):
+        model = ActivityModel([WATER, self.NACL])
+        res = model.evaluate([0.9, 0.1], 298.15, basis="mass")
+        with pytest.raises(ValueError):
+            aquelec_viscosity(model, res, 298.15, {})
