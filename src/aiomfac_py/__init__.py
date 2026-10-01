@@ -3,7 +3,7 @@
 Derived from AIOMFAC-web (Fortran) by A. Zuend et al.; GPL-3.0-or-later.
 See README.md for the citation requirements of the original model.
 """
-__version__ = "0.0.21"
+__version__ = "0.0.22"
 
 #: commit of https://github.com/andizuend/AIOMFAC (AIOMFAC-web v3.14) this port is validated against
 AIOMFAC_REFERENCE_COMMIT = "b9cb96d0eb22dc65a5e63edafe1ed97bd07662f2"
@@ -21,7 +21,7 @@ from .spinodal import reduced_hessian, stability_determinant, stability_map  # n
 from .gp_partition import VolatileSpecies, GPResult, gp_partition, distinct_phases  # noqa: E402
 from .viscosity import (  # noqa: E402
     OrganicViscosityResult, ViscosityResult, aquelec_viscosity, aquorg_viscosity, electrolyte_viscosity,
-    organic_mixture_viscosity, pure_organic_viscosity_vtf, water_viscosity_pas,
+    organic_mixture_viscosity, predict_tg_derieux2018, pure_organic_viscosity_vtf, water_viscosity_pas,
 )
 
 __all__ = ["Component", "InputCase", "read_input_file", "MRParams", "SRParams", "SubgroupParams", "load_mr_params", "load_sr_params", "load_subgroup_params",
@@ -32,4 +32,5 @@ __all__ = ["Component", "InputCase", "read_input_file", "MRParams", "SRParams", 
            "VolatileSpecies", "GPResult", "gp_partition", "distinct_phases",
            "ViscosityResult", "OrganicViscosityResult", "electrolyte_viscosity", "water_viscosity_pas",
            "organic_mixture_viscosity", "pure_organic_viscosity_vtf", "aquelec_viscosity", "aquorg_viscosity",
+           "predict_tg_derieux2018",
            "AIOMFAC_REFERENCE_COMMIT", "__version__"]
