@@ -114,12 +114,21 @@ See [`notebooks/bootstrap_colab.ipynb`](notebooks/bootstrap_colab.ipynb) for the
 notebook, [`notebooks/01_quickstart.ipynb`](notebooks/01_quickstart.ipynb) for four worked examples: reading
 an AIOMFAC-web input file, building a mixture by hand (aqueous NaCl), the joint bisulfate+bicarbonate
 dissociation equilibrium (with and without Ca2+ precipitation), and SMILES → AIOMFAC subgroups via
-`aiomfac_py.s2as`; and [`notebooks/02_reproduce_zuend2008.ipynb`](notebooks/02_reproduce_zuend2008.ipynb),
+`aiomfac_py.s2as`; [`notebooks/02_reproduce_zuend2008.ipynb`](notebooks/02_reproduce_zuend2008.ipynb),
 which reproduces (in style, not as a pixel-exact overlay) the activity-coefficient figures of the first
 AIOMFAC journal paper, Zuend et al. (2008, *Atmos. Chem. Phys.*, doi:10.5194/acp-8-4559-2008) — binary and
 quaternary electrolyte solutions, H2SO4/(NH4)2SO4 bisulfate dissociation, polyol+ammonium-sulfate ternaries,
 salt+alcohol mean activity coefficients, and (using the new `aiomfac_py.lle` module) Fig. 9's NaCl-induced
-liquid-liquid phase splitting.
+liquid-liquid phase splitting; [`notebooks/03_zuend2010_lle.ipynb`](notebooks/03_zuend2010_lle.ipynb), which
+reproduces Zuend et al. (2010, *Atmos. Chem. Phys.*, doi:10.5194/acp-10-7795-2010) — LLE phase diagrams and
+stability maps (`aiomfac_py.lle`, `aiomfac_py.spinodal`) and RH-dependent gas/particle partitioning of a
+six-component system (`aiomfac_py.gp_partition`, including a joint Levenberg-Marquardt solver that resolves a
+genuine convergence failure of plain successive substitution for that system); and
+[`notebooks/04_zuend2011_new_functional_groups.ipynb`](notebooks/04_zuend2011_new_functional_groups.ipynb),
+which reproduces exemplary new-system calculations from the extended-parameterization paper, Zuend et al.
+(2011, *Atmos. Chem. Phys.*, doi:10.5194/acp-11-9155-2011) — water activities of water + dicarboxylic acid +
+(NH4)2SO4 systems (oxalic, malonic, succinic, glutaric acids), validated against the paper's own Appendix A2
+measurements, demonstrating the new carboxyl functional group these systems require.
 
 ### Manual / local install
 
