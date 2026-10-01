@@ -32,14 +32,36 @@ not a statement that the files carry any particular open-source license. Check t
 (and/or contact the authors via the TgML website above) before redistributing this subpackage's `data/`
 directory beyond your own use.
 
-## Why a vendored, pinned-dependency subpackage, not a pure-Python reimplementation
+## Why a vendored subpackage, not a pure-Python reimplementation
 
 Unlike `predict_tg_derieux2018` (viscosity.py), which ports a published closed-form equation, this model has
-no equation -- it is a trained ensemble of decision trees, serialized with Python's `pickle` module against a
-specific, now old, `scikit-learn` version (the original `requirements_console_script.txt`, also in this
-directory, pins `scikit-learn==1.1.1`). There is nothing to "port": the only way to use it is to load those
-exact bytes with a sufficiently compatible `scikit-learn`, which is what `__init__.py` in this subpackage
-does, with the version and environment caveats documented in its own module docstring.
+no equation -- it is a trained ensemble of decision trees, originally serialized with Python's `pickle`
+module against a now-old `scikit-learn` version (the original `requirements_console_script.txt`, also in
+this directory, pins `scikit-learn==1.1.1`). There is nothing to "port" in the equation-rewriting sense: the
+only way to use it is to load that fitted tree structure, which is what `__init__.py` in this subpackage
+does.
+
+## Pickle-format migration (so a modern scikit-learn/numpy can load these directly)
+
+As originally received (see the SHA-256 hashes above), these six files could only be loaded by
+`scikit-learn>=1.1,<1.3` running on `numpy<2` -- scikit-learn 1.3 changed its tree node binary format (adding
+a `missing_go_to_left` field), and the pre-1.3 wheels needed to read the old format were themselves only
+built against NumPy's pre-2.0 C ABI. That made these files impossible to load alongside a modern
+`aiomfac_py` install without a second, separately pinned virtual environment.
+
+`data/*.pkl` as shipped in this subpackage are no longer those original bytes: they are the result of
+running `tools/migrate_tgml_pickles.py` (at the repository root) once, which extracts each tree's fitted
+state (a plain NumPy structured array -- node splits, impurities, leaf values -- with no scikit-learn class
+references at all) under the old scikit-learn, then rebuilds equivalent `ExtraTreeRegressor`/
+`ExtraTreesRegressor` objects under a modern scikit-learn, migrating the node array to the new 8-field dtype
+(`missing_go_to_left` set to 0 throughout -- these trees never supported missing values, and 0 reproduces the
+old splitting behavior exactly for the finite inputs they were always used on). This is **not** a retrain or
+an approximation: that script's own `compare` step confirmed the migrated models reproduce the original
+models' predictions bit-for-bit (`numpy.array_equal`) across 200 random feature vectors per model, for all
+six models. See that script's module docstring for the exact two-environment procedure, in case the
+*original*, unmigrated files are ever needed again (e.g. a fresh download from the paper's Zenodo deposit) to
+re-run or re-verify the migration -- that is the only point at which the old scikit-learn/numpy combination
+is needed; ordinary use of this subpackage never needs it.
 
 ## What was simplified relative to the original console script (`TgML_minimal.py`, also in this directory)
 

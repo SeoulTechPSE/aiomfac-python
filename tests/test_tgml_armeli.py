@@ -6,13 +6,14 @@ Two independent kinds of check here, split because they need different environme
    ``predict_tg_ml_fg``/``predict_tg_ml_smiles`` (order of entries, CHO vs. NHal routing, with/without Tm
    routing), checked with ``_load_model`` monkeypatched to a fake model that just records what it was asked
    to predict on. This needs no optional dependency at all and always runs.
-2. ``TestRealPredictions`` -- actually loading the vendored pickles and predicting, which needs
-   ``scikit-learn<1.3``/``numpy<2`` (and, for SMILES Mode, ``rdkit-pypi==2022.3.2.1``) -- see
-   ``aiomfac_py/tgml_armeli/__init__.py``'s module docstring for why these are unusually tight pins, and why
-   that environment should never be the same one the rest of aiomfac_py runs in. Skipped automatically
-   (``pytest.importorskip``) unless scikit-learn is actually importable here. The reference Tg values below
-   were obtained by running this exact test class manually in such a dedicated environment (Python 3.10,
-   scikit-learn 1.2.2, numpy 1.22.4, rdkit-pypi 2022.3.2.1) during development.
+2. ``TestRealPredictions`` -- actually loading the vendored (migrated) pickles and predicting, which needs
+   ``scikit-learn`` installed (the ``tgml`` extra) and, for SMILES Mode, ``rdkit`` as well (the
+   ``tgml-smiles`` extra) -- both install normally alongside the rest of aiomfac_py, see
+   ``aiomfac_py/tgml_armeli/__init__.py``'s module docstring. Skipped automatically unless scikit-learn is
+   actually importable here. The reference Tg values below were obtained by running this exact test class
+   during development (Python 3.10, scikit-learn 1.2.2, numpy 1.22.4, rdkit-pypi 2022.3.2.1, before the
+   pickle-format migration) and reconfirmed bit-for-bit identical after the migration via
+   ``tools/migrate_tgml_pickles.py``'s own verification step.
 """
 from __future__ import annotations
 
@@ -105,22 +106,21 @@ class TestFeatureVectorConstruction:
         assert calls["name"] == "sm_no_tm"
         assert fake.calls[-1] == [[0.0] * 208]
 
-    def test_rd_descriptors_guards_mismatched_rdkit_version(self, monkeypatch):
-        # Simulate a newer RDKit build that exposes more than the 208 descriptors the SMILES-Mode models
-        # were trained on (confirmed for real against a current RDKit build during development -- see the
-        # module docstring's "SMILES Mode" caveat) -- this must refuse, not silently mispredict.
-        pytest.importorskip("rdkit", reason="requires rdkit to exercise the real descriptor-count guard")
+    def test_rd_descriptors_guards_missing_named_descriptor(self, monkeypatch):
+        # Simulate an RDKit build that is missing one of the 208 named descriptors SMILES Mode looks up by
+        # name -- this must refuse with a clear error, not silently mispredict on a short feature vector.
+        pytest.importorskip("rdkit", reason="requires rdkit to exercise the real descriptor-presence guard")
         from rdkit.Chem import Descriptors
         monkeypatch.setattr(Descriptors, "descList", Descriptors.descList[:5])  # pretend only 5 exist
-        with pytest.raises(RuntimeError, match="not the 208"):
+        with pytest.raises(RuntimeError, match="missing .* of the 208 named descriptors"):
             tgml._rd_descriptors("C1=CC=CC=C1")
 
 
 @pytest.mark.skipif(not _HAS_SKLEARN, reason="requires the optional tgml extra (see module docstring)")
 class TestRealPredictions:
-    """Needs scikit-learn<1.3/numpy<2 (and, for SMILES Mode, rdkit-pypi==2022.3.2.1) -- see this module's
-    docstring. Skipped automatically otherwise (the skipif above, not an in-body importorskip, so that
-    skipping this class doesn't also skip collection of the rest of this file)."""
+    """Needs scikit-learn installed (and, for SMILES Mode, rdkit as well) -- see this module's docstring.
+    Skipped automatically otherwise (the skipif above, not an in-body importorskip, so that skipping this
+    class doesn't also skip collection of the rest of this file)."""
 
     def test_fg_cho_no_tm_ethanol_is_physically_reasonable(self):
         # ethanol: CH3=1, CH2=1, CH=0, C=0, OH=1, -O-=0, =O=0, DBE=0, O:C=0.5, M=46.07 g/mol.
@@ -148,12 +148,10 @@ class TestRealPredictions:
         assert nhal.model_name == "fg_nhal"
 
     def test_smiles_mode_benzene_matches_reference_run(self):
-        rdkit = pytest.importorskip(
-            "rdkit", reason="SMILES Mode also requires rdkit-pypi==2022.3.2.1 (see module docstring)")
-        from rdkit.Chem import Descriptors
-        if len(Descriptors.descList) != 208:
-            pytest.skip("this RDKit build does not expose the pinned 208 descriptors SMILES Mode needs")
-        # Reference values from a dedicated-environment run during development (same environment as above).
+        pytest.importorskip("rdkit", reason="SMILES Mode also requires rdkit (see module docstring)")
+        # Reference values from a dedicated-environment run during development (scikit-learn 1.2.2, numpy
+        # 1.22.4, rdkit-pypi 2022.3.2.1); the by-name descriptor lookup means this is expected to still match
+        # (within tolerance) on any reasonably current RDKit build, not just that exact pinned version.
         result = tgml.predict_tg_ml_smiles("C1=CC=CC=C1", Tm_K=279.0)
         assert result.model_name == "sm"
         assert result.tg_K == pytest.approx(118.577, abs=0.5)
@@ -163,11 +161,7 @@ class TestRealPredictions:
         assert result_no_tm.tg_K == pytest.approx(118.157, abs=0.5)
 
     def test_smiles_mode_invalid_smiles_raises(self):
-        rdkit = pytest.importorskip(
-            "rdkit", reason="SMILES Mode also requires rdkit-pypi==2022.3.2.1 (see module docstring)")
-        from rdkit.Chem import Descriptors
-        if len(Descriptors.descList) != 208:
-            pytest.skip("this RDKit build does not expose the pinned 208 descriptors SMILES Mode needs")
+        pytest.importorskip("rdkit", reason="SMILES Mode also requires rdkit (see module docstring)")
         with pytest.raises(ValueError):
             tgml.predict_tg_ml_smiles("not a smiles string(((")
 
@@ -179,5 +173,5 @@ class TestImportGuardWithoutDeps:
     def test_predict_tg_ml_fg_raises_clear_import_error(self):
         if _HAS_SKLEARN:
             pytest.skip("scikit-learn is installed in this environment; see TestRealPredictions instead")
-        with pytest.raises(ImportError, match="(?i)dedicated virtual environment"):
+        with pytest.raises(ImportError, match="pip install"):
             tgml.predict_tg_ml_fg(1, 1, 0, 0, 1, 0, 0, 0, o_to_c=0.5, molar_mass_g_mol=46.07)

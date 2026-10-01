@@ -29,62 +29,93 @@ Both route to one of A2023's six trained ``ExtraTreesRegressor`` models (``data/
 Mode for CHO-only vs. N/halogen-containing compounds, SMILES Mode, each with/without Tm as an input feature),
 loaded with ``pickle.load`` and cached in memory after the first call.
 
-Why this is kept strictly separate from the rest of ``aiomfac_py`` -- please read before installing
-------------------------------------------------------------------------------------------------------
+Why this is kept separate from the rest of ``aiomfac_py``, and the dependency story
+--------------------------------------------------------------------------------------
 This subpackage is **never imported by aiomfac_py's own top-level ``__init__.py``**; importing it raises
 ``ImportError`` with a clear message if its dependencies aren't installed, exactly like ``aiomfac_py.s2as``.
-Unlike that module, though, the version constraints here are unusually tight, for reasons worth knowing
-before reaching for ``pip install aiomfac_py[tgml]``:
+It needs ``scikit-learn`` (the ``tgml`` extra) always, and ``rdkit`` as well (the ``tgml-smiles`` extra) for
+:func:`predict_tg_ml_smiles` specifically -- neither is a narrow version pin, and both install straight
+alongside the rest of ``aiomfac_py`` (not a separate environment). Two things worth knowing about why that's
+true despite the vendored model files' own history:
 
-* **The trained models were pickled with a very old scikit-learn** (0.24.1-era internals; the original
-  ``vendor/requirements_console_script.txt`` pins ``scikit-learn==1.1.1``). scikit-learn's own tree node
-  binary format changed in 1.3 (it gained a ``missing_go_to_left`` field for missing-value support), so
-  **scikit-learn >= 1.3 cannot load these files at all** (hard ``ValueError``, not a silent issue) --
-  confirmed directly here against scikit-learn 1.1.1 through 1.4.2. This module therefore requires
-  ``scikit-learn>=1.1,<1.3``.
-* **Those scikit-learn wheels (<1.3) were themselves compiled against NumPy's pre-2.0 C ABI.** Importing
-  ``sklearn`` under NumPy >= 2 with such a wheel fails immediately (``ValueError: numpy.dtype size changed``)
-  -- also confirmed directly here. So this also needs **NumPy < 2**.
-* **Installing NumPy < 2 into the same environment as the rest of this project is a real regression, not a
-  theoretical one**: doing so in this development environment to test the above caused one existing
-  ``aiomfac_py.carbonate`` test to fail outright (a divide-by-zero that NumPy >= 2's build did not trigger).
-  **Install the ``tgml``/``tgml-smiles`` extras in their own, separate virtual environment** -- never into
-  the same environment you run the rest of ``aiomfac_py`` in -- and call this subpackage's functions from
-  there (or via a subprocess/IPC boundary) rather than importing it alongside the rest of the package.
-* **SMILES Mode's accuracy depends on reproducing an exact, old RDKit version.** A2023's own
-  ``vendor/requirements_console_script.txt`` pins ``rdkit-pypi==2022.3.2.1``, which gives exactly 208
-  molecular descriptors from ``rdkit.Chem.Descriptors.descList`` -- the feature-vector length the SMILES-Mode
-  models were trained on. RDKit adds descriptors across releases (a current RDKit build gives 217, not 208,
-  confirmed directly here); feeding a mismatched-length or wrongly-ordered descriptor vector into the model
-  would not raise an error, it would just silently return a wrong Tg. ``predict_tg_ml_smiles`` therefore
-  checks ``len(Descriptors.descList) == 208`` before every call and raises ``RuntimeError`` rather than
-  guessing -- which in practice means SMILES Mode only works with ``rdkit-pypi==2022.3.2.1`` installed, which
-  in turn only has wheels for **Python <= 3.10** (confirmed: no ``cp311`` wheel exists on PyPI). Functional
-  Group Mode has no such dependency and works on any Python version the ``scikit-learn<1.3`` constraint
-  allows.
+* **The trained models were originally pickled with a very old scikit-learn** (0.24.1-era tree internals;
+  the vendored ``vendor/requirements_console_script.txt`` pins ``scikit-learn==1.1.1``), whose binary tree
+  format scikit-learn >= 1.3 cannot load at all (its node format gained a ``missing_go_to_left`` field).
+  ``data/*.pkl`` as shipped here have already been migrated past that: ``tools/migrate_tgml_pickles.py``
+  extracts each tree's fitted state (a plain NumPy structured array, no scikit-learn version tied to it) and
+  rebuilds it under a modern scikit-learn, confirmed to reproduce the original models' predictions
+  bit-for-bit (``numpy.array_equal``) across 200 random feature vectors per model -- not an approximation or
+  a retrain. If you ever obtain the *original*, unmigrated pickle files again (e.g. a fresh download from the
+  paper's Zenodo deposit) and want to re-run that migration, that script documents exactly how; it needs the
+  old scikit-learn/numpy combination only for that one offline step, never for ordinary use of this module.
+* **SMILES Mode's feature vector is 208 named RDKit molecular descriptors**, computed by looking each one up
+  by name in whatever RDKit build is installed (``_RDKIT_DESCRIPTOR_NAMES`` below -- the exact list and order
+  A2023's own training used, from ``rdkit-pypi==2022.3.2.1``), not by positional order in
+  ``Descriptors.descList``. This matters because newer RDKit releases add descriptors (confirmed: 217 in a
+  current build, not 208), which would silently shift every later entry if read positionally; reading by name
+  avoids that failure mode entirely, and was confirmed (by direct comparison against the pinned old RDKit
+  version) to reproduce identical values for every one of the 208 descriptors on simple test molecules.
+  **Caveat**: RDKit occasionally refines an individual descriptor's own definition across releases -- found
+  directly here for ``NumHAcceptors`` on one more complex test molecule (a purine-like structure), where a
+  current RDKit build returns 6 instead of the old build's 7. This is a small, isolated accuracy risk (most
+  descriptors were confirmed identical; A2023's own reported ~12 K MAE already dwarfs it for any single
+  descriptor), not the all-or-nothing corruption a positional-order mismatch would cause. Install
+  ``rdkit-pypi==2022.3.2.1`` specifically (Python <= 3.10 only) instead of a newer ``rdkit`` if you need
+  byte-for-byte reproduction of A2023's own reported numbers.
 * **Loading a pickle file executes arbitrary code if the file is tampered with** (this is scikit-learn's own
   documented caveat, repeated as a ``UserWarning`` on every load here) -- only use ``data/*.pkl`` as vendored
-  in this subpackage (see ``PROVENANCE.md`` for their SHA-256 hashes) or files you otherwise trust completely.
+  in this subpackage (see ``PROVENANCE.md`` for their SHA-256 hashes, of the *original* files the migration
+  started from) or files you otherwise trust completely.
 
-In short: prefer :func:`predict_tg_ml_fg` in its own virtual environment (``scikit-learn>=1.1,<1.3,
-numpy<2``); reach for :func:`predict_tg_ml_smiles` only if that environment is also Python <= 3.10 with
-``rdkit-pypi==2022.3.2.1`` installed. For a dependency-free (if somewhat less accurate) alternative that
-works directly alongside the rest of ``aiomfac_py``, see ``aiomfac_py.viscosity.predict_tg_derieux2018``.
+For a dependency-free (if somewhat less accurate) alternative that needs no extra install at all, see
+``aiomfac_py.viscosity.predict_tg_derieux2018``.
 """
 from __future__ import annotations
 
-import math
 import pickle
 from dataclasses import dataclass
 from functools import lru_cache
 from importlib import resources
 
-#: Expected length of RDKit's Descriptors.descList for predict_tg_ml_smiles's feature vector to be valid --
-#: the exact count produced by rdkit-pypi==2022.3.2.1, the version A2023's own console script pins. See the
-#: module docstring's "SMILES Mode" caveat for why this is checked rather than assumed.
-_EXPECTED_N_RDKIT_DESCRIPTORS = 208
-
 _PICKLE_NAMES = ("fg_cho", "fg_cho_no_tm", "fg_nhal", "fg_nhal_no_tm", "sm", "sm_no_tm")
+
+#: The 208 RDKit descriptor names, in the order A2023's own training used (rdkit.Chem.Descriptors.descList
+#: from rdkit-pypi==2022.3.2.1). predict_tg_ml_smiles looks these up BY NAME in whatever RDKit is installed,
+#: not positionally -- see the module docstring's "SMILES Mode" bullet for why.
+_RDKIT_DESCRIPTOR_NAMES = (
+    "MaxEStateIndex", "MinEStateIndex", "MaxAbsEStateIndex", "MinAbsEStateIndex", "qed", "MolWt",
+    "HeavyAtomMolWt", "ExactMolWt", "NumValenceElectrons", "NumRadicalElectrons", "MaxPartialCharge",
+    "MinPartialCharge", "MaxAbsPartialCharge", "MinAbsPartialCharge", "FpDensityMorgan1", "FpDensityMorgan2",
+    "FpDensityMorgan3", "BCUT2D_MWHI", "BCUT2D_MWLOW", "BCUT2D_CHGHI", "BCUT2D_CHGLO", "BCUT2D_LOGPHI",
+    "BCUT2D_LOGPLOW", "BCUT2D_MRHI", "BCUT2D_MRLOW", "BalabanJ", "BertzCT", "Chi0", "Chi0n", "Chi0v", "Chi1",
+    "Chi1n", "Chi1v", "Chi2n", "Chi2v", "Chi3n", "Chi3v", "Chi4n", "Chi4v", "HallKierAlpha", "Ipc", "Kappa1",
+    "Kappa2", "Kappa3", "LabuteASA", "PEOE_VSA1", "PEOE_VSA10", "PEOE_VSA11", "PEOE_VSA12", "PEOE_VSA13",
+    "PEOE_VSA14", "PEOE_VSA2", "PEOE_VSA3", "PEOE_VSA4", "PEOE_VSA5", "PEOE_VSA6", "PEOE_VSA7", "PEOE_VSA8",
+    "PEOE_VSA9", "SMR_VSA1", "SMR_VSA10", "SMR_VSA2", "SMR_VSA3", "SMR_VSA4", "SMR_VSA5", "SMR_VSA6",
+    "SMR_VSA7", "SMR_VSA8", "SMR_VSA9", "SlogP_VSA1", "SlogP_VSA10", "SlogP_VSA11", "SlogP_VSA12",
+    "SlogP_VSA2", "SlogP_VSA3", "SlogP_VSA4", "SlogP_VSA5", "SlogP_VSA6", "SlogP_VSA7", "SlogP_VSA8",
+    "SlogP_VSA9", "TPSA", "EState_VSA1", "EState_VSA10", "EState_VSA11", "EState_VSA2", "EState_VSA3",
+    "EState_VSA4", "EState_VSA5", "EState_VSA6", "EState_VSA7", "EState_VSA8", "EState_VSA9", "VSA_EState1",
+    "VSA_EState10", "VSA_EState2", "VSA_EState3", "VSA_EState4", "VSA_EState5", "VSA_EState6", "VSA_EState7",
+    "VSA_EState8", "VSA_EState9", "FractionCSP3", "HeavyAtomCount", "NHOHCount", "NOCount",
+    "NumAliphaticCarbocycles", "NumAliphaticHeterocycles", "NumAliphaticRings", "NumAromaticCarbocycles",
+    "NumAromaticHeterocycles", "NumAromaticRings", "NumHAcceptors", "NumHDonors", "NumHeteroatoms",
+    "NumRotatableBonds", "NumSaturatedCarbocycles", "NumSaturatedHeterocycles", "NumSaturatedRings",
+    "RingCount", "MolLogP", "MolMR", "fr_Al_COO", "fr_Al_OH", "fr_Al_OH_noTert", "fr_ArN", "fr_Ar_COO",
+    "fr_Ar_N", "fr_Ar_NH", "fr_Ar_OH", "fr_COO", "fr_COO2", "fr_C_O", "fr_C_O_noCOO", "fr_C_S", "fr_HOCCN",
+    "fr_Imine", "fr_NH0", "fr_NH1", "fr_NH2", "fr_N_O", "fr_Ndealkylation1", "fr_Ndealkylation2", "fr_Nhpyrrole",
+    "fr_SH", "fr_aldehyde", "fr_alkyl_carbamate", "fr_alkyl_halide", "fr_allylic_oxid", "fr_amide",
+    "fr_amidine", "fr_aniline", "fr_aryl_methyl", "fr_azide", "fr_azo", "fr_barbitur", "fr_benzene",
+    "fr_benzodiazepine", "fr_bicyclic", "fr_diazo", "fr_dihydropyridine", "fr_epoxide", "fr_ester", "fr_ether",
+    "fr_furan", "fr_guanido", "fr_halogen", "fr_hdrzine", "fr_hdrzone", "fr_imidazole", "fr_imide",
+    "fr_isocyan", "fr_isothiocyan", "fr_ketone", "fr_ketone_Topliss", "fr_lactam", "fr_lactone",
+    "fr_methoxy", "fr_morpholine", "fr_nitrile", "fr_nitro", "fr_nitro_arom", "fr_nitro_arom_nonortho",
+    "fr_nitroso", "fr_oxazole", "fr_oxime", "fr_para_hydroxylation", "fr_phenol", "fr_phenol_noOrthoHbond",
+    "fr_phos_acid", "fr_phos_ester", "fr_piperdine", "fr_piperzine", "fr_priamide", "fr_prisulfonamd",
+    "fr_pyridine", "fr_quatN", "fr_sulfide", "fr_sulfonamd", "fr_sulfone", "fr_term_acetylene",
+    "fr_tetrazole", "fr_thiazole", "fr_thiocyan", "fr_thiophene", "fr_unbrch_alkane", "fr_urea",
+)
+assert len(_RDKIT_DESCRIPTOR_NAMES) == 208
 
 
 @lru_cache(maxsize=None)
@@ -95,45 +126,42 @@ def _load_model(name: str):
         import sklearn  # noqa: F401
     except ImportError as e:
         raise ImportError(
-            "aiomfac_py.tgml_armeli requires scikit-learn (and, for predict_tg_ml_smiles, rdkit) in a "
-            "DEDICATED virtual environment -- pip install 'scikit-learn>=1.1,<1.3' 'numpy<2' there (plus "
-            "'rdkit-pypi==2022.3.2.1' on Python <= 3.10 for SMILES Mode). See this subpackage's module "
-            "docstring for why these old, narrow version pins are required and why they should not be "
-            "installed into the same environment as the rest of aiomfac_py."
+            "aiomfac_py.tgml_armeli requires scikit-learn -- pip install 'aiomfac_py[tgml]' (and, for "
+            "predict_tg_ml_smiles, 'aiomfac_py[tgml-smiles]' for rdkit as well)."
         ) from e
     raw = resources.files("aiomfac_py.tgml_armeli").joinpath(f"data/{name}.pkl").read_bytes()
     return pickle.loads(raw)
 
 
 def _rd_descriptors(smiles: str):
-    """The 208 RDKit descriptors (Descriptors.descList) for one SMILES string, computed directly (no
-    deepchem/tensorflow dependency -- see PROVENANCE.md for why this is equivalent to the original script)."""
+    """The 208 named RDKit descriptors _RDKIT_DESCRIPTOR_NAMES lists, for one SMILES string, computed
+    directly (no deepchem/tensorflow dependency -- see PROVENANCE.md for why this is equivalent to the
+    original script) and looked up BY NAME (see the module docstring's "SMILES Mode" bullet for why)."""
     try:
         from rdkit import Chem
         from rdkit.Chem import Descriptors
     except ImportError as e:
         raise ImportError(
-            "predict_tg_ml_smiles requires rdkit (rdkit-pypi==2022.3.2.1 specifically -- see this "
-            "subpackage's module docstring) in the same dedicated virtual environment as scikit-learn<1.3. "
-            "Functional Group Mode (predict_tg_ml_fg) does not need rdkit at all."
+            "predict_tg_ml_smiles requires rdkit -- pip install 'aiomfac_py[tgml-smiles]'. Functional Group "
+            "Mode (predict_tg_ml_fg) does not need rdkit at all."
         ) from e
 
-    n_desc = len(Descriptors.descList)
-    if n_desc != _EXPECTED_N_RDKIT_DESCRIPTORS:
+    by_name = dict(Descriptors.descList)
+    missing = [n for n in _RDKIT_DESCRIPTOR_NAMES if n not in by_name]
+    if missing:
         raise RuntimeError(
-            f"this RDKit build exposes {n_desc} Descriptors.descList entries, not the "
-            f"{_EXPECTED_N_RDKIT_DESCRIPTORS} the SMILES-Mode models were trained on (rdkit-pypi==2022.3.2.1). "
-            "Using a mismatched descriptor set would silently produce a wrong-but-plausible-looking Tg, so "
-            "this function refuses to run instead -- install rdkit-pypi==2022.3.2.1 (Python <= 3.10 only; "
-            "no newer RDKit build reproduces the same 208-descriptor feature vector), or use "
-            "predict_tg_ml_fg (Functional Group Mode) or aiomfac_py.viscosity.predict_tg_derieux2018 instead."
+            f"this RDKit build is missing {len(missing)} of the 208 named descriptors SMILES Mode needs "
+            f"(first few: {missing[:5]}) -- this RDKit release may be too old, or these descriptors were "
+            "renamed/removed upstream. Use predict_tg_ml_fg (Functional Group Mode) or "
+            "aiomfac_py.viscosity.predict_tg_derieux2018 instead, or install an RDKit version that has them."
         )
 
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         raise ValueError(f"rdkit could not parse SMILES {smiles!r}")
     values = []
-    for desc_name, func in Descriptors.descList:
+    for desc_name in _RDKIT_DESCRIPTOR_NAMES:
+        func = by_name[desc_name]
         values.append(func(mol, avg=True) if desc_name == "Ipc" else func(mol))
     return values
 
@@ -161,9 +189,9 @@ def predict_tg_ml_fg(n_ch3: float, n_ch2: float, n_ch: float, n_c: float, n_oh: 
     ``Tm_K`` (melting temperature) is optional but, per A2023 (their Table 3), improves accuracy noticeably
     (CHO-set MAE 13.1 K with Tm vs. 16.4 K without, by nested cross-validation) when it's known.
 
-    See the module docstring for the environment this needs (``scikit-learn>=1.1,<1.3`` in a dedicated
-    virtual environment) and ``PROVENANCE.md`` for exactly which trained model file each combination of
-    arguments routes to.
+    Needs ``scikit-learn`` installed (the ``tgml`` extra: ``pip install 'aiomfac_py[tgml]'``) -- no special
+    environment or version pin, see the module docstring for why. ``PROVENANCE.md`` documents exactly which
+    trained model file each combination of arguments routes to.
     """
     has_n_hal = n_N != 0.0 or n_hal != 0.0
     feat = [n_ch3, n_ch2, n_ch, n_c, n_oh, n_ether_o, n_carbonyl_o, dbe]
@@ -188,9 +216,13 @@ def predict_tg_ml_smiles(smiles: str, Tm_K: float | None = None) -> TgMLResult:
     ``Tm_K`` (melting temperature) is optional but, as for Functional Group Mode, improves accuracy per
     A2023's own nested cross-validation.
 
-    This needs an exact, old RDKit version to reproduce the 208-element descriptor vector the SMILES-Mode
-    models were trained on -- see this subpackage's module docstring ("SMILES Mode" bullet) for why, and for
-    why a mismatched RDKit build makes this function raise ``RuntimeError`` rather than silently mispredict.
+    Needs ``rdkit`` installed as well (the ``tgml-smiles`` extra: ``pip install 'aiomfac_py[tgml-smiles]'``).
+    The 208-element descriptor vector A2023's SMILES-Mode models were trained on is looked up by name in
+    whatever RDKit build is installed, which works with any reasonably recent RDKit (this function raises a
+    clear ``RuntimeError`` rather than silently mispredicting if a build is ever missing one of the named
+    descriptors) -- see this subpackage's module docstring ("SMILES Mode" bullet) for the mechanism and for a
+    known, small, isolated numeric caveat (``NumHAcceptors`` on some structures) if you need byte-exact
+    reproduction of A2023's own reported numbers.
     """
     desc = _rd_descriptors(smiles)
     model_name = "sm" if Tm_K is not None else "sm_no_tm"
