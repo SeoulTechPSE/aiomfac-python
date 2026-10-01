@@ -60,16 +60,20 @@ rules. This module now implements:
   Fig. 2: several orders of magnitude off for some compounds) -- prefer a measured Tg or pure-component
   viscosity when one is available, as G2020's own validation figures do.
 
-**Not implemented:**
-
 * **The machine-learning-based Tg predictor of Armeli, Peters, and Koop (2023), ACS Omega 8, 12298-12309**
   (an "extra trees" ensemble regressor, trained on the ~355-compound Bielefeld Molecular Organic Glasses
-  database). Unlike D2018's Eq. 2, this model has no closed-form expression -- the paper publishes only the
-  trained model's reported accuracy (MAE ~12-13 K, somewhat better than D2018's ~21 K prediction band), not
-  the model itself; using it requires either their public web application or the authors' own serialized
-  scikit-learn model files (Zenodo DOI:10.5281/zenodo.7650576), which this port does not bundle, retrain, or
-  otherwise reproduce. ``predict_tg_derieux2018`` above is this package's Tg predictor, with D2018's somewhat
-  larger published uncertainty as the honest trade-off for being a plain, dependency-free equation.
+  database; reported MAE ~12-13 K, somewhat better than D2018's ~21 K prediction band). Unlike D2018's Eq. 2,
+  this model has no closed-form expression to port -- it is implemented as a *separate*, opt-in subpackage,
+  ``aiomfac_py.tgml_armeli``, that loads the authors' own trained model files directly (not reimplemented or
+  retrained), with unusually strict, pinned dependency versions (an old ``scikit-learn``/``numpy`` ABI
+  requirement for the pickle format, plus an exact ``rdkit`` version for its SMILES-input mode) that this
+  module (``viscosity.py``) does not require and is not affected by. See that subpackage's own module
+  docstring for the full dependency story and why it must be installed in a separate virtual environment.
+  ``predict_tg_derieux2018`` above remains the dependency-free option that works directly alongside the rest
+  of this package.
+
+**Not implemented:**
+
 * **LZ2022's third mixing rule, the ZSR-style rule** (Sect. 3.4.3) -- unlike aquelec/aquorg, it requires
   solving a nonlinear equation (matching each subsystem's water activity to the full mixture's RH) iteratively
   for every evaluation, which is a materially larger piece of numerical machinery than this port adds here.
