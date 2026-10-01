@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aiomfac_py"
-version = "0.0.22"
+version = "0.0.23"
 description = "Pure-Python port of the AIOMFAC thermodynamic activity-coefficient model (work in progress)"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -17,12 +17,24 @@ test = ["pytest>=7"]
 carbonate = ["scipy>=1.9"]
 # needed only for aiomfac_py.s2as (SMILES -> AIOMFAC subgroups, uses the Indigo cheminformatics toolkit)
 smiles = ["epam.indigo"]
+# needed only for aiomfac_py.tgml_armeli.predict_tg_ml_fg / predict_tg_ml_smiles (Armeli, Peters and Koop,
+# 2023, ML Tg predictor). INSTALL THIS IN ITS OWN DEDICATED VIRTUAL ENVIRONMENT -- not alongside the rest of
+# aiomfac_py -- it force-downgrades numpy, which has been confirmed (see tgml_armeli/__init__.py docstring)
+# to break other parts of this package. scikit-learn>=1.3 cannot load the vendored trained model files at
+# all (hard error), and scikit-learn<1.3's own wheels require numpy<2 to even import.
+tgml = ["scikit-learn>=1.1,<1.3", "numpy<2"]
+# further needed only for aiomfac_py.tgml_armeli.predict_tg_ml_smiles specifically (SMILES-string input);
+# only installable on Python <= 3.10 (no newer wheel exists), and that exact version is required for correct
+# results, not just convenience -- see tgml_armeli/__init__.py docstring. predict_tg_ml_fg (functional-group
+# input) does not need this.
+tgml-smiles = ["rdkit-pypi==2022.3.2.1"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-aiomfac_py = ["data/*.npz", "s2as/LICENSE_S2AS"]
+aiomfac_py = ["data/*.npz", "s2as/LICENSE_S2AS", "tgml_armeli/data/*.pkl", "tgml_armeli/PROVENANCE.md",
+              "tgml_armeli/vendor/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

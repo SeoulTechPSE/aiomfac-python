@@ -30,6 +30,12 @@ OPTIONS:
                     without reinstalling, which is usually what you want when
                     iterating on the package itself inside Colab)
     --help, -h      show this help message
+
+NOTE on the 'tgml'/'tgml-smiles' extras (aiomfac_py.tgml_armeli, the machine-learning glass-transition-
+temperature predictor of Armeli, Peters and Koop, 2023): this script deliberately has no flag for them.
+They pin an old scikit-learn/numpy ABI that is a confirmed regression risk if installed into the same
+environment as the rest of this package (see aiomfac_py/tgml_armeli/__init__.py's module docstring) --
+install them in their own separate virtual environment instead, following that docstring and the README.
 """
 from pathlib import Path
 import subprocess
