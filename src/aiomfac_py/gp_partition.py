@@ -24,10 +24,36 @@ instead uses plain **successive substitution** (a damped fixed-point iteration: 
 content that matches the target RH at the current organic split via 1-D bracketing (`scipy.optimize.brentq`),
 then update every organic's gas/particle split from the resulting activities, damp, repeat) -- the standard,
 much simpler iterative scheme used throughout the absorptive-partitioning literature the paper itself builds
-on (Pankow, 1994; Odum et al., 1996). It converges reliably for the small, well-conditioned systems this module
-is used with in this package's notebooks, but is not guaranteed to be as globally robust as Z2010's DE-based
-solver for an arbitrary, possibly pathological mixture -- a deliberate scope trade-off, like the one documented
-in ``lle.py`` and ``spinodal.py`` for the LLE/spinodal solvers themselves.
+on (Pankow, 1994; Odum et al., 1996). This is **not** guaranteed to be as globally robust as Z2010's DE-based
+solver for an arbitrary mixture -- a deliberate scope trade-off, like the one documented in ``lle.py`` and
+``spinodal.py`` for the LLE/spinodal solvers themselves -- and in practice it is *not* even reliable for the
+paper's own 6-component case study (see "Known convergence failure mode" below): ``GPResult.converged`` should
+be checked, not assumed.
+
+Known convergence failure mode (confirmed, not just theoretical)
+------------------------------------------------------------------
+For a mixture of organics with substantially different volatilities, the two (or more) *most volatile*
+species can fail to settle at all: rather than smoothly approaching some intermediate gas/particle split,
+their particle-phase amount chaotically alternates, iteration to iteration, between "fully evaporated" (at
+the numerical floor) and "mostly condensed" (a material fraction of their own total), because right at that
+knife-edge, each organic's own activity coefficient is extremely sensitive to the other volatile organic's
+current (also-chattering) amount -- a genuine fixed-point instability of plain successive substitution for
+this kind of mutually-coupled, near-bistable composition, not a tolerance or floor artifact. Confirmed
+directly for `03_zuend2010_lle.ipynb`'s own Fig. 8-10 system (water + glycerol + 1,6-hexanediol +
+1,2,10-decanetriol + 1,2,5,8-octanetetrol + (NH4)2SO4): glycerol and
+1,6-hexanediol (the two most volatile of the four organics) never settle at *any* of the notebook's 8 RH
+points even after hundreds of iterations and with much smaller relaxation, while 1,2,10-decanetriol and
+1,2,5,8-octanetetrol (the two least volatile) converge cleanly within a handful of iterations every time.
+``GPResult.converged`` therefore reads ``False`` at every RH point for that system -- correctly: it is a real,
+not cosmetic, non-convergence of the two volatile species, though the *qualitative* trend of the stable
+species and of the water activity itself (which the outer root-find pins to the target RH directly, by
+construction) is still meaningful. Treat per-species results for a volatile, chattering organic as
+qualitative/order-of-magnitude only; a stronger iterative scheme (e.g. Anderson-accelerated fixed point, or
+a proper joint Newton solve) would be needed to fix this properly, which is out of scope here. Two partial
+mitigations are implemented: (1) a species already negligible relative to its own total is excluded from the
+convergence *test* (though not from chattering itself, which this does not stop), and (2) the step is also
+checked two iterations back to catch simple period-2 oscillation -- neither resolves the chaotic case above,
+but both are harmless and help in milder cases.
 
 Units: SI throughout (kg/mol for molar masses, Pa for pressures, m^3 for gas volume, mol for amounts,
 kg/m^3 for mass concentrations) -- converted to the paper's usual micrograms/m^3 only for display.
@@ -58,7 +84,9 @@ class VolatileSpecies:
 @dataclass
 class GPResult:
     RH: float
-    converged: bool
+    converged: bool             # False can mean a genuine, not cosmetic, non-convergence -- see the module
+                                 # docstring's "Known convergence failure mode" for a confirmed chaotic case
+                                 # (a volatile organic's PM amount never settling) that this can indicate
     n_iter: int
     n_water_PM: float
     n_org_PM: np.ndarray        # (n_org,) particle-phase moles of each VolatileSpecies
@@ -105,12 +133,23 @@ def _successive_substitution(aw_func, organics: list[VolatileSpecies], n_salt: f
     pass): find the particle water content matching ``RH`` by 1-D bracketing, apply Raoult's law to update
     every organic's gas/particle split, damp, repeat. ``aw_func(n_water, n_org_PM) -> (aw, extra)``."""
     n_org = len(organics)
+    n_total_arr = np.array([o.n_total for o in organics])
     n_org_PM = n_org_PM0.copy()
     n_water = n_water0
+    n_org_PM_prev2, n_water_prev2 = None, None  # state two iterations back, for period-2 oscillation check
     extra = None
     converged = False
     it = 0
     lo, hi = n_water_bracket
+    # A species driven to near-total evaporation (its particle-phase amount a tiny fraction of its own
+    # n_total) has an activity that is numerically delicate right near zero mole fraction: plain successive
+    # substitution can make its absolute PM amount chatter indefinitely between e.g. 1e-23 and 1e-9 mol
+    # without ever settling, even though *physically* it has simply (and stably) evaporated -- the chatter is
+    # well below anything that matters for the gas/particle split of the other, non-negligible species. Such
+    # a species is excluded from the step/tolerance test below (its value is still tracked and returned, just
+    # not allowed to block convergence); the threshold is relative to each species' own total, not the
+    # mixture's total_scale, since "negligible" is a per-species notion here.
+    negligible_frac = 1.0e-4
     for it in range(1, max_iter + 1):
         def f_aw(nw):
             aw, _ = aw_func(nw, n_org_PM)
@@ -129,10 +168,23 @@ def _successive_substitution(aw_func, organics: list[VolatileSpecies], n_salt: f
         n_org_gas_eq = _raoult_gas_moles(a_org, organics, T_K, V_gas_m3)
         n_org_PM_new = np.clip(np.array([o.n_total for o in organics]) - n_org_gas_eq, 1.0e-16 * total_scale, None)
 
-        step = np.max(np.abs(n_org_PM_new - n_org_PM)) + abs(n_water_new - n_water)
+        material = (n_org_PM_new / n_total_arr) >= negligible_frac
+        d1 = np.abs(n_org_PM_new - n_org_PM)
+        step = (np.max(d1[material]) if material.any() else 0.0) + abs(n_water_new - n_water)
+        # Also check the step relative to the state *two* iterations back: even among the "material" species,
+        # plain successive substitution can settle into a tiny-amplitude period-2 oscillation that never
+        # satisfies the single-step `tol` test above even though the solution has, for all practical purposes,
+        # stopped moving. Requiring *either* criterion avoids reporting `converged=False` forever on a
+        # genuinely-settled oscillation.
+        if n_org_PM_prev2 is None:
+            step2 = np.inf
+        else:
+            d2 = np.abs(n_org_PM_new - n_org_PM_prev2)
+            step2 = (np.max(d2[material]) if material.any() else 0.0) + abs(n_water_new - n_water_prev2)
+        n_org_PM_prev2, n_water_prev2 = n_org_PM.copy(), n_water
         n_org_PM = n_org_PM + relax * (n_org_PM_new - n_org_PM)
         n_water = n_water_new
-        if step / total_scale < tol:
+        if step / total_scale < tol or step2 / total_scale < tol:
             converged = True
             break
     return n_water, n_org_PM, converged, it
