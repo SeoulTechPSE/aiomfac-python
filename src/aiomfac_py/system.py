@@ -17,7 +17,9 @@ feature; see completion.py's module docstring for what is and isn't handled end-
 PEG systems (subgroup 154, main group 70 "CH2OCH2[PEG]") use special R/Q values for that subgroup instead of the
 tabulated Bondi (1964) ones (ModSRunifac.f90, ``isPEGsystem`` block in the RS(I)/QS(I) accumulation loop) --
 ported below (``_PEG_R``/``_PEG_Q``). The viscosity-only ``isPEGsystem`` special cases (``XieR``/``XieC``,
-gated by ``calcviscosity``) are out of scope like the rest of AIOMFAC-VISC.
+gated by ``calcviscosity``) remain out of scope: they are a PEG-specific adjustment inside the original
+Fortran's own SR/UNIFAC term, unrelated to (and not needed by) ``viscosity.py``'s port of the separate
+Lilek and Zuend (2022) AIOMFAC-VISC aqueous-electrolyte viscosity model, which does not touch SR at all.
 """
 from __future__ import annotations
 
