@@ -3,7 +3,7 @@
 Derived from AIOMFAC-web (Fortran) by A. Zuend et al.; GPL-3.0-or-later.
 See README.md for the citation requirements of the original model.
 """
-__version__ = "0.0.20"
+__version__ = "0.0.21"
 
 #: commit of https://github.com/andizuend/AIOMFAC (AIOMFAC-web v3.14) this port is validated against
 AIOMFAC_REFERENCE_COMMIT = "b9cb96d0eb22dc65a5e63edafe1ed97bd07662f2"
@@ -19,7 +19,10 @@ from .model import ActivityModel, ActivityTerms, activity_coefficients  # noqa: 
 from .lle import AiomfacGFE, PhaseSplitResult, solve_pep, solve_pep_gfe  # noqa: E402
 from .spinodal import reduced_hessian, stability_determinant, stability_map  # noqa: E402
 from .gp_partition import VolatileSpecies, GPResult, gp_partition, distinct_phases  # noqa: E402
-from .viscosity import ViscosityResult, electrolyte_viscosity, water_viscosity_pas  # noqa: E402
+from .viscosity import (  # noqa: E402
+    OrganicViscosityResult, ViscosityResult, aquelec_viscosity, aquorg_viscosity, electrolyte_viscosity,
+    organic_mixture_viscosity, pure_organic_viscosity_vtf, water_viscosity_pas,
+)
 
 __all__ = ["Component", "InputCase", "read_input_file", "MRParams", "SRParams", "SubgroupParams", "load_mr_params", "load_sr_params", "load_subgroup_params",
            "SRSystem", "build_sr_system", "SRTerms", "sr_terms",
@@ -27,5 +30,6 @@ __all__ = ["Component", "InputCase", "read_input_file", "MRParams", "SRParams", 
            "AiomfacGFE", "PhaseSplitResult", "solve_pep", "solve_pep_gfe",
            "reduced_hessian", "stability_determinant", "stability_map",
            "VolatileSpecies", "GPResult", "gp_partition", "distinct_phases",
-           "ViscosityResult", "electrolyte_viscosity", "water_viscosity_pas",
+           "ViscosityResult", "OrganicViscosityResult", "electrolyte_viscosity", "water_viscosity_pas",
+           "organic_mixture_viscosity", "pure_organic_viscosity_vtf", "aquelec_viscosity", "aquorg_viscosity",
            "AIOMFAC_REFERENCE_COMMIT", "__version__"]

@@ -1,8 +1,7 @@
 """Activity-coefficient entry point.
 
 Fortran counterpart: ModCalcActCoeff.f90 (AIOMFAC_calc, Gammas) plus the composition conversion of
-AIOMFAC_inout / ModCompScaleConversion. Only the activity-coefficient core is in scope for the first stage;
-the viscosity module (AIOMFAC-VISC) is deliberately excluded.
+AIOMFAC_inout / ModCompScaleConversion. This module covers the activity-coefficient core only.
 
 Species order everywhere is the one used by the Fortran arrays ``X`` / ``lnGaSR``:
 neutral components (input order), then cations, then anions.
@@ -11,9 +10,10 @@ Automatically completes systems the Fortran SetSystem would complete (H+/HSO4-/S
 solves the resulting bisulfate-only, bicarbonate-only, or joint bisulfate+bicarbonate dissociation equilibrium
 (see dissociation.py / carbonate.py).
 
-The AIOMFAC-VISC viscosity extension (Lilek and Zuend, 2022) is a separate module, ``viscosity.py`` -- not
-excluded from this port, just layered on top of this one (it calls ``ActivityModel.evaluate`` for the ion
-molal activities/activity coefficients it needs; see that module's docstring for scope).
+The AIOMFAC-VISC viscosity extensions (Lilek and Zuend, 2022; Gervasi et al., 2020) are a separate module,
+``viscosity.py`` -- layered on top of this one (it calls ``ActivityModel.evaluate``/uses ``ActivityModel.mixture``
+for the ion molal activities, activity coefficients, and short-range/UNIFAC quantities it needs; see that
+module's docstring for exactly what is and is not implemented).
 """
 from __future__ import annotations
 

@@ -1,10 +1,15 @@
-"""AIOMFAC-VISC: predictive viscosity model for aqueous electrolyte solutions.
+"""AIOMFAC-VISC: predictive viscosity model for aqueous electrolyte, aqueous organic, and mixed
+organic-inorganic solutions.
 
-Ports the **aqueous-electrolyte** part only of:
+Ports:
 
     Lilek, J. and Zuend, A. (2022), "A predictive viscosity model for aqueous electrolytes and mixed
     organic-inorganic aerosol phases", Atmos. Chem. Phys., 22, 3203-3233,
     doi:10.5194/acp-22-3203-2022. [cited below as "LZ2022"]
+
+    Gervasi, N. R., Pye, H. O. T., and Zuend, A. (2020), "A predictive group-contribution model for the
+    viscosity of aqueous organic aerosol", Atmos. Chem. Phys., 20, 2987-3008, doi:10.5194/acp-20-2987-2020.
+    [cited below as "G2020"]
 
 What this implements, and how closely (read this before trusting the numbers)
 -------------------------------------------------------------------------------
@@ -23,15 +28,37 @@ aqueous electrolyte solution viscosity module within AIOMFAC[:] the mole fractio
 activity coefficients, and the relative ionic volumes[, which] are all available through the AIOMFAC
 interface").
 
-**Not implemented: LZ2022 Sect. 3's organic-inorganic mixing models.** LZ2022 extends AIOMFAC-VISC beyond
-pure aqueous electrolytes to mixtures that also contain organic compounds, by combining this electrolyte model
-with a separate aqueous-organic viscosity model (Gervasi et al., 2020, not part of this port) through one of
-several competing mixing rules the paper evaluates (a log-viscosity mass-weighted rule, a Vignes-type rule, and
-a ZSR-based rule -- LZ2022 Sect. 3.4.1-3.4.4) -- a substantially larger scope addition (a second, separate
-organic-viscosity parameterization, plus a choice among mixing rules the paper itself does not settle on a
-single winner for) than this module attempts. This module is therefore usable only for **organic-free aqueous
-electrolyte mixtures** -- water plus one or more of the 17 ions in ``ION_SUBGROUP`` below -- not for
-organic-containing aerosol phases, which is the paper's own eventual application (its title notwithstanding).
+Organic-inorganic mixtures: what's implemented, and what still isn't
+---------------------------------------------------------------------
+LZ2022 Sect. 3 extends AIOMFAC-VISC to mixtures that also contain organic compounds by combining the
+electrolyte model above with a separate aqueous-organic viscosity model (G2020) through one of three mixing
+rules. This module now implements:
+
+* **G2020's aqueous organic viscosity model itself** (``organic_mixture_viscosity``, ``pure_organic_viscosity_
+  vtf``) -- the "GC-UNIMOD"/AIOMFAC-VISC-organic combinatorial-plus-residual mixture viscosity equations
+  (G2020 Eq. 1-9). These need no new fitted parameters beyond what this package's existing short-range/UNIFAC
+  machinery (``sr.py``) already has (the subgroup R, Q and interaction tables) -- validated directly against
+  real CRC Handbook water+glycerol viscosity data (``tests/test_viscosity.py``, ~2-8% agreement, matching
+  G2020's own reported accuracy for small, well-characterized molecules).
+* **Two of LZ2022's three mixing rules**, "aquelec" and "aquorg" (``aquelec_viscosity``, ``aquorg_viscosity``;
+  LZ2022 Sect. 3.4.1-3.4.2) -- both need only a fixed, non-iterative sequence of calls into the electrolyte and
+  organic models above, with ion molalities/mole fractions or organic mole fractions rescaled as LZ2022
+  describes; neither requires any additional fitted parameters.
+
+**Not implemented:**
+
+* **G2020's predictive glass-transition-temperature (Tg) model** (DeRieux et al., 2018, a third, separate
+  paper G2020 relies on for estimating organic pure-component viscosity from molecular formula alone). Without
+  it, ``organic_mixture_viscosity`` cannot predict a pure-component viscosity for an arbitrary new organic --
+  the caller must supply one (measured, or computed by ``pure_organic_viscosity_vtf`` from a known/estimated
+  Tg, as G2020's own VTF equation, Eq. 11-12, does need only Tg and a fragility parameter, both ported here).
+  G2020 itself flags the DeRieux Tg-to-viscosity route as the model's single largest source of uncertainty
+  (their Fig. 2: several orders of magnitude off for some compounds), so this is not a large practical loss.
+* **LZ2022's third mixing rule, the ZSR-style rule** (Sect. 3.4.3) -- unlike aquelec/aquorg, it requires
+  solving a nonlinear equation (matching each subsystem's water activity to the full mixture's RH) iteratively
+  for every evaluation, which is a materially larger piece of numerical machinery than this port adds here.
+  LZ2022 itself does not single out ZSR, aquelec, or aquorg as uniformly best (Sect. 3.4.4), so having two of
+  the three is a reasonable, honestly-documented partial implementation rather than an arbitrary omission.
 
 Supported ions, and parameter provenance
 -------------------------------------------
@@ -66,10 +93,12 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from typing import Mapping
 
 import numpy as np
 
 from .model import ActivityModel, ActivityTerms
+from .sr import psi_t, sr_terms
 
 R_GAS = 8.314462618        # J / (mol K)
 H_PLANCK = 6.62607015e-34  # J s
@@ -180,6 +209,66 @@ class ViscosityResult:
     V_m3_per_mol: float     # the mixture's effective mean molar volume (Eq. 19), m^3/mol
 
 
+def _collect_ions(sr, result: ActivityTerms, nn: int):
+    """Per-ion (name, mole fraction, molality, charge, reference activity, is_cation) tuples for every ion in
+    ``sr``, read off an already-evaluated ``result`` (LZ2022 Eq. 9's ion activity, ``a_i = m_i * gamma_i``, the
+    same product ``electrolyte_viscosity`` and the mixing functions below all reuse)."""
+    ions = []
+    for k, sub in enumerate(sr.cations):
+        name = CATION_SUBGROUP.get(sub)
+        if name is None:
+            raise KeyError(f"cation subgroup {sub} is not one of the 17 ions AIOMFAC-VISC supports")
+        idx = nn + k
+        x_i, m_i = float(result.x[idx]), float(result.smc[k])
+        a_i_ref = m_i * math.exp(result.ln_gamma[idx])
+        ions.append((name, x_i, m_i, sr.cation_z[k], a_i_ref, True))
+    for k, sub in enumerate(sr.anions):
+        name = ANION_SUBGROUP.get(sub)
+        if name is None:
+            raise KeyError(f"anion subgroup {sub} is not one of the 17 ions AIOMFAC-VISC supports")
+        idx = nn + sr.n_cation + k
+        x_i, m_i = float(result.x[idx]), float(result.sma[k])
+        a_i_ref = m_i * math.exp(result.ln_gamma[idx])
+        ions.append((name, x_i, m_i, sr.anion_z[k], a_i_ref, False))
+    return ions
+
+
+def _electrolyte_core(x_w: float, ions, eta_w: float, cv: float) -> ViscosityResult:
+    """LZ2022 Eq. 2-19 given the water mole fraction, a per-ion tuple list (as ``_collect_ions`` returns), and
+    the pure-component ("solvent") viscosity to use for water -- ordinarily ``water_viscosity_pas(T_K)``, but
+    the mixing functions below substitute an "aware" pseudo-pure-water value instead (LZ2022 Sect. 3.4.1-3.4.2)
+    without otherwise changing this formula."""
+    V_w = WATER_RTH * V_REF_M3_PER_MOL
+    dg_w_over_RT = math.log(eta_w * V_w / (H_PLANCK * N_AVOGADRO))
+
+    dg_over_RT = x_w * dg_w_over_RT
+    V = x_w * V_w
+
+    for name, x_i, _m_i, _z_i, a_i_ref, _is_cat in ions:
+        c0, c1 = ION_C0_C1[name]
+        dg_over_RT += x_i * (c0 * math.log(a_i_ref) + c1)
+        V += cv * x_i * ION_RTH[name] * V_REF_M3_PER_MOL
+
+    ionic_strength = 0.5 * sum(m_i * z_i ** 2 for _, _, m_i, z_i, _, _ in ions)
+    sqrt_I = math.sqrt(ionic_strength)
+
+    cations = [(name, x_i, z_i) for name, x_i, _, z_i, _, is_cat in ions if is_cat]
+    anions = [(name, x_i, z_i) for name, x_i, _, z_i, _, is_cat in ions if not is_cat]
+    total_neg_charge = sum(x_a * abs(z_a) for _, x_a, z_a in anions)
+
+    if total_neg_charge > 0.0:
+        for name_c, x_c, z_c in cations:
+            for name_a, x_a, z_a in anions:
+                psi_a = (x_a * abs(z_a)) / total_neg_charge
+                nu_c = abs(z_a) // math.gcd(int(round(z_c)), int(round(abs(z_a))))
+                tau_ca = (x_c / nu_c) * psi_a
+                c_ca = CATION_ANION_C[(name_c, name_a)]
+                dg_over_RT += tau_ca * c_ca * sqrt_I
+
+    eta = (H_PLANCK * N_AVOGADRO / V) * math.exp(dg_over_RT)
+    return ViscosityResult(eta_pas=eta, log10_eta_pas=math.log10(eta), dg_star_over_RT=dg_over_RT, V_m3_per_mol=V)
+
+
 def electrolyte_viscosity(model: ActivityModel, result: ActivityTerms, T_K: float, *,
                            cv: float = CV) -> ViscosityResult:
     """AIOMFAC-VISC predicted dynamic viscosity of an **organic-free** aqueous electrolyte mixture (LZ2022
@@ -192,64 +281,202 @@ def electrolyte_viscosity(model: ActivityModel, result: ActivityTerms, T_K: floa
     """
     sr = model.mixture.sr
     if sr.n_neutral != 1:
-        raise ValueError("electrolyte_viscosity requires exactly one neutral component (water) -- this module "
-                          "does not implement LZ2022's organic-inorganic mixing models (see module docstring)")
+        raise ValueError("electrolyte_viscosity requires exactly one neutral component (water) -- for mixtures "
+                          "that also contain organics, use aquelec_viscosity or aquorg_viscosity instead")
+    ions = _collect_ions(sr, result, sr.n_neutral)
+    return _electrolyte_core(float(result.x[0]), ions, water_viscosity_pas(T_K), cv)
 
+
+# ---------------------------------------------------------------------------------------------------------------
+# Organic-inorganic extension: Gervasi et al. (2020) aqueous organic viscosity model ("GC-UNIMOD"/AIOMFAC-VISC
+# organic part) plus two of Lilek and Zuend (2022) Sect. 3.4's three mixing rules for combining it with the
+# electrolyte model above. See the module docstring for exactly what is and is not covered.
+# ---------------------------------------------------------------------------------------------------------------
+
+#: UNIFAC/AIOMFAC lattice coordination number (Zuend et al., 2008; Abrams and Prausnitz, 1975). Appears
+#: elsewhere in this package only implicitly, as the factor ``5.0 = Z_COORD / 2`` in ``sr._combinatorial``.
+Z_COORD = 10.0
+
+
+def pure_organic_viscosity_vtf(T_K: float, Tg_K: float, D: float | None = None) -> float:
+    """Pure-component organic viscosity from a glass transition temperature via the modified Vogel-Tammann-
+    Fulcher equation (Gervasi, Pye and Zuend, 2020, ACP 20, 2987-3008, Eq. 11-12; "G2020" below), given ``Tg_K``
+    (e.g. a measured or literature-estimated glass transition temperature -- **not** predicted here, see the
+    module docstring) and a fragility parameter ``D`` (dimensionless; G2020 Sect. 2.2.1: typically 5-30, with
+    10 a reasonable default at/above Tg). If ``D`` is omitted, G2020's own simulation convention is used:
+    ``D = 10`` normally, or ``D = 30`` if ``Tg_K`` is above ``T_K`` (i.e. the system is simulated below its own
+    glass transition, where a fragility of 10 would drastically overestimate the pure-component viscosity;
+    G2020 Sect. 2.3: "we choose to assign a fragility parameter of D = 10 for all organic compounds, with the
+    exception of those whose Tg is warmer than the simulation temperature[, for which] the FSC provides us with
+    the theoretical basis to assign a fragility parameter of D = 30").
+
+    G2020 itself flags this pure-component viscosity estimate as the single largest source of uncertainty in
+    the whole model (their Fig. 2: predicted vs. experimental pure-component viscosity can disagree by several
+    orders of magnitude for some compounds, e.g. glycerol) -- prefer a measured pure-component viscosity over
+    this function wherever one is available (as G2020's own validation figures do).
+    """
+    if D is None:
+        D = 30.0 if Tg_K > T_K else 10.0
+    T0 = 39.17 * Tg_K / (D + 39.17)
+    if T_K <= T0:
+        raise ValueError(f"T_K={T_K:g} K is at or below the Vogel temperature T0={T0:.2f} K implied by "
+                          f"Tg={Tg_K:g} K, D={D:g} -- the VTF viscosity diverges there and is not meaningful")
+    log10_eta0 = -5.0 + 0.434 * T0 * D / (T_K - T0)
+    return 10.0 ** log10_eta0
+
+
+@dataclass
+class OrganicViscosityResult:
+    eta_pas: float          # predicted dynamic viscosity, Pa s
+    log10_eta_pas: float    # log10(eta / 1 Pa s)
+    ln_eta: float           # ln(eta / 1 Pa s) -- the left-hand side of G2020 Eq. 1 directly
+
+
+def _is_pure_water(component) -> bool:
+    return tuple(component.subgroups) == ((16, 1),)
+
+
+def _group_residual_L(sr, psi: np.ndarray, x: np.ndarray) -> np.ndarray:
+    """Per-group ``L_k = sum_m Gamma_{m,k} ln(Psi_{m,k})`` (G2020 Eq. 4's sum, with Eq. 7-8's Gamma/Psi) for
+    neutral-species mole fractions ``x``, evaluated at whatever composition is passed in (the real mixture for
+    the "mixture" term of Eq. 3, or a single-component unit vector for the "ref" term -- mirroring exactly how
+    ``sr._residual``/``_residual_reference`` compute the analogous thermodynamic quantity)."""
+    S1 = sr.SRNY.T @ x
+    total = S1.sum()
+    if total <= 0.0:
+        return np.zeros_like(sr.Q)
+    XG = S1 / total
+    TH = sr.Q * XG / np.dot(sr.Q, XG)
+    S4 = psi.T @ TH                                    # S4[k] = sum_m TH[m] * Psi[m, k]
+    with np.errstate(divide="ignore", invalid="ignore"):
+        Gamma = (TH[:, None] * psi) / S4[None, :]       # Gamma[m, k]
+        ln_psi = np.log(psi)
+        term = Gamma * ln_psi
+    return np.where(np.isfinite(term), term, 0.0).sum(axis=0)
+
+
+def organic_mixture_viscosity(model: ActivityModel, x_neutral, T_K: float,
+                               eta0_pas: Mapping[int, float] | None = None) -> OrganicViscosityResult:
+    """AIOMFAC-VISC/"GC-UNIMOD" predicted dynamic viscosity of an **ion-free** aqueous organic mixture (Gervasi,
+    Pye and Zuend, 2020, ACP 20, 2987-3008, Eq. 1-9), given an :class:`ActivityModel` built from water plus one
+    or more organic components (no electrolytes), the neutral-component mole fractions ``x_neutral`` (need not
+    match ``model``'s own last-evaluated composition -- the mixing functions below call this at a re-normalized
+    sub-composition), and ``eta0_pas``: pure-component viscosities (Pa s) at ``T_K``, keyed by each organic
+    component's ``Component.number`` (from a measurement, or ``pure_organic_viscosity_vtf``). Water's own
+    pure-component viscosity is ``water_viscosity_pas(T_K)`` unless ``eta0_pas`` gives an explicit override for
+    it too (the mixing functions use this to substitute an "aware" pseudo-pure-water value).
+
+    Eq. 1-9 need only quantities this package's existing short-range/UNIFAC machinery (``sr.py``) already
+    computes from the thermodynamic subgroup tables (R, Q, the interaction parameters a_{m,k}, and the
+    combinatorial activity coefficients) -- no additional fitted viscosity-specific parameters are needed for
+    this part of the model (unlike the per-ion/per-pair coefficients ``electrolyte_viscosity`` uses).
+    """
+    sr = model.mixture.sr
+    if sr.n_species != sr.n_neutral:
+        raise ValueError("organic_mixture_viscosity requires an ion-free mixture (water + organics only); for "
+                          "mixtures that also contain electrolytes, use aquelec_viscosity or aquorg_viscosity")
     nn = sr.n_neutral
-    x_w = float(result.x[0])
-    eta_w = water_viscosity_pas(T_K)
-    V_w = WATER_RTH * V_REF_M3_PER_MOL
-    dg_w_over_RT = math.log(eta_w * V_w / (H_PLANCK * N_AVOGADRO))
+    x = np.asarray(x_neutral, dtype=float)
+    if x.shape != (nn,):
+        raise ValueError(f"x_neutral must have {nn} entries, got {x.shape}")
+    components = model.mixture.components[:nn]
+    eta0_pas = {} if eta0_pas is None else eta0_pas
 
-    dg_over_RT = x_w * dg_w_over_RT
-    V = x_w * V_w
+    eta0 = np.empty(nn)
+    for i, comp in enumerate(components):
+        if comp.number in eta0_pas:
+            eta0[i] = eta0_pas[comp.number]
+        elif _is_pure_water(comp):
+            eta0[i] = water_viscosity_pas(T_K)
+        else:
+            raise ValueError(f"no pure-component viscosity given for organic component {comp.number} "
+                              f"({comp.name!r}) -- pass it in eta0_pas (measured, or via "
+                              f"pure_organic_viscosity_vtf with a known/estimated Tg)")
 
-    # Per-ion contributions (Eq. 13) and the mixture's mean molar volume (Eq. 19); also collect per-ion
-    # (name, mole fraction, molality, charge) for the cation-anion pair term below.
-    ions = []  # (name, x_i, m_i, z_i, is_cation)
-    for k, sub in enumerate(sr.cations):
-        name = CATION_SUBGROUP.get(sub)
-        if name is None:
-            raise KeyError(f"cation subgroup {sub} is not one of the 17 ions AIOMFAC-VISC supports")
-        idx = nn + k
-        x_i, m_i = float(result.x[idx]), float(result.smc[k])
-        a_i_ref = m_i * math.exp(result.ln_gamma[idx])
-        c0, c1 = ION_C0_C1[name]
-        dg_i_over_RT = c0 * math.log(a_i_ref) + c1
-        dg_over_RT += x_i * dg_i_over_RT
-        V += cv * x_i * ION_RTH[name] * V_REF_M3_PER_MOL
-        ions.append((name, x_i, m_i, sr.cation_z[k], True))
+    psi = psi_t(sr, T_K)
+    L_mix = _group_residual_L(sr, psi, x)
+    RS, QS, R, Q, SRNY = sr.RS, sr.QS, sr.R, sr.Q, sr.SRNY
+    with np.errstate(divide="ignore", invalid="ignore"):
+        Q_over_R = np.where(R > 0.0, Q / np.where(R > 0.0, R, 1.0), 0.0)
 
-    for k, sub in enumerate(sr.anions):
-        name = ANION_SUBGROUP.get(sub)
-        if name is None:
-            raise KeyError(f"anion subgroup {sub} is not one of the 17 ions AIOMFAC-VISC supports")
-        idx = nn + sr.n_cation + k
-        x_i, m_i = float(result.x[idx]), float(result.sma[k])
-        a_i_ref = m_i * math.exp(result.ln_gamma[idx])
-        c0, c1 = ION_C0_C1[name]
-        dg_i_over_RT = c0 * math.log(a_i_ref) + c1
-        dg_over_RT += x_i * dg_i_over_RT
-        V += cv * x_i * ION_RTH[name] * V_REF_M3_PER_MOL
-        ions.append((name, x_i, m_i, sr.anion_z[k], False))
+    Phi = x * RS / np.dot(RS, x)                        # Eq. 9
+    ln_gamma_c = sr_terms(sr, T_K, x).ln_gamma_c         # Eq. 2's gamma_i^C (combinatorial activity coefficient)
 
-    # Molal ionic strength (Eq. 15) and the cation-anion pair term (Eq. 14, 16-18).
-    ionic_strength = 0.5 * sum(m_i * z_i ** 2 for _, _, m_i, z_i, _ in ions)
-    sqrt_I = math.sqrt(ionic_strength)
+    ln_eta = 0.0
+    for i in range(nn):
+        xi_C = math.exp(ln_gamma_c[i]) * x[i] * math.log(eta0[i])          # Eq. 2
 
-    cations = [(name, x_i, z_i) for name, x_i, _, z_i, is_cat in ions if is_cat]
-    anions = [(name, x_i, z_i) for name, x_i, _, z_i, is_cat in ions if not is_cat]
-    total_neg_charge = sum(x_a * abs(z_a) for _, x_a, z_a in anions)
+        e_i = np.zeros(nn); e_i[i] = 1.0
+        L_ref = _group_residual_L(sr, psi, e_i)                            # pure component i (Eq. 4's "ref")
+        N_vis = Q * (QS[i] - RS[i]) / 2.0 - (1.0 - RS[i]) / Z_COORD        # Eq. 5, vs. group k
+        xi_R = Phi[i] * np.sum(SRNY[i] * Q_over_R * N_vis * (L_mix - L_ref))  # Eq. 3-4
 
-    if total_neg_charge > 0.0:
-        for name_c, x_c, z_c in cations:
-            for name_a, x_a, z_a in anions:
-                psi_a = (x_a * abs(z_a)) / total_neg_charge
-                nu_c = abs(z_a) // math.gcd(int(round(z_c)), int(round(abs(z_a))))
-                tau_ca = (x_c / nu_c) * psi_a
-                c_ca = CATION_ANION_C[(name_c, name_a)]
-                dg_ca_over_RT = c_ca * sqrt_I
-                dg_over_RT += tau_ca * dg_ca_over_RT
+        ln_eta += xi_C + xi_R
 
-    eta = (H_PLANCK * N_AVOGADRO / V) * math.exp(dg_over_RT)
-    return ViscosityResult(eta_pas=eta, log10_eta_pas=math.log10(eta), dg_star_over_RT=dg_over_RT, V_m3_per_mol=V)
+    eta = math.exp(ln_eta)
+    return OrganicViscosityResult(eta_pas=eta, log10_eta_pas=math.log10(eta), ln_eta=ln_eta)
+
+
+def _organic_submodel_and_renorm_x(model: ActivityModel, result: ActivityTerms):
+    """The water+organics-only (ion-free) sub-mixture of a full organic-inorganic ``model``, and its neutral
+    mole fractions re-normalized to exclude ions -- shared by both ``aquelec_viscosity`` (its step 6-7) and
+    ``aquorg_viscosity`` (its step 1), which both need exactly this sub-mixture/composition."""
+    nn = model.mixture.sr.n_neutral
+    organic_model = ActivityModel(list(model.mixture.components[:nn]))
+    x_neutral = np.asarray(result.x[:nn], dtype=float)
+    return organic_model, x_neutral / x_neutral.sum()
+
+
+def aquelec_viscosity(model: ActivityModel, result: ActivityTerms, T_K: float,
+                       eta0_pas: Mapping[int, float] | None = None, *, cv: float = CV) -> OrganicViscosityResult:
+    """"aquelec" mixing rule (LZ2022 Sect. 3.4.1): treats inorganic ions as dissolving exclusively in water,
+    computes that organic-free electrolyte subsystem's viscosity (rescaling ion molalities/mole fractions to
+    exclude the organics, Eq. 20-21), then uses it as an "electrolyte-aware" pseudo-pure-water property in a
+    run of ``organic_mixture_viscosity`` for the full (renormalized, ion-free) water+organics system.
+
+    ``model``/``result`` are the full organic-inorganic mixture (water first, then organics, then ions);
+    ``eta0_pas`` gives pure-component viscosities for the organics exactly as in ``organic_mixture_viscosity``
+    (water's own entry, if given, is ignored -- it is always the "electrolyte-aware" value computed here).
+    """
+    sr = model.mixture.sr
+    nn = sr.n_neutral
+    if nn < 2:
+        raise ValueError("aquelec_viscosity requires at least one organic component besides water")
+
+    x = result.x
+    wtf = result.wtf
+    ww, worg = float(wtf[0]), float(np.sum(wtf[1:nn]))
+    if ww + worg <= 0.0:
+        raise ValueError("water + organic mass fraction is zero")
+    lam = ww / (ww + worg)                                               # Eq. 21
+
+    ions = _collect_ions(sr, result, nn)
+    denom = float(x[0]) + sum(x_i for _, x_i, _, _, _, _ in ions)
+    ions_aquelec = [(name, x_i / denom, lam * m_i, z_i, lam * a_i_ref, is_cat)
+                    for name, x_i, m_i, z_i, a_i_ref, is_cat in ions]     # Eq. 20, step 2-3
+    eta1 = _electrolyte_core(float(x[0]) / denom, ions_aquelec, water_viscosity_pas(T_K), cv).eta_pas
+
+    organic_model, x_renorm = _organic_submodel_and_renorm_x(model, result)   # step 6
+    eta0_full = dict(eta0_pas) if eta0_pas else {}
+    eta0_full[model.mixture.components[0].number] = eta1                 # step 5: electrolyte-aware water
+    return organic_mixture_viscosity(organic_model, x_renorm, T_K, eta0_full)   # step 7
+
+
+def aquorg_viscosity(model: ActivityModel, result: ActivityTerms, T_K: float,
+                      eta0_pas: Mapping[int, float] | None = None, *, cv: float = CV) -> ViscosityResult:
+    """"aquorg" mixing rule (LZ2022 Sect. 3.4.2): the mirror image of ``aquelec_viscosity`` -- first computes
+    the ion-free aqueous organic subsystem's viscosity (ordinary Dehaoui-model water), uses it as an
+    "organics-aware" pseudo-pure-water property, folds water and organics into one combined mole-fraction
+    pool, and runs the electrolyte model on that combined pool plus the (unmodified) ions.
+
+    Arguments as in ``aquelec_viscosity``. Returns a :class:`ViscosityResult` (like ``electrolyte_viscosity``),
+    since the final step here is the electrolyte model rather than the organic one.
+    """
+    organic_model, x_renorm = _organic_submodel_and_renorm_x(model, result)   # step 1
+    eta2 = organic_mixture_viscosity(organic_model, x_renorm, T_K, eta0_pas).eta_pas
+
+    sr = model.mixture.sr
+    nn = sr.n_neutral
+    x_w_combined = float(np.sum(result.x[:nn]))                          # step 3: organics-aware water
+    ions = _collect_ions(sr, result, nn)                                 # unmodified (step: "not necessary to
+    return _electrolyte_core(x_w_combined, ions, eta2, cv)               # modify the ion molalities")
