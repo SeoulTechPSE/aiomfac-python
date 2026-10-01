@@ -10,6 +10,10 @@ neutral components (input order), then cations, then anions.
 Automatically completes systems the Fortran SetSystem would complete (H+/HSO4-/SO4--/HCO3-/CO3--/OH-/CO2(aq)) and
 solves the resulting bisulfate-only, bicarbonate-only, or joint bisulfate+bicarbonate dissociation equilibrium
 (see dissociation.py / carbonate.py).
+
+The AIOMFAC-VISC viscosity extension (Lilek and Zuend, 2022) is a separate module, ``viscosity.py`` -- not
+excluded from this port, just layered on top of this one (it calls ``ActivityModel.evaluate`` for the ion
+molal activities/activity coefficients it needs; see that module's docstring for scope).
 """
 from __future__ import annotations
 

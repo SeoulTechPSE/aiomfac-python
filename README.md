@@ -43,6 +43,8 @@ paper, and `tests/test_lle.py` for how the solver itself, independent of AIOMFAC
 | `src/aiomfac_py/model.py` | `ActivityModel` / `activity_coefficients()` — end-to-end for simple systems |
 | `src/aiomfac_py/s2as/` | SMILES -> AIOMFAC subgroups (optional `epam.indigo` dependency) — integration of the upstream S2AS tool, validated bit-for-bit against it |
 | `src/aiomfac_py/lle.py` | liquid-liquid equilibrium (`solve_pep`/`solve_pep_gfe`) — primal-dual interior-point/active-set Gibbs-energy minimization on top of `ActivityModel`, port of Amundson et al. (2006, JOTA 130); **not** part of AIOMFAC-web, not Fortran-validated (see the module docstring and `tests/test_lle.py`) |
+| `src/aiomfac_py/gp_partition.py` | gas/particle partitioning at fixed RH (`gp_partition`) — joint Levenberg-Marquardt solver (default), a pseudo-transient RH-continuation fallback (inspired by Amundson et al., 2007, C. R. Acad. Sci.), and the original successive-substitution method, all on top of `ActivityModel`; **not** part of AIOMFAC-web (see the module docstring and `tests/test_gp_partition.py`) |
+| `src/aiomfac_py/viscosity.py` | AIOMFAC-VISC (`electrolyte_viscosity`, `water_viscosity_pas`) — predictive dynamic-viscosity model for **aqueous electrolyte** solutions, port of Lilek and Zuend (2022, *Atmos. Chem. Phys.* 22, 3203–3233); built on top of `ActivityModel`'s ion molal activities/activity coefficients. Covers the 17 ions and all cation–anion pairs the paper fits; does **not** implement the paper's organic-inorganic mixing models (Sect. 3) — see the module docstring and `tests/test_viscosity.py` |
 | `tools/extract_params.py`, `tools/extract_mr_params.py` | regenerate `sr_params.npz`, `subgroup_params.npz`, `mr_params.npz` from the Fortran source (never edit tables by hand; `extract_mr_params` interprets `MRdata` statement by statement and reproduces Fortran literal kinds) |
 | `fortran_patches/` | patch that makes the Fortran model dump every activity-coefficient term at full precision, plus notes on how to rebuild the references |
 | `tests/reference/` | examples 0001/0003 (inputs, standard outputs, per-term dumps) |
@@ -128,7 +130,13 @@ genuine convergence failure of plain successive substitution for that system); a
 which reproduces exemplary new-system calculations from the extended-parameterization paper, Zuend et al.
 (2011, *Atmos. Chem. Phys.*, doi:10.5194/acp-11-9155-2011) — water activities of water + dicarboxylic acid +
 (NH4)2SO4 systems (oxalic, malonic, succinic, glutaric acids), validated against the paper's own Appendix A2
-measurements, demonstrating the new carboxyl functional group these systems require.
+measurements, demonstrating the new carboxyl functional group these systems require; and
+[`notebooks/05_lilek_zuend2022_viscosity.ipynb`](notebooks/05_lilek_zuend2022_viscosity.ipynb), which uses the
+new `aiomfac_py.viscosity` module (AIOMFAC-VISC, the aqueous-electrolyte part only) to reproduce Fig. 4 of
+Lilek and Zuend (2022, *Atmos. Chem. Phys.*, doi:10.5194/acp-22-3203-2022) — predicted viscosity vs. water
+mass fraction/activity for seven binary aqueous chloride salts/acids (KCl, NaCl, LiCl, NH4Cl, MgCl2, HCl,
+CaCl2), reproducing the paper's structure-breaking (K+, NH4+) vs. structure-making (Li+, Mg2+, Ca2+, H+)
+qualitative distinction.
 
 ### Manual / local install
 
