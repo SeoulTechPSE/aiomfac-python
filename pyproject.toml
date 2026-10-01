@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aiomfac_py"
-version = "0.0.16"
+version = "0.0.17"
 description = "Pure-Python port of the AIOMFAC thermodynamic activity-coefficient model (work in progress)"
 readme = "README.md"
 requires-python = ">=3.9"
