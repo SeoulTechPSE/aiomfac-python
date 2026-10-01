@@ -53,3 +53,62 @@ class TestGPPartitionSmoke:
                             max_iter=60, tol=1.0e-4)
         assert 0.0 <= res.activities_org[0] < 10.0
         assert 0.0 <= res.aw <= 1.0
+
+
+class TestGPPartitionJointLMRegression:
+    """Regression test for the joint Levenberg-Marquardt solver (`method="lm"`, the default since this was
+    added): the exact 4-organic system from `03_zuend2010_lle.ipynb`'s Fig. 8-10, where plain successive
+    substitution (`method="successive_substitution"`) is confirmed (see gp_partition.py's module docstring)
+    to never converge -- glycerol and 1,6-hexanediol chaotically alternate between near-zero and a material
+    particle-phase amount, iteration to iteration, at every RH tested. `method="lm"` must actually converge
+    here, tightly, which plain successive substitution cannot."""
+
+    @pytest.fixture
+    def four_organic_case(self):
+        hexanediol16 = Component(2, "1,6-hexanediol", ((142, 4), (150, 2), (153, 2)))
+        glycerol = Component(3, "glycerol", ((150, 2), (151, 1), (153, 3)))
+        decanetriol = Component(4, "1,2,10-decanetriol", ((142, 7), (150, 2), (151, 1), (153, 3)))
+        octanetetrol = Component(5, "1,2,5,8-octanetetrol", ((142, 4), (150, 2), (151, 2), (153, 4)))
+        nh4so4 = Component(6, "(NH4)2SO4", ((204, 2), (261, 1)))
+        organics = [
+            VolatileSpecies(hexanediol16, 1.18172e-1, 5.695e-2, 3.0e-8),
+            VolatileSpecies(glycerol, 9.20940e-2, 2.284e-2, 3.0e-8),
+            VolatileSpecies(decanetriol, 1.90276e-1, 1.826e-4, 3.0e-8),
+            VolatileSpecies(octanetetrol, 1.78224e-1, 6.725e-5, 3.0e-8),
+        ]
+        return nh4so4, organics
+
+    @pytest.mark.parametrize("RH", [0.20, 0.40, 0.60, 0.80, 0.90, 0.95, 0.98, 0.99])
+    def test_lm_converges_where_successive_substitution_does_not(self, four_organic_case, RH):
+        salt, organics = four_organic_case
+        res_lm = gp_partition(salt, organics, n_salt=1.0e-8, T_K=298.15, RH=RH, V_gas_m3=1.0,
+                               max_iter=60, tol=1.0e-6, method="lm", check_lle=False)
+        assert res_lm.converged
+        assert res_lm.aw == pytest.approx(RH, abs=1.0e-4)
+
+        res_ss = gp_partition(salt, organics, n_salt=1.0e-8, T_K=298.15, RH=RH, V_gas_m3=1.0,
+                               max_iter=60, tol=1.0e-6, method="successive_substitution", check_lle=False)
+        assert not res_ss.converged
+
+    def test_lm_mass_balance_conserved_for_all_organics(self, four_organic_case):
+        salt, organics = four_organic_case
+        res = gp_partition(salt, organics, n_salt=1.0e-8, T_K=298.15, RH=0.6, V_gas_m3=1.0,
+                            max_iter=60, tol=1.0e-6, method="lm", check_lle=False)
+        totals = res.n_org_PM + res.n_org_gas
+        expected = np.array([o.n_total for o in organics])
+        assert totals == pytest.approx(expected, rel=1.0e-6)
+
+    def test_lm_does_not_stall_at_loose_tol_near_rh_0_99(self, four_organic_case):
+        """Regression test for a second, distinct failure mode found after the fix above: with a *loose*
+        caller `tol` (as `03_zuend2010_lle.ipynb`'s RH sweep uses, `tol=1e-4`), passing that same loose value
+        straight through to `scipy.optimize.least_squares`'s internal `xtol`/`ftol`/`gtol` let TRF declare
+        victory at a bound-constrained pseudo-stationary point (one organic's particle fraction pinned near
+        its r_j=1 bound at this near-saturation RH) after only ~9 function evaluations, with `aw` still
+        ~0.0086 off the RH=0.99 target -- a genuine internal-tolerance stall, confirmed to be independent of
+        `max_iter` (raising it alone did not help; only decoupling the internal tolerances from `tol` did).
+        `_solve_joint_lm` now always uses tight internal tolerances regardless of the caller's `tol`."""
+        salt, organics = four_organic_case
+        res = gp_partition(salt, organics, n_salt=1.0e-8, T_K=298.15, RH=0.99, V_gas_m3=1.0,
+                            max_iter=50, tol=1.0e-4, method="lm", check_lle=False)
+        assert res.converged
+        assert res.aw == pytest.approx(0.99, abs=1.0e-4)
