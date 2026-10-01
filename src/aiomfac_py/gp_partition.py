@@ -19,8 +19,14 @@ into two phases; this module relies on that.
 
 Z2010 solves the resulting nonlinear system (water content set by the RH boundary condition simultaneously
 with every organic's gas/particle split, Sect. 3.2 steps 1-8) with a Differential-Evolution/Powell/
-Levenberg-Marquardt combination (their Appendix A) chosen for robustness on an arbitrary mixture. This module
-offers two solvers, selected via ``gp_partition(..., method=...)``:
+Levenberg-Marquardt combination (their Appendix A) chosen for robustness on an arbitrary mixture. A related,
+independent strand of literature poses essentially the same gas/particle-plus-internal-LLE problem as a
+genuinely *dynamic* one and solves it by integrating real mass-transfer kinetics to steady state with a
+primal-dual interior-point method at each time step (Amundson, Caboussat, He, Landry, Seinfeld, 2007, "A
+dynamic optimization problem related to organic aerosols", C. R. Acad. Sci. Paris, Ser. I, 344, 519-522,
+doi:10.1016/j.crma.2007.03.002 -- building on the same group's JOTA-2006 interior-point LLE algorithm this
+package's own ``lle.py`` ports). This module offers three solvers, selected via ``gp_partition(...,
+method=...)``:
 
 * ``method="lm"`` (the **default**): a joint Levenberg-Marquardt/trust-region solve
   (`scipy.optimize.least_squares`, ``method="trf"``) over *all* unknowns at once -- ``log(n_water)`` and every
@@ -30,6 +36,15 @@ offers two solvers, selected via ``gp_partition(..., method=...)``:
   own local-refinement step (their Powell/LM stage) than plain fixed-point iteration is, because it uses the
   full Jacobian coupling every species simultaneously rather than updating one species at a time -- see
   "Known convergence failure mode" below for why that distinction matters in practice, not just in principle.
+* ``method="pseudo_transient"``: the same joint solve, but reached through a sequence of intermediate RH
+  targets instead of one jump from the starting guess straight to the requested RH, each stage warm-started
+  from the previous one's converged composition (``_solve_pseudo_transient``). This is the artificial-
+  continuation analogue of the Amundson/Caboussat/He/Landry/Seinfeld (2007) real-time-stepping approach cited
+  above -- it recovers the same qualitative robustness benefit (small, well warm-started steps rather than one
+  large jump) without needing that paper's physical inputs (particle radius, number density, per-species
+  diffusivity and accommodation coefficient), which this module does not otherwise use. Not required by any
+  convergence failure found so far (``"lm"`` already resolves them directly), but available as a more gradual
+  fallback.
 * ``method="successive_substitution"``: the original plain **successive substitution** (a damped fixed-point
   iteration: solve for the particle water content that matches the target RH at the current organic split via
   1-D bracketing (`scipy.optimize.brentq`), then update every organic's gas/particle split from the resulting
@@ -37,8 +52,9 @@ offers two solvers, selected via ``gp_partition(..., method=...)``:
   absorptive-partitioning literature the paper itself builds on (Pankow, 1994; Odum et al., 1996). Kept
   available for comparison/regression testing against ``"lm"``, since it is simpler to reason about when it
   *does* converge, but it is demonstrably not reliable on its own for the paper's own case study (below) and
-  should not be relied on for an arbitrary mixture. In both cases, ``GPResult.converged`` should be checked,
-  not assumed.
+  should not be relied on for an arbitrary mixture.
+
+``GPResult.converged`` should be checked, not assumed, whichever method is used.
 
 Known convergence failure mode of plain successive substitution (confirmed, fixed by ``method="lm"``)
 ----------------------------------------------------------------------------------------------------------
@@ -63,6 +79,14 @@ to the requested tolerance) at every one of the same 8 RH points, with smooth, m
 trajectories for all four organics, including the two that chattered under successive substitution -- see
 ``tests/test_gp_partition.py::TestGPPartitionJointLMRegression`` for the regression test that locks this in,
 and `03_zuend2010_lle.ipynb`'s Fig. 8-10 section for the worked example.
+
+A second, unrelated stall turned up while confirming the fix above with the notebook's own (loose) tolerance:
+see ``_solve_joint_lm``'s own docstring comment for the internal-tolerance coupling that caused it, and
+``tests/test_gp_partition.py::TestGPPartitionJointLMRegression::test_lm_does_not_stall_at_loose_tol_near_rh_0_99``
+for the regression test. Both fixes are specific to the geometry of this particular case study; a mixture
+closer to a genuine phase-stability boundary could in principle still be harder for ``"lm"`` than either of
+these were -- ``method="pseudo_transient"`` above is offered as a fallback for exactly that possibility,
+though no case requiring it has been found yet.
 
 Units: SI throughout (kg/mol for molar masses, Pa for pressures, m^3 for gas volume, mol for amounts,
 kg/m^3 for mass concentrations) -- converted to the paper's usual micrograms/m^3 only for display.
@@ -267,10 +291,75 @@ def _solve_joint_lm(aw_func, organics: list[VolatileSpecies], T_K: float, RH: fl
     return n_water, n_org_PM, converged, result.nfev
 
 
+def _solve_pseudo_transient(aw_func, organics: list[VolatileSpecies], T_K: float, RH: float, V_gas_m3: float,
+                             n_org_PM0: np.ndarray, n_water0: float, total_scale: float, n_water_bracket, *,
+                             max_iter: int, tol: float, n_stages: int = 8):
+    """Pseudo-transient continuation in RH: instead of asking ``_solve_joint_lm`` to jump straight from an
+    arbitrary starting guess to the target ``RH`` in one solve, step a sequence of *intermediate* RH targets
+    from the starting guess's own (forced-1-phase) water activity up to ``RH``, re-solving ``_solve_joint_lm``
+    at each stage warm-started from the previous stage's converged composition.
+
+    This is the artificial-continuation analogue of the real physical mass-transfer-kinetics ODE relaxation in
+
+        Amundson, N. R., Caboussat, A., He, J. W., Landry, C., Seinfeld, J. H. (2007), "A dynamic optimization
+        problem related to organic aerosols", C. R. Acad. Sci. Paris, Ser. I, 344, 519-522,
+        doi:10.1016/j.crma.2007.03.002,
+
+    which poses the *same* gas/particle-partitioning-plus-internal-LLE problem this module solves, but derives
+    its global robustness from genuinely integrating the gas<->particle mass-transfer dynamics (an implicit-
+    Euler-discretized DAE driven by a mass-transfer rate ``phi(r)``, particle radius ``r(t)``, number density
+    ``N``, per-species diffusivity and accommodation coefficient) forward in *real* time until it reaches
+    steady state -- each time step only has to move the solution a little, so the warm-started Newton/interior-
+    point solve at every step after the first starts close to that step's own root. That paper's time-stepping
+    needs physical inputs (``r``, ``N``, diffusivities, accommodation coefficients) this module does not
+    otherwise take, and changes what is being computed (a trajectory in real time, not just the RH-fixed
+    equilibrium this module targets) -- genuinely porting it is therefore a larger scope change than fixing
+    the two convergence issues already found (see "Known convergence failure mode" above) called for. This
+    function instead recovers the same *qualitative* benefit -- robustness through small, well-warm-started
+    steps rather than one large jump -- using RH itself as an artificial continuation parameter, with no
+    change to what ``gp_partition`` computes or requires as input.
+
+    In practice (see ``tests/test_gp_partition.py``), ``method="lm"`` on its own already resolves every
+    convergence failure found so far in this module's test cases, including after the internal-tolerance fix
+    documented in ``_solve_joint_lm``; this method is offered as an additional, more gradual fallback for
+    cases that might still prove harder (e.g. a target RH very far from the fully-condensed starting guess, or
+    a mixture closer to a genuine phase-stability boundary), not because any currently known case needs it.
+    """
+    aw0, _ = aw_func(n_water0, n_org_PM0)
+    RH0 = float(np.clip(aw0, 1.0e-6, 1.0 - 1.0e-9))
+    RH_target = float(np.clip(RH, 1.0e-6, 1.0 - 1.0e-9))
+
+    if n_stages < 2 or np.isclose(RH0, RH_target):
+        stages = np.array([RH_target])
+    else:
+        # Stage in (1 - RH) rather than RH itself: the problem stiffens as RH -> 1 (organics increasingly
+        # retained in the particle, activities increasingly sensitive), so spacing stages geometrically in
+        # (1 - RH) keeps every step comparably "small" in the variable that actually controls difficulty,
+        # rather than taking disproportionately large steps right where the problem is hardest.
+        one_minus_0 = max(1.0 - RH0, 1.0e-6)
+        one_minus_t = max(1.0 - RH_target, 1.0e-9)
+        stages = 1.0 - np.geomspace(one_minus_0, one_minus_t, n_stages)
+        stages[-1] = RH_target  # land exactly on the target regardless of floating-point drift above
+
+    n_water, n_org_PM = n_water0, n_org_PM0.copy()
+    total_nfev = 0
+    converged = False
+    for RH_stage in stages:
+        n_water, n_org_PM, converged, nfev = _solve_joint_lm(
+            aw_func, organics, T_K, float(RH_stage), V_gas_m3, n_org_PM, n_water, total_scale, n_water_bracket,
+            max_iter=max_iter, tol=tol)
+        total_nfev += nfev
+        if not converged:
+            # No point advancing to a harder stage from a composition that itself isn't self-consistent yet;
+            # report the failure (and the best composition found) at the stage it first occurred.
+            break
+    return n_water, n_org_PM, converged, total_nfev
+
+
 def gp_partition(salt: Component, organics: list[VolatileSpecies], n_salt: float, T_K: float, RH: float,
                   V_gas_m3: float, *, max_iter: int = 60, relax: float = 0.5, tol: float = 1.0e-6,
                   n_water_bracket: tuple[float, float] | None = None,
-                  check_lle: bool = True, method: str = "lm") -> GPResult:
+                  check_lle: bool = True, method: str = "lm", n_stages: int = 8) -> GPResult:
     """Solve the RH-dependent gas/particle split of ``organics`` (plus water) over a fixed, non-volatile
     ``salt`` amount ``n_salt``, at temperature ``T_K`` and target relative humidity ``RH`` (0-1).
 
@@ -281,6 +370,13 @@ def gp_partition(salt: Component, organics: list[VolatileSpecies], n_salt: float
       fix for the "Known convergence failure mode" the module docstring documents (a volatile organic
       chattering between near-zero and a material particle-phase amount under plain successive substitution).
       ``relax`` is ignored in this mode (there is no fixed-point damping step to relax).
+    * ``"pseudo_transient"``: the same joint Levenberg-Marquardt solve, but reached gradually -- a sequence of
+      ``n_stages`` intermediate RH targets between the starting guess's own water activity and the requested
+      ``RH``, each warm-started from the previous stage's converged composition (``_solve_pseudo_transient``).
+      The artificial-continuation analogue of the real mass-transfer-kinetics ODE relaxation in Amundson,
+      Caboussat, He, Landry & Seinfeld (2007, C. R. Acad. Sci. 344, 519-522) -- see that function's docstring
+      for how the two relate. Not needed by any currently known convergence failure in this module (``"lm"``
+      resolves them directly), but offered as a more gradual fallback. ``relax`` is ignored, as in ``"lm"``.
     * ``"successive_substitution"``: the original damped fixed-point iteration (bracket the particle water
       content matching ``RH`` via 1-D root-finding, update every organic's split via Raoult's law, damp,
       repeat). Kept for comparison/regression testing against the ``"lm"`` default, and because it is cheaper
@@ -319,13 +415,18 @@ def gp_partition(salt: Component, organics: list[VolatileSpecies], n_salt: float
         n_water, n_org_PM, converged, it = _solve_joint_lm(
             aw_fast, organics, T_K, RH, V_gas_m3, n_org_PM0, n_water0, total_scale, n_water_bracket,
             max_iter=max_iter, tol=tol)
+    elif method == "pseudo_transient":
+        n_water, n_org_PM, converged, it = _solve_pseudo_transient(
+            aw_fast, organics, T_K, RH, V_gas_m3, n_org_PM0, n_water0, total_scale, n_water_bracket,
+            max_iter=max_iter, tol=tol, n_stages=n_stages)
     elif method == "successive_substitution":
         brentq_kw = dict(xtol=1.0e-9 * total_scale, rtol=1.0e-7, maxiter=60, disp=False)
         n_water, n_org_PM, converged, it = _successive_substitution(
             aw_fast, organics, n_salt, T_K, RH, V_gas_m3, n_org_PM0, n_water0, total_scale, n_water_bracket,
             max_iter=max_iter, relax=relax, tol=tol, brentq_kw=brentq_kw)
     else:
-        raise ValueError(f"method must be 'lm' or 'successive_substitution', got {method!r}")
+        raise ValueError(
+            f"method must be 'lm', 'pseudo_transient', or 'successive_substitution', got {method!r}")
 
     # final activities/water activity: always the fast forced-1-phase values (see docstring) -- a single
     # forward AIOMFAC evaluation, not another solve_pep call.
