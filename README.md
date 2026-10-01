@@ -39,7 +39,7 @@ paper, and `tests/test_lle.py` for how the solver itself, independent of AIOMFAC
 | `src/aiomfac_py/composition.py`, `numerics.py` | mass/mole fraction → mass fraction → ion molalities; `safe_exp` — validated |
 | `src/aiomfac_py/completion.py` | auto-completion of bisulfate/bicarbonate systems (species set) — validated structurally |
 | `src/aiomfac_py/dissociation.py` | HSO4- <-> H+ + SO4-- equilibrium (Brent's method, `numerics.brent_root`) — validated end-to-end, wired into `ActivityModel` |
-| `src/aiomfac_py/carbonate.py` | bicarbonate-only equilibrium (`solve_carbonate`, CO2(aq)/HCO3-/CO3--/OH-/H+, approximate ~1e-3 to 1e-4, see below) and the joint bisulfate+bicarbonate equilibrium (`solve_carb_sulf`, machine precision, plus Ca2+/CaSO4(s) precipitation) — both `scipy.optimize.root`-based, wired into `ActivityModel` |
+| `src/aiomfac_py/carbonate.py` | bicarbonate-only equilibrium (`solve_carbonate`, CO2(aq)/HCO3-/CO3--/OH-/H+, approximate ~1e-3 to 1e-4, see below) and the joint bisulfate+bicarbonate equilibrium (`solve_carb_sulf`, machine precision, plus Ca2+/CaSO4(s) precipitation) — both `scipy.optimize.root`-based, wired into `ActivityModel`; this is the carbonate/bicarbonate side of the ion extension of Yin et al. (2022, *Atmos. Chem. Phys.* 22, 973–1013) — the iodide/iodate (I-/IO3-) side of the same paper needs no dedicated module, just the existing ion subgroups and parameter tables, demonstrated in `notebooks/04_zuend2011_new_functional_groups.ipynb` |
 | `src/aiomfac_py/model.py` | `ActivityModel` / `activity_coefficients()` — end-to-end for simple systems |
 | `src/aiomfac_py/s2as/` | SMILES -> AIOMFAC subgroups (optional `epam.indigo` dependency) — integration of the upstream S2AS tool, validated bit-for-bit against it |
 | `src/aiomfac_py/lle.py` | liquid-liquid equilibrium (`solve_pep`/`solve_pep_gfe`) — primal-dual interior-point/active-set Gibbs-energy minimization on top of `ActivityModel`, port of Amundson et al. (2006, JOTA 130); **not** part of AIOMFAC-web, not Fortran-validated (see the module docstring and `tests/test_lle.py`) |
@@ -130,7 +130,12 @@ genuine convergence failure of plain successive substitution for that system); a
 which reproduces exemplary new-system calculations from the extended-parameterization paper, Zuend et al.
 (2011, *Atmos. Chem. Phys.*, doi:10.5194/acp-11-9155-2011) — water activities of water + dicarboxylic acid +
 (NH4)2SO4 systems (oxalic, malonic, succinic, glutaric acids), validated against the paper's own Appendix A2
-measurements, demonstrating the new carboxyl functional group these systems require; and
+measurements, demonstrating the new carboxyl functional group these systems require — plus a second section
+reproducing new-ion systems (binary NaIO3/KIO3/HIO3, and NaI + dicarboxylic acid mixtures) from a later
+extension paper, Yin et al. (2022, *Atmos. Chem. Phys.*, doi:10.5194/acp-22-973-2022), which adds the I-, IO3-,
+HCO3-, CO3--, OH-, and CO2(aq) species (the carbonate/bicarbonate side of this extension was already covered by
+`aiomfac_py.carbonate`; this section exercises the new iodide/iodate ion-organic interactions specifically);
+and
 [`notebooks/05_lilek_zuend2022_viscosity.ipynb`](notebooks/05_lilek_zuend2022_viscosity.ipynb), which uses the
 new `aiomfac_py.viscosity` module (AIOMFAC-VISC, the aqueous-electrolyte part only) to reproduce Fig. 4 of
 Lilek and Zuend (2022, *Atmos. Chem. Phys.*, doi:10.5194/acp-22-3203-2022) — predicted viscosity vs. water
