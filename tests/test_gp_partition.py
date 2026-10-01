@@ -112,3 +112,52 @@ class TestGPPartitionJointLMRegression:
                             max_iter=50, tol=1.0e-4, method="lm", check_lle=False)
         assert res.converged
         assert res.aw == pytest.approx(0.99, abs=1.0e-4)
+
+
+class TestGPPartitionPseudoTransient:
+    """Tests for `method="pseudo_transient"` (`_solve_pseudo_transient`): the RH-continuation fallback
+    inspired by Amundson, Caboussat, He, Landry & Seinfeld (2007, C. R. Acad. Sci. 344, 519-522) -- see
+    `_solve_pseudo_transient`'s docstring for how the two relate. Not required by any currently known
+    convergence failure (`method="lm"` already resolves them directly -- see
+    `TestGPPartitionJointLMRegression`), but it should be at least as robust on the same hard case, since each
+    of its stages is itself just an `_solve_joint_lm` solve from a warm-started, closer initial guess."""
+
+    @pytest.fixture
+    def four_organic_case(self):
+        hexanediol16 = Component(2, "1,6-hexanediol", ((142, 4), (150, 2), (153, 2)))
+        glycerol = Component(3, "glycerol", ((150, 2), (151, 1), (153, 3)))
+        decanetriol = Component(4, "1,2,10-decanetriol", ((142, 7), (150, 2), (151, 1), (153, 3)))
+        octanetetrol = Component(5, "1,2,5,8-octanetetrol", ((142, 4), (150, 2), (151, 2), (153, 4)))
+        nh4so4 = Component(6, "(NH4)2SO4", ((204, 2), (261, 1)))
+        organics = [
+            VolatileSpecies(hexanediol16, 1.18172e-1, 5.695e-2, 3.0e-8),
+            VolatileSpecies(glycerol, 9.20940e-2, 2.284e-2, 3.0e-8),
+            VolatileSpecies(decanetriol, 1.90276e-1, 1.826e-4, 3.0e-8),
+            VolatileSpecies(octanetetrol, 1.78224e-1, 6.725e-5, 3.0e-8),
+        ]
+        return nh4so4, organics
+
+    @pytest.mark.parametrize("RH", [0.20, 0.40, 0.60, 0.80, 0.90, 0.95, 0.98, 0.99])
+    def test_pseudo_transient_converges_on_the_notebook_case(self, four_organic_case, RH):
+        salt, organics = four_organic_case
+        res = gp_partition(salt, organics, n_salt=1.0e-8, T_K=298.15, RH=RH, V_gas_m3=1.0,
+                            max_iter=50, tol=1.0e-4, method="pseudo_transient", check_lle=False)
+        assert res.converged
+        assert res.aw == pytest.approx(RH, abs=1.0e-4)
+
+    def test_pseudo_transient_mass_balance_conserved(self, four_organic_case):
+        salt, organics = four_organic_case
+        res = gp_partition(salt, organics, n_salt=1.0e-8, T_K=298.15, RH=0.6, V_gas_m3=1.0,
+                            max_iter=60, tol=1.0e-6, method="pseudo_transient", check_lle=False)
+        totals = res.n_org_PM + res.n_org_gas
+        expected = np.array([o.n_total for o in organics])
+        assert totals == pytest.approx(expected, rel=1.0e-6)
+
+    def test_pseudo_transient_single_stage_matches_direct_lm(self, four_organic_case):
+        """n_stages=1 (or RH already equal to the starting guess's own water activity) should fall back to
+        a single `_solve_joint_lm` solve -- i.e. behave the same as `method="lm"` -- rather than erroring."""
+        salt, organics = four_organic_case
+        res = gp_partition(salt, organics, n_salt=1.0e-8, T_K=298.15, RH=0.6, V_gas_m3=1.0,
+                            max_iter=60, tol=1.0e-6, method="pseudo_transient", n_stages=1, check_lle=False)
+        assert res.converged
+        assert res.aw == pytest.approx(0.6, abs=1.0e-6)
