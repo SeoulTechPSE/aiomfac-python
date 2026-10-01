@@ -11,6 +11,11 @@ Ports:
     viscosity of aqueous organic aerosol", Atmos. Chem. Phys., 20, 2987-3008, doi:10.5194/acp-20-2987-2020.
     [cited below as "G2020"]
 
+    DeRieux, W.-S. W., Li, Y., Lin, P., Laskin, J., Laskin, A., Bertram, A. K., Nizkorodov, S. A., and
+    Shiraiwa, M. (2018), "Predicting the glass transition temperature and viscosity of secondary organic
+    material using molecular composition", Atmos. Chem. Phys., 18, 6331-6351, doi:10.5194/acp-18-6331-2018.
+    [cited below as "D2018"]
+
 What this implements, and how closely (read this before trusting the numbers)
 -------------------------------------------------------------------------------
 LZ2022 Sect. 2 derives, from Eyring's absolute-rate-theory expression for viscosity (their Eq. 2,
@@ -44,16 +49,27 @@ rules. This module now implements:
   LZ2022 Sect. 3.4.1-3.4.2) -- both need only a fixed, non-iterative sequence of calls into the electrolyte and
   organic models above, with ion molalities/mole fractions or organic mole fractions rescaled as LZ2022
   describes; neither requires any additional fitted parameters.
+* **D2018's predictive glass-transition-temperature (Tg) model** (``predict_tg_derieux2018``; D2018 Eq. 2,
+  Table 1), the parameterization G2020's own Eq. 11 relies on for estimating an organic's pure-component
+  viscosity from molecular formula alone (number of C, H, and O atoms) when no measured Tg is available. This
+  is a closed-form equation with published fitted coefficients, so it needed no new fitted parameters of its
+  own; validated directly against D2018's own worked example (stachyose, C24H42O21: this implementation gives
+  394.3 K, matching D2018's own quoted 394 K to the precision given). Feed its result into
+  ``pure_organic_viscosity_vtf`` to get a pure-component viscosity for ``organic_mixture_viscosity``.
+  G2020 itself flags this Tg-to-viscosity route as the model's single largest source of uncertainty (their
+  Fig. 2: several orders of magnitude off for some compounds) -- prefer a measured Tg or pure-component
+  viscosity when one is available, as G2020's own validation figures do.
 
 **Not implemented:**
 
-* **G2020's predictive glass-transition-temperature (Tg) model** (DeRieux et al., 2018, a third, separate
-  paper G2020 relies on for estimating organic pure-component viscosity from molecular formula alone). Without
-  it, ``organic_mixture_viscosity`` cannot predict a pure-component viscosity for an arbitrary new organic --
-  the caller must supply one (measured, or computed by ``pure_organic_viscosity_vtf`` from a known/estimated
-  Tg, as G2020's own VTF equation, Eq. 11-12, does need only Tg and a fragility parameter, both ported here).
-  G2020 itself flags the DeRieux Tg-to-viscosity route as the model's single largest source of uncertainty
-  (their Fig. 2: several orders of magnitude off for some compounds), so this is not a large practical loss.
+* **The machine-learning-based Tg predictor of Armeli, Peters, and Koop (2023), ACS Omega 8, 12298-12309**
+  (an "extra trees" ensemble regressor, trained on the ~355-compound Bielefeld Molecular Organic Glasses
+  database). Unlike D2018's Eq. 2, this model has no closed-form expression -- the paper publishes only the
+  trained model's reported accuracy (MAE ~12-13 K, somewhat better than D2018's ~21 K prediction band), not
+  the model itself; using it requires either their public web application or the authors' own serialized
+  scikit-learn model files (Zenodo DOI:10.5281/zenodo.7650576), which this port does not bundle, retrain, or
+  otherwise reproduce. ``predict_tg_derieux2018`` above is this package's Tg predictor, with D2018's somewhat
+  larger published uncertainty as the honest trade-off for being a plain, dependency-free equation.
 * **LZ2022's third mixing rule, the ZSR-style rule** (Sect. 3.4.3) -- unlike aquelec/aquorg, it requires
   solving a nonlinear equation (matching each subsystem's water activity to the full mixture's RH) iteratively
   for every evaluation, which is a materially larger piece of numerical machinery than this port adds here.
@@ -296,6 +312,46 @@ def electrolyte_viscosity(model: ActivityModel, result: ActivityTerms, T_K: floa
 #: UNIFAC/AIOMFAC lattice coordination number (Zuend et al., 2008; Abrams and Prausnitz, 1975). Appears
 #: elsewhere in this package only implicitly, as the factor ``5.0 = Z_COORD / 2`` in ``sr._combinatorial``.
 Z_COORD = 10.0
+
+
+#: DeRieux et al. (2018, ACP 18, 6331-6351, "D2018") Table 1: fitted coefficients of their Eq. (2) predictive
+#: glass-transition-temperature parameterization, by elemental composition class. The CH class has no oxygen
+#: term (b_O = b_CO = 0.0, simply unused whenever n_O = 0).
+_DERIEUX2018_TG_COEFFS = {
+    "CH":  dict(n_C0=1.96, b_C=61.99, b_H=-113.33, b_CH=28.74, b_O=0.0, b_CO=0.0),
+    "CHO": dict(n_C0=12.13, b_C=10.95, b_H=-41.82, b_CH=21.61, b_O=118.96, b_CO=-24.38),
+}
+
+
+def predict_tg_derieux2018(n_C: int, n_H: int, n_O: int = 0) -> float:
+    """Predict an organic compound's glass transition temperature, Tg (K), from its elemental composition
+    (numbers of carbon, hydrogen, and oxygen atoms) via DeRieux et al. (2018, ACP 18, 6331-6351, "D2018")
+    Eq. (2), the predictive Tg model that Gervasi, Pye and Zuend (2020)'s Eq. (11) builds on:
+
+        Tg = (n_C^0 + ln(n_C)) b_C + ln(n_H) b_H + ln(n_C) ln(n_H) b_CH + ln(n_O) b_O + ln(n_C) ln(n_O) b_CO
+
+    with fitted coefficients (D2018 Table 1) depending on whether the compound contains oxygen (the "CHO"
+    class, ``n_O > 0``) or not (the "CH" class, ``n_O == 0``). D2018 fit this to compounds with molar mass up
+    to ~1100 g/mol; it supersedes the lower-molar-mass-only parameterization of Shiraiwa et al. (2017, D2018
+    Eq. 1) that AIOMFAC-VISC/G2020 does not use. D2018 report individual-compound predictions accurate to
+    within about +/-21 K (their Fig. 1c prediction band) and recommend using the *median* Tg across a
+    multi-component mixture's compounds for a more precise mixture-level estimate.
+
+    This only covers CH and CHO compounds (D2018's own stated scope); it raises ``ValueError`` for an
+    unphysical atom count rather than silently extrapolating to compounds containing N, S, or halogens, for
+    which D2018 do not provide coefficients (a CHON extension exists in Li et al., 2020, ACP 20, 8103-8122,
+    which is a different paper not ported here).
+    """
+    if n_C <= 0 or n_H <= 0 or n_O < 0:
+        raise ValueError(f"predict_tg_derieux2018 requires n_C > 0 and n_H > 0 (got n_C={n_C}, n_H={n_H}, "
+                          f"n_O={n_O})")
+    c = _DERIEUX2018_TG_COEFFS["CHO" if n_O > 0 else "CH"]
+    ln_nC, ln_nH = math.log(n_C), math.log(n_H)
+    tg = (c["n_C0"] + ln_nC) * c["b_C"] + ln_nH * c["b_H"] + ln_nC * ln_nH * c["b_CH"]
+    if n_O > 0:
+        ln_nO = math.log(n_O)
+        tg += ln_nO * c["b_O"] + ln_nC * ln_nO * c["b_CO"]
+    return tg
 
 
 def pure_organic_viscosity_vtf(T_K: float, Tg_K: float, D: float | None = None) -> float:

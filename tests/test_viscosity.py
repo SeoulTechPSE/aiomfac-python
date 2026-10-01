@@ -20,7 +20,7 @@ from aiomfac_py.model import ActivityModel
 from aiomfac_py.viscosity import (
     CATION_ANION_C, CV, ION_C0_C1, ION_RTH, ION_SUBGROUP, V_REF_M3_PER_MOL, WATER_RTH,
     aquelec_viscosity, aquorg_viscosity, electrolyte_viscosity, organic_mixture_viscosity,
-    pure_organic_viscosity_vtf, water_viscosity_pas,
+    predict_tg_derieux2018, pure_organic_viscosity_vtf, water_viscosity_pas,
 )
 
 WATER = Component(1, "Water", ((16, 1),))
@@ -145,6 +145,51 @@ class TestUnsupportedIon:
         bad_model = SimpleNamespace(mixture=bad_mixture)
         with pytest.raises(KeyError):
             electrolyte_viscosity(bad_model, res, 298.15)
+
+
+class TestPredictTgDerieux2018:
+    """Validated against DeRieux et al. (2018)'s own text, not just internal consistency: the paper's Sect. 2.1
+    worked example states that Eq. (2) predicts Tg = 394 K for stachyose (C24H42O21, M = 667 g/mol), agreeing
+    with the measured mean Tg of 396 K -- an exact, citable reference value to check the coefficients and
+    formula transcription against, the same kind of check used elsewhere in this module (e.g. the pure-water
+    dg*/(RT) = 3.44 back-calculation in electrolyte_viscosity's tests)."""
+
+    def test_matches_paper_worked_example_stachyose(self):
+        # C24H42O21 -- DeRieux et al. (2018) Sect. 2.1: "Tg of stachyose (M = 667 g/mol) predicted by Eq. (1)
+        # is 198 K, while by Eq. (2) is 394 K, which agrees much better with the measured mean Tg of 396 K."
+        tg = predict_tg_derieux2018(n_C=24, n_H=42, n_O=21)
+        assert tg == pytest.approx(394.0, abs=0.5)
+
+    def test_ch_class_has_no_oxygen_term(self):
+        # n_O=0 must route to the CH-class coefficients (b_O = b_CO = 0 there), not divide by/log(0).
+        tg = predict_tg_derieux2018(n_C=8, n_H=18, n_O=0)  # octane
+        assert np.isfinite(tg)
+
+    def test_cho_class_used_when_oxygen_present(self):
+        # Same C, H skeleton, with vs. without one oxygen atom must give different predictions (different
+        # coefficient table), confirming the CH/CHO branch is actually selected by n_O rather than ignored.
+        tg_no_o = predict_tg_derieux2018(n_C=3, n_H=8, n_O=0)
+        tg_with_o = predict_tg_derieux2018(n_C=3, n_H=8, n_O=3)  # glycerol's own formula, C3H8O3
+        assert tg_no_o != pytest.approx(tg_with_o)
+        # glycerol: measured Tg = 187 K (Angell, 1997, via Gervasi et al. 2020 Table S1); D2018 Eq. (2) itself
+        # is only stated accurate to within about +/-21 K for an individual compound (their Fig. 1c band), so
+        # this checks the prediction lands within that documented uncertainty, not exact agreement.
+        assert tg_with_o == pytest.approx(187.0, abs=22.0)
+
+    def test_rejects_nonpositive_atom_counts(self):
+        with pytest.raises(ValueError):
+            predict_tg_derieux2018(n_C=0, n_H=4)
+        with pytest.raises(ValueError):
+            predict_tg_derieux2018(n_C=2, n_H=0)
+        with pytest.raises(ValueError):
+            predict_tg_derieux2018(n_C=2, n_H=4, n_O=-1)
+
+    def test_feeds_into_vtf_pure_component_viscosity(self):
+        # The intended usage: predict Tg, then hand it to pure_organic_viscosity_vtf -- should run without
+        # error and give a finite, positive viscosity at a reasonable simulation temperature.
+        tg = predict_tg_derieux2018(n_C=3, n_H=8, n_O=3)
+        eta = pure_organic_viscosity_vtf(293.15, tg)
+        assert np.isfinite(eta) and eta > 0.0
 
 
 class TestPureOrganicViscosityVTF:
