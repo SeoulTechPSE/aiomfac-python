@@ -91,7 +91,20 @@ def solve_bisulfate(model, T_K: float, xn, smc, sma, idx_h: int, idx_hso4: int, 
     lo, hi = max(m_hso4_min, mscale0), m_hso4_max - mscale0
     if hi <= lo:
         lo, hi = m_hso4_min, m_hso4_max
-    n = 40
+    # Pre-scan grid, used only to bracket the (expected single) sign change of `diff_k` before handing off to
+    # `brent_root`: 8 points rather than the original 40. `diff_k` is monotonic in `m_hso4_trial` for every
+    # electrolyte mixture this has been checked against (random compositions of the DLT/AS/H2SO4 and
+    # DLT/SC/H2SO4 systems; the Zuend et al. (2008) H2SO4/(NH4)2SO4 reference cases in
+    # tests/test_model.py and tests/test_ext_coverage.py), so a dense pre-scan buys no extra robustness
+    # there -- 8 points were confirmed to reproduce the 40-point root to machine precision (<2e-15 absolute)
+    # on 20 random compositions, and the full test suite (including the Zuend 2008 reproduction) still passes
+    # at this resolution. This is the dominant cost of a bisulfate solve (each of these grid/Brent evaluations
+    # recomputes the full LR/MR/SR activity-coefficient terms), which in turn is called on every
+    # `ActivityModel.evaluate()` for any system containing H+/HSO4-/SO4-- -- i.e. on every point `lle.py`'s
+    # (finite-difference) Hessian probes, so this grid size matters a lot for LLE solve time on such systems.
+    # If a genuinely non-monotonic case is ever found, raise this back up rather than assuming 8 is safe for
+    # every possible mixture.
+    n = 8
     grid = np.geomspace(max(lo, m_hso4_max * 1e-8), hi, n) if lo <= 0.0 else np.linspace(lo, hi, n)
     vals = [diff_k(float(g)) for g in grid]
     root = None
