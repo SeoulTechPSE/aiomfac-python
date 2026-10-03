@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: >-
+  If you use this software, please cite it as below. Please also cite the
+  AIOMFAC publications listed at https://aiomfac.lab.mcgill.ca/citation.html
+  (this package is a validated pure-Python port of their Fortran model), and,
+  for aiomfac_py.s2as, Amaladhasan et al. (2026),
+  https://doi.org/10.5194/gmd-19-4601-2026.
+title: "aiomfac_py: a pure-Python port of the AIOMFAC thermodynamic activity-coefficient model"
+type: software
+authors:
+  - family-names: Yoo
+    given-names: Kee-Youn
+    affiliation: "Seoul National University of Science and Technology (SeoulTech)"
+    email: kyyoo@seoultech.ac.kr
+    orcid: "https://orcid.org/0000-0000-0000-0000"  # TODO: fill in or delete this line
+repository-code: "https://github.com/SeoulTechPSE/aiomfac-python"
+url: "https://github.com/SeoulTechPSE/aiomfac-python"
+license: GPL-3.0-or-later
+version: 0.0.24
+date-released: "2026-10-01"
+keywords:
+  - atmospheric chemistry
+  - aerosol thermodynamics
+  - activity coefficients
+  - AIOMFAC
+  - UNIFAC
