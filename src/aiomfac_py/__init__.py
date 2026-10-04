@@ -24,6 +24,15 @@ from .viscosity import (  # noqa: E402
     organic_mixture_viscosity, predict_tg_derieux2018, pure_organic_viscosity_vtf, water_viscosity_pas,
 )
 
+try:  # solid-liquid equilibrium (needs scipy, optional dependency "sle")
+    from .solids import SOLIDS, Solid, ION_REGISTRY  # noqa: E402
+    from .sle import (SLESolver, SLEResult, AqueousIons, binary_saturation, feed_from_salts,  # noqa: E402
+                      implied_ln_s_crit)
+    _SLE_NAMES = ["SOLIDS", "Solid", "ION_REGISTRY", "SLESolver", "SLEResult", "AqueousIons", "binary_saturation",
+                  "feed_from_salts", "implied_ln_s_crit"]
+except ImportError:  # pragma: no cover
+    _SLE_NAMES = []
+
 __all__ = ["Component", "InputCase", "read_input_file", "MRParams", "SRParams", "SubgroupParams", "load_mr_params", "load_sr_params", "load_subgroup_params",
            "SRSystem", "build_sr_system", "SRTerms", "sr_terms",
            "CompletionResult", "complete_components", "CarbonateResult", "solve_carbonate", "CarbSulfResult", "solve_carb_sulf", "BisulfateResult", "ln_k_hso4_at_t", "solve_bisulfate", "ActivityModel", "ActivityTerms", "activity_coefficients",
@@ -34,3 +43,4 @@ __all__ = ["Component", "InputCase", "read_input_file", "MRParams", "SRParams", 
            "organic_mixture_viscosity", "pure_organic_viscosity_vtf", "aquelec_viscosity", "aquorg_viscosity",
            "predict_tg_derieux2018",
            "AIOMFAC_REFERENCE_COMMIT", "__version__"]
+__all__ += _SLE_NAMES

@@ -50,6 +50,7 @@ paper, and `tests/test_lle.py` for how the solver itself, independent of AIOMFAC
 | `src/aiomfac_py/model.py` | `ActivityModel` / `activity_coefficients()` — end-to-end for simple systems |
 | `src/aiomfac_py/s2as/` | SMILES -> AIOMFAC subgroups (optional `epam.indigo` dependency) — integration of the upstream S2AS tool, validated bit-for-bit against it |
 | `src/aiomfac_py/lle.py` | liquid-liquid equilibrium (`solve_pep`/`solve_pep_gfe`) — primal-dual interior-point/active-set Gibbs-energy minimization on top of `ActivityModel`, port of Amundson et al. (2006, JOTA 130); **not** part of AIOMFAC-web, not Fortran-validated (see the module docstring and `tests/test_lle.py`) |
+| `src/aiomfac_py/solids.py`, `src/aiomfac_py/sle.py` | solid–liquid equilibrium (`SLESolver`) at fixed T and RH on top of `ActivityModel` — primal-dual active-set Gibbs minimization after Amundson et al. (2006, JOTA 128, 469–498), with a 23-solid database of K_sp(T) and hydrates for atmospheric salts; neutral/alkali–alkaline-earth systems only (no H+/HSO4-, no gas phase). **Not** part of AIOMFAC-web, not Fortran-validated — see the "Solid–liquid equilibrium" section and `docs/SLE_design_ko.md` |
 | `src/aiomfac_py/gp_partition.py` | gas/particle partitioning at fixed RH (`gp_partition`) — joint Levenberg-Marquardt solver (default), a pseudo-transient RH-continuation fallback (inspired by Amundson et al., 2007, C. R. Acad. Sci.), and the original successive-substitution method, all on top of `ActivityModel`; **not** part of AIOMFAC-web (see the module docstring and `tests/test_gp_partition.py`) |
 | `src/aiomfac_py/viscosity.py` | AIOMFAC-VISC (`electrolyte_viscosity`, `water_viscosity_pas`) — predictive dynamic-viscosity model for **aqueous electrolyte** solutions, port of Lilek and Zuend (2022, *Atmos. Chem. Phys.* 22, 3203–3233); built on top of `ActivityModel`'s ion molal activities/activity coefficients. Covers the 17 ions and all cation–anion pairs the paper fits. Also covers the paper's organic-inorganic mixing extension (Sect. 3): `organic_mixture_viscosity`/`pure_organic_viscosity_vtf` port the group-contribution organic-viscosity engine of Gervasi, Topping and Zuend (2020, *Atmos. Chem. Phys.* 20, 2987–3008); `aquelec_viscosity`/`aquorg_viscosity` implement two of Lilek and Zuend's three mixing rules (Sect. 3.4.1–3.4.2); and `predict_tg_derieux2018` implements the closed-form glass-transition-temperature estimate of DeRieux et al. (2018, *Atmos. Chem. Phys.* 18, 6331–6351) that the organic-viscosity model's Tg-dependent pure-component estimate relies on. Does **not** implement the ZSR mixing rule (Sect. 3.4.3, needs an iterative nonlinear solve) — see the module docstring and `tests/test_viscosity.py` |
 | `src/aiomfac_py/tgml_armeli/` | `predict_tg_ml_fg`/`predict_tg_ml_smiles` — the newer, more accurate machine-learning Tg predictor of Armeli, Peters and Koop (2023, *ACS Omega* 8, 12298–12309; optional `tgml`/`tgml-smiles` dependencies). Not a reimplementation — loads the authors' own trained `scikit-learn` model files (`data/*.pkl`, from the paper's own Zenodo deposit, see `PROVENANCE.md`) directly, with no SMILES-featurization dependency on `deepchem`/`tensorflow` (confirmed unnecessary by reading `deepchem`'s own source, see `PROVENANCE.md`). Incidentally the same "TgML_Armeli" module the Fortran reference itself only ships as a separately-licensed, optional add-on (see the `smiles-based pure-component method?` note further down). Installs normally alongside the rest of this package (no separate environment needed) — the vendored pickle files were migrated (`tools/migrate_tgml_pickles.py`) so any reasonably current `scikit-learn` can load them directly, and SMILES-mode descriptors are looked up by name so any reasonably current `rdkit` works too (see `PROVENANCE.md` and the module docstring for the full story, including one small known accuracy caveat vs. the exact RDKit version A2023 trained on) |
@@ -203,6 +204,43 @@ predict_tg_ml_fg(1, 1, 0, 0, 1, 0, 0, 0, o_to_c=0.5, molar_mass_g_mol=46.07)   #
 # version A2023 trained on, if you need byte-exact reproduction of their own reported numbers)
 predict_tg_ml_smiles("CCO", Tm_K=159.0)
 ```
+
+## Solid–liquid equilibrium (SLE)
+
+`aiomfac_py.SLESolver` finds the equilibrium solid assemblage, aqueous composition and water content of an
+electrolyte feed at fixed temperature and relative humidity, using AIOMFAC activities (aqueous phase) and a
+database of solubility products K(T) with hydrates (`aiomfac_py.SOLIDS`, 23 solids: halite, sylvite, NH4Cl,
+NaNO3, KNO3, NH4NO3, (NH4)2SO4, thenardite/mirabilite, arcanite, Mg/Ca chlorides, sulfates and nitrates and
+their hydrates, gypsum/anhydrite, glauberite, syngenite). The algorithm follows the primal-dual active-set
+method of Amundson, Caboussat, He, Seinfeld and Yoo (2006, *J. Optim. Theory Appl.* 128, 469–498) on the
+reduced (extent-of-dissolution) problem, with a linear-programming + tangent-plane-distance test for the
+dry (no aqueous phase) state and an RH-continuation fallback because AIOMFAC activities are not guaranteed
+convex. Requires `scipy` (`pip install aiomfac_py[sle]`).
+
+```python
+from aiomfac_py import SLESolver, feed_from_salts
+sol = SLESolver(["Na+", "NH4+", "Cl-", "SO4--"])
+feed = feed_from_salts({"NaCl": 1.0, "(NH4)2SO4": 1.0})        # mol
+r = sol.solve(feed, 298.15, 0.70)                              # T / K, RH (0-1)
+print(r.status, r.solids, r.water_kg)                          # e.g. solid+aqueous {...} ...
+sol.scan_rh(feed, 298.15, [0.5, 0.6, 0.7, 0.8])                # warm-started RH scan
+sol.deliquescence_rh(feed, 298.15); sol.efflorescence_rh(feed, 298.15, ln_s_crit=3.0)
+```
+
+K(T) modes (`mode=`): `"fitted"` (default where available; ln K fitted to solubility data *under AIOMFAC*,
+so it absorbs AIOMFAC's γ(T) error along the saturation line), `"anchored"` (literature T-dependence plus a
+298 K offset to AIOMFAC) and `"thermo"` (pure thermodynamic K). Efflorescence is kinetic, so
+`efflorescence_rh` takes a user-supplied critical supersaturation ln S (`implied_ln_s_crit` inverts it from a
+literature ERH).
+
+Verification (see `tests/test_sle.py`, 53 tests, and `notebooks/06_sle_solver.ipynb`): single-salt DRH at 298 K
+within ~1.6 percentage points of literature, fitted solubilities within 4 % of handbook values, the
+mirabilite/thenardite transition near 305.5 K, and 100 random mixtures agreeing with a brute-force SLSQP
+global Gibbs minimization. **Limitations:** acidic systems (H+, HSO4-), gas-phase partitioning, most double
+salts (letovicite, etc.) and NH4NO3 solid phase transitions are not implemented (`H+`/`HSO4-` raise
+`NotImplementedError`); fits are valid for roughly 0–60 °C only; solids with data-quality flag C
+(MgCl2·4H2O/2H2O, Mg(NO3)2·6H2O, CaCl2·6H2O, Ca(NO3)2·4H2O) are estimates; the dry-state test can take
+several seconds for many-ion feeds. Full design, data sources and roadmap: `docs/SLE_design_ko.md` (Korean).
 
 ## Validation status (what is and is not verified)
 
