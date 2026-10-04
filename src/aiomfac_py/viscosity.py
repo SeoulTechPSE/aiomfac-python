@@ -7,7 +7,7 @@ Ports:
     organic-inorganic aerosol phases", Atmos. Chem. Phys., 22, 3203-3233,
     doi:10.5194/acp-22-3203-2022. [cited below as "LZ2022"]
 
-    Gervasi, N. R., Pye, H. O. T., and Zuend, A. (2020), "A predictive group-contribution model for the
+    Gervasi, N. R., Topping, D. O., and Zuend, A. (2020), "A predictive group-contribution model for the
     viscosity of aqueous organic aerosol", Atmos. Chem. Phys., 20, 2987-3008, doi:10.5194/acp-20-2987-2020.
     [cited below as "G2020"]
 
@@ -332,7 +332,7 @@ _DERIEUX2018_TG_COEFFS = {
 def predict_tg_derieux2018(n_C: int, n_H: int, n_O: int = 0) -> float:
     """Predict an organic compound's glass transition temperature, Tg (K), from its elemental composition
     (numbers of carbon, hydrogen, and oxygen atoms) via DeRieux et al. (2018, ACP 18, 6331-6351, "D2018")
-    Eq. (2), the predictive Tg model that Gervasi, Pye and Zuend (2020)'s Eq. (11) builds on:
+    Eq. (2), the predictive Tg model that Gervasi, Topping and Zuend (2020)'s Eq. (11) builds on:
 
         Tg = (n_C^0 + ln(n_C)) b_C + ln(n_H) b_H + ln(n_C) ln(n_H) b_CH + ln(n_O) b_O + ln(n_C) ln(n_O) b_CO
 
@@ -362,7 +362,7 @@ def predict_tg_derieux2018(n_C: int, n_H: int, n_O: int = 0) -> float:
 
 def pure_organic_viscosity_vtf(T_K: float, Tg_K: float, D: float | None = None) -> float:
     """Pure-component organic viscosity from a glass transition temperature via the modified Vogel-Tammann-
-    Fulcher equation (Gervasi, Pye and Zuend, 2020, ACP 20, 2987-3008, Eq. 11-12; "G2020" below), given ``Tg_K``
+    Fulcher equation (Gervasi, Topping and Zuend, 2020, ACP 20, 2987-3008, Eq. 11-12; "G2020" below), given ``Tg_K``
     (e.g. a measured or literature-estimated glass transition temperature -- **not** predicted here, see the
     module docstring) and a fragility parameter ``D`` (dimensionless; G2020 Sect. 2.2.1: typically 5-30, with
     10 a reasonable default at/above Tg). If ``D`` is omitted, G2020's own simulation convention is used:
@@ -420,7 +420,7 @@ def _group_residual_L(sr, psi: np.ndarray, x: np.ndarray) -> np.ndarray:
 def organic_mixture_viscosity(model: ActivityModel, x_neutral, T_K: float,
                                eta0_pas: Mapping[int, float] | None = None) -> OrganicViscosityResult:
     """AIOMFAC-VISC/"GC-UNIMOD" predicted dynamic viscosity of an **ion-free** aqueous organic mixture (Gervasi,
-    Pye and Zuend, 2020, ACP 20, 2987-3008, Eq. 1-9), given an :class:`ActivityModel` built from water plus one
+    Topping and Zuend, 2020, ACP 20, 2987-3008, Eq. 1-9), given an :class:`ActivityModel` built from water plus one
     or more organic components (no electrolytes), the neutral-component mole fractions ``x_neutral`` (need not
     match ``model``'s own last-evaluated composition -- the mixing functions below call this at a re-normalized
     sub-composition), and ``eta0_pas``: pure-component viscosities (Pa s) at ``T_K``, keyed by each organic
