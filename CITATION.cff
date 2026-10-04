@@ -12,12 +12,12 @@ authors:
     given-names: Kee-Youn
     affiliation: "Seoul National University of Science and Technology (SeoulTech)"
     email: kyyoo@seoultech.ac.kr
-    orcid: "https://orcid.org/0009-0008-3107-501X"  # TODO: fill in or delete this line
+    orcid: "https://orcid.org/0009-0008-3107-501X"
 repository-code: "https://github.com/SeoulTechPSE/aiomfac-python"
 url: "https://github.com/SeoulTechPSE/aiomfac-python"
 license: GPL-3.0-or-later
-version: 0.0.24
-date-released: "2026-10-01"
+version: 1.0.1
+date-released: "2026-10-04"
 keywords:
   - atmospheric chemistry
   - aerosol thermodynamics

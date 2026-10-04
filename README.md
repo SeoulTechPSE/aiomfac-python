@@ -1,8 +1,8 @@
 # aiomfac_py
 
 Pure-Python port of the **AIOMFAC** thermodynamic group-contribution model (activity coefficients of
-inorganic–organic mixtures). **Work in progress** — the activity-coefficient pipeline (LR + MR + SR and the
-composition conversion) runs end-to-end, including the Fortran auto-completion and dissociation-equilibrium
+inorganic–organic mixtures). The activity-coefficient pipeline (LR + MR + SR and the composition conversion)
+runs end-to-end and is validated against the Fortran reference, including the Fortran auto-completion and dissociation-equilibrium
 machinery for bisulfate, bicarbonate, and joint bisulfate+bicarbonate systems (with Ca2+/CaSO4(s) precipitation);
 see "Validation status" below for what is and isn't covered. `aiomfac_py.s2as` additionally integrates the
 (already-Python) S2AS tool for going straight from a SMILES string to an AIOMFAC component.
