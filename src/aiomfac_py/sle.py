@@ -43,8 +43,13 @@ constraint is violated, which is the KKT test.
 
 Differences from the paper (read before trusting the numbers)
 ----------------------------------------------------------------
-* No gas phase / noncomponent species (NH3, HNO3, HCl partitioning) in this version: the feed is a closed set of ions
-  + water at fixed RH (strong acids other than sulfuric stay in the particle).
+* Volatile gases NH3, HNO3, HCl (:mod:`aiomfac_py.gases`, Clegg et al. 1998 constants) are optional: they enter as extra
+  columns of the same reduced problem, with the aqueous ions they remove (HNO3: H+ + NO3-, NH3: NH4+ - H+) -- the gas
+  is a "solid" whose chemical potential is ln p + const.  ``solve(..., p_gas=...)``: open system (fixed partial
+  pressures, free-sign amounts, solid growth may be unbounded -> reported as failure); ``solve_closed``: closed
+  system with ideal-gas amounts as positive unknowns (ln p = ln(P n_j/(n_air + sum n))), a dual (element-potential)
+  convex solve for solid + gas states and the same tangent-plane test for the aqueous phase.  Without ``p_gas`` /
+  ``solve_closed`` the feed is a closed set of ions + water (strong acids stay in the particle).
 * Acid sulfates (H+ with SO4--): the ions H+ and SO4-- are *stoichiometric totals*; the HSO4- <-> H+ + SO4--
   equilibrium is solved inside every activity evaluation (:class:`AqueousIons`, constant of
   :mod:`aiomfac_py.dissociation`).  Because the chemical potential of a stoichiometric component equals that of the
@@ -75,6 +80,7 @@ from .dissociation import ln_k_hso4_at_t
 from .model import ActivityModel
 from .params import load_subgroup_params
 from .solids import ION_REGISTRY, SOLIDS, Solid
+from .gases import GASES
 
 MW_WATER = 0.01801528        # kg/mol
 _NEG = -1.0e300
@@ -306,6 +312,8 @@ class SLEResult:
     n_outer: int = 0
     message: str = ""
     n_eval: int = 0
+    gas: dict = field(default_factory=dict)      # mol of each volatile gas (HNO3, HCl, NH3) in the gas phase
+    p_gas: dict = field(default_factory=dict)    # partial pressures [atm] of those gases
 
     @property
     def aqueous_present(self) -> bool:
@@ -361,6 +369,10 @@ class SLESolver:
         self.z = np.array([ION_REGISTRY[i][1] for i in self.ions], dtype=float)
         self._aq: dict[tuple, AqueousIons] = {}
         self._warm: tuple | None = None
+        self._gcols: list[int] = []
+        self._gnames: list[str] = []
+        self._closed = None                     # (n_air, P) in solver units while a closed-gas wet problem is solved
+        self._fast = False                      # skip the (costly) dry-state test in inner iterations of solve_closed
 
     # ------------------------------------------------------------------------------------------------
     def _aq_for(self, ion_idx) -> AqueousIons:
@@ -381,39 +393,239 @@ class SLESolver:
         return np.array([feed.get(i, 0.0) for i in self.ions], dtype=float)
 
     # ------------------------------------------------------------------------------------------------
-    def solve(self, feed: dict[str, float], T_K: float, rh: float, *, warm: bool = False, tol: float = 1.0e-9,
-              max_outer: int = 80, max_newton: int = 80) -> SLEResult:
+    def solve(self, feed: dict[str, float], T_K: float, rh: float, *, p_gas: dict[str, float] | None = None,
+              warm: bool = False, tol: float = 1.0e-9, max_outer: int = 80, max_newton: int = 80) -> SLEResult:
         """Equilibrium at ``T_K`` [K] and relative humidity ``rh`` (0-1) for the ion feed ``feed`` [mol].
+
+        ``p_gas`` (optional) puts the particle in contact with an infinite gas reservoir of fixed partial pressures
+        [atm], e.g. ``{"HNO3": 1e-9, "NH3": 5e-9}``: the volatile species then exchange freely (the result's ``gas``
+        gives the net amount transferred to the gas phase, negative = uptake).  See :meth:`solve_closed` for the
+        closed system with a finite amount of air.
 
         ``warm=True`` starts the active-set iteration from the previous solution (use in RH scans).
         """
         if not 0.0 < rh < 1.0:
             raise ValueError("rh must be in (0, 1)")
         bfull = self._vec(feed)
+        if np.any(bfull < 0.0):
+            raise ValueError("feed amounts must be non-negative")
+        gk = list(p_gas) if p_gas else []
+        lnp = np.array([math.log(p_gas[k]) for k in gk])
+        res = self._solve_vec(bfull, T_K, rh, gk, lnp, warm, tol, max_outer, max_newton)
+        res.feed = {self.ions[i]: float(bfull[i]) for i in range(len(self.ions)) if bfull[i] > 0}
+        return res
+
+    def _closed_dry(self, bfull, gk, G, T, rh, n_air, P, gt0) -> SLEResult | None:
+        """Closed system without an aqueous phase: crystalline solids + ideal gas, solved in the dual (element-potential)
+        space, plus the tangent-plane test of the aqueous phase.  Returns the dry result, or ``None`` when an aqueous
+        phase is stable (the caller then solves the wet problem).
+
+        Unknowns y (potentials of the stoichiometric ions) and the amounts u_A of the active solids satisfy
+        ``V_A^T y = c_A`` and ``b - V_A u_A - G g(y) = 0`` with the gas amounts g_k = n_air q_k / (1 - sum q), where
+        q_k = p_k/P = exp(G_k^T y - ln K_k)."""
+        K = len(gk)
+        present = bfull != 0.0
+        for k in range(K):
+            present = present | (G[:, k] != 0.0)
+        ion_idx = np.flatnonzero(present)
+        sol_idx = [j for j in range(len(self.solids)) if np.all(self.V[~present, j] == 0)]
+        scale = float(np.abs(bfull).max())
+        b = bfull[ion_idx] / scale
+        n_air_s = n_air / scale
+        Vs = self.V[np.ix_(ion_idx, sol_idx)]
+        Gr = G[ion_idx]
+        N, J = Vs.shape
+        lnk = np.array([self.solids[j].ln_k(T, self.mode) for j in sol_idx])
+        lnKg = np.array([GASES[g].ln_k(T) for g in gk])
+        c = lnk                                                       # dry: hydrate water is absent, a_w^h only matters in solution
+        # a dry crystalline phase has no water activity; the hydrates are therefore excluded unless RH is high enough
+        # to keep them stable: solids with h > 0 enter through c_j = ln K - h ln RH (aw = RH of the surroundings)
+        hyd = self.hyd[sol_idx]
+        c = lnk - hyd * math.log(rh)
+        if J == 0:
+            return None
+
+        def gas_of(y):
+            q = np.exp(Gr.T @ y - lnKg) / P
+            S = q.sum()
+            return q, S, n_air_s * q / (1.0 - S)
+
+        # starting point: relaxed LP (gas columns cost ln K + ln p_nominal)
+        g0 = np.maximum(gt0 / scale, 1.0e-6)
+        p_nom = np.log(np.maximum(g0 / (n_air_s + g0.sum()), 1.0e-30) * P)
+        cost = np.concatenate([c, lnKg + p_nom])
+        lp = linprog(cost, A_eq=np.hstack([Vs, Gr]), b_eq=b, bounds=[(0, None)] * (J + K), method="highs")
+        if lp.status != 0:
+            return None
+        y = np.asarray(lp.eqlin.marginals, dtype=float)
+        A = [j for j in range(J) if lp.x[j] > 1.0e-12]
+        u = np.zeros(J); u[A] = lp.x[A]
+        # active-set Newton in (y, u_A)
+        seen = set()
+        for outer in range(60):
+            key = tuple(sorted(A))
+            if key in seen and outer > 5:
+                return None
+            seen.add(key)
+            nA = len(A)
+            ok = False
+            for it in range(80):
+                q, S, g = gas_of(y)
+                F1 = Vs[:, A].T @ y - c[A] if nA else np.zeros(0)
+                F2 = b - Vs[:, A] @ u[A] - Gr @ g
+                F = np.concatenate([F1, F2])
+                if float(np.max(np.abs(F))) < 1.0e-11:
+                    ok = True
+                    break
+                dg = np.zeros((K, N))
+                lam = (q[:, None] * Gr.T)                              # q_k G_k
+                dg = n_air_s * (lam / (1.0 - S) + q[:, None] * lam.sum(axis=0)[None, :] / (1.0 - S) ** 2)
+                M = Gr @ dg
+                Jm = np.zeros((nA + N, N + nA))
+                if nA:
+                    Jm[:nA, :N] = Vs[:, A].T
+                    Jm[nA:, N:] = -Vs[:, A]
+                Jm[nA:, :N] = -M
+                try:
+                    dz = np.linalg.lstsq(Jm, -F, rcond=None)[0]
+                except np.linalg.LinAlgError:
+                    return None
+                dy = dz[:N]
+                mx = float(np.max(np.abs(dy)))
+                if mx > 5.0:
+                    dz = dz * (5.0 / mx)
+                t = 1.0
+                nF = float(np.linalg.norm(F))
+                while t > 1.0e-4:
+                    yn = y + t * dz[:N]
+                    qn, Sn, gn = gas_of(yn)
+                    if Sn < 0.5:
+                        un = u.copy(); un[A] = u[A] + t * dz[N:]
+                        Fn = np.concatenate([(Vs[:, A].T @ yn - c[A]) if nA else np.zeros(0),
+                                             b - Vs[:, A] @ un[A] - Gr @ gn])
+                        if np.linalg.norm(Fn) < nF * (1.0 - 1.0e-4 * t) or np.linalg.norm(Fn) < 1.0e-13:
+                            break
+                    t *= 0.5
+                else:
+                    return None
+                y, u = yn, un
+            if not ok:
+                return None
+            neg = [j for j in A if u[j] < -1.0e-14]
+            if neg:
+                jn = min(neg, key=lambda j: u[j])
+                A.remove(jn); u[jn] = 0.0
+                continue
+            viol = V_viol = Vs.T @ y - c
+            cand = [j for j in range(J) if j not in A and viol[j] > 1.0e-9]
+            if cand:
+                A.append(max(cand, key=lambda j: viol[j]))
+                continue
+            break
+        else:
+            return None
+        q, S, g = gas_of(y)
+        # stability of an aqueous phase against this dry state (tangent-plane test, same as the open-system branch)
+        aq = self._aq_for(ion_idx)
+        resid_ions = b - Gr @ g
+        q_feed = resid_ions / resid_ions.sum() if resid_ions.min() > 1.0e-12 and resid_ions.sum() > 0 else None
+        f_min = self._tangent_plane(aq, y, T, math.log(rh), q_feed=q_feed)
+        if f_min < -1.0e-9:
+            return None
+        ions_r = [self.ions[i] for i in ion_idx]
+        keys_r = [self.solids[j].key for j in sol_idx]
+        return SLEResult("dry", T, rh, ions_r, {}, {k: float(v * scale) for k, v in zip(keys_r, u) if v > 1e-14}, {}, 0.0, {}, {},
+                         {k: float(v) for k, v in zip(keys_r, Vs.T @ y - c)}, [keys_r[j] for j in A], float(c @ u * scale), 0, 0,
+                         "closed dry state (solids + gas); no aqueous phase stable at this RH", 0,
+                         {gk[k]: float(g[k] * scale) for k in range(K)}, {gk[k]: float(P * q[k]) for k in range(K)})
+
+    def _gas_matrix(self, gk):
+        G = np.zeros((len(self.ions), len(gk)))
+        for k, g in enumerate(gk):
+            if g not in GASES:
+                raise KeyError(f"unknown gas {g!r}; available: {sorted(GASES)}")
+            for ion, nu in GASES[g].ions.items():
+                if ion not in self.ions:
+                    raise KeyError(f"gas {g} needs ion {ion!r}, which is not in the solver's ion set {self.ions}")
+                G[self.ions.index(ion), k] = nu
+        return G
+
+    def _solve_vec(self, bfull, T_K, rh, gk, lnp, warm, tol, max_outer, max_newton, closed=None) -> SLEResult:
         if abs(float(np.dot(self.z, bfull))) > 1.0e-8 * max(1.0, float(np.sum(np.abs(bfull)))):
             raise ValueError("feed is not electroneutral")
-        present = bfull > 0.0
+        G = self._gas_matrix(gk)
+        present = bfull != 0.0
+        for k in range(len(gk)):
+            present = present | (G[:, k] != 0.0)
         if not np.any(present):
             raise ValueError("empty feed")
         ion_idx = np.flatnonzero(present)
         sol_idx = [j for j in range(len(self.solids)) if np.all(self.V[~present, j] == 0)]
-        scale = float(bfull.max())
+        scale = float(np.abs(bfull).max())
         b = bfull[ion_idx] / scale
-        V = self.V[np.ix_(ion_idx, sol_idx)]
-        lnk = np.array([self.solids[j].ln_k(T_K, self.mode) for j in sol_idx])
-        hyd = self.hyd[sol_idx]
-        res = self._solve_reduced(b, V, lnk, hyd, ion_idx, sol_idx, T_K, math.log(rh), warm, tol, max_outer, max_newton)
-        res.feed = {self.ions[i]: float(bfull[i]) for i in range(len(self.ions)) if bfull[i] > 0}
+        V = np.hstack([self.V[np.ix_(ion_idx, sol_idx)], G[ion_idx]])
+        lnk = np.array([self.solids[j].ln_k(T_K, self.mode) for j in sol_idx]
+                       + [GASES[g].ln_k(T_K) + lp for g, lp in zip(gk, lnp)])
+        hyd = np.concatenate([self.hyd[sol_idx], np.zeros(len(gk))])
+        self._closed = None if closed is None else (closed[0] / scale, closed[1])
+        self._gcols = list(range(len(sol_idx), len(sol_idx) + len(gk)))
+        self._gnames = list(gk)
+        try:
+            res = self._solve_reduced(b, V, lnk, hyd, ion_idx, sol_idx, T_K, math.log(rh), warm, tol, max_outer, max_newton)
+        finally:
+            closed_used = self._closed
+            self._closed = None
+        res.feed = {self.ions[i]: float(bfull[i]) for i in range(len(self.ions)) if bfull[i] != 0}
         res.solids = {k: v * scale for k, v in res.solids.items()}
         res.aq_ions = {k: v * scale for k, v in res.aq_ions.items()}
+        res.gas = {g: v * scale for g, v in res.gas.items()}
+        if closed is None:
+            res.p_gas = {g: math.exp(lp) for g, lp in zip(gk, lnp)}
+        else:
+            ng = sum(res.gas.values())
+            res.p_gas = {g: closed[1] * v / (closed[0] + ng) for g, v in res.gas.items()}
         res.water_kg *= scale
         res.gibbs *= scale
+        return res
+
+    def solve_closed(self, feed: dict[str, float], gas_total: dict[str, float], T_K: float, rh: float, *,
+                     n_air: float, P_atm: float = 1.0, tol: float = 1.0e-9) -> SLEResult:
+        """Closed system: particle phases + ideal gas phase of ``n_air`` mol of non-reacting air at total pressure ``P_atm``.
+
+        ``feed`` are the (non-volatile or already-condensed) ion totals [mol]; ``gas_total`` the total amount of each
+        volatile gas (keys of :data:`aiomfac_py.gases.GASES`) initially present [mol], e.g.
+        ``{"HNO3": 2e-6, "NH3": 3e-6}``.  The gas amounts n_j are extra unknowns with the ideal-gas chemical potential
+        ln p_j = ln(P n_j/(n_air + sum n)); a first convex problem without an aqueous phase (solids + gas, solved in
+        element-potential space) is tested for aqueous-phase stability, and otherwise the wet problem is solved with the
+        same active-set Newton method.  Totals of every ion / gas are conserved (``result.gas``, ``result.aq_ions``,
+        ``result.solids``; ``result.p_gas`` in atm).
+        """
+        gk = list(gas_total)
+        K = len(gk)
+        G = self._gas_matrix(gk)
+        bfull = self._vec(feed) + G @ np.array([gas_total[g] for g in gk], dtype=float)
+        scale = float(np.abs(bfull).max())
+        gt0 = np.array([gas_total[g] for g in gk], dtype=float)
+
+        dry = self._closed_dry(bfull, gk, G, T_K, rh, n_air, P_atm, gt0)
+        if dry is not None:
+            dry.feed = {self.ions[i]: float(bfull[i]) for i in range(len(self.ions)) if bfull[i] != 0}
+            return dry
+        self._fast = True
+        try:
+            res = self._solve_vec(bfull, T_K, rh, gk, np.zeros(K), False, tol * 1.0e-2, 80, 80, closed=(n_air, P_atm))
+        finally:
+            self._fast = False
+        res.message = (res.message + " " if res.message else "") + "closed gas phase (ideal gas + air)"
         return res
 
     # ------------------------------------------------------------------------------------------------
     def _solve_reduced(self, b, V, lnk, hyd, ion_idx, sol_idx, T, ln_rh, warm, tol, max_outer, max_newton) -> SLEResult:
         aq = self._aq_for(ion_idx)
         N, J = V.shape
+        gc = list(self._gcols)
+        Js = J - len(gc)
+        gkeys = []
         ions_r = [self.ions[i] for i in ion_idx]
         keys_r = [self.solids[j].key for j in sol_idx]
         c = lnk - hyd * ln_rh
@@ -421,18 +633,19 @@ class SLESolver:
         rh = math.exp(ln_rh)
 
         def make(status, u, st, S, nn=0, no=0, msg=""):
-            nsol = {k: float(v) for k, v in zip(keys_r, u) if v > 1e-14}
-            act = [keys_r[j] for j in S]
+            nsol = {k: float(v) for k, v in zip(keys_r, u[:Js]) if v > 1e-14}
+            act = [keys_r[j] for j in S if j < Js]
+            gas = {self._gnames[k]: float(u[Js + k]) for k in range(len(gc))}
             if st is None:
                 return SLEResult(status, T, rh, ions_r, {}, nsol, {}, 0.0, {}, {}, {}, act, float(c @ u), nn, no, msg,
-                                 aq.n_eval - ev0)
+                                 aq.n_eval - ev0, gas)
             ln_a, w, _ = st
             n_aq = b - V @ u
             si = V.T @ ln_a - c
             return SLEResult(status, T, rh, ions_r, {}, nsol, {i: float(v) for i, v in zip(ions_r, n_aq)}, float(w),
                              {i: float(v / w) for i, v in zip(ions_r, n_aq)}, {i: float(v) for i, v in zip(ions_r, ln_a)},
-                             {k: float(v) for k, v in zip(keys_r, si)}, act, float(np.sum(n_aq * ln_a) + c @ u), nn, no,
-                             msg, aq.n_eval - ev0)
+                             {k: float(v) for k, v in zip(keys_r, si[:Js])}, act, float(np.sum(n_aq * ln_a) + c @ u), nn, no,
+                             msg, aq.n_eval - ev0, gas)
 
         # ---- 0. no candidate solid for this feed (e.g. pure H2SO4 in water): single aqueous phase -----------------
         if J == 0:
@@ -442,12 +655,23 @@ class SLESolver:
             return make("aqueous", np.zeros(0), st, [])
         # ---- 1. dry assemblage (LP) and stability of the aqueous phase -----------------------------------------
         u_dry = None
-        lp = linprog(c, A_eq=V, b_eq=b, bounds=[(0, None)] * J, method="highs")
+        if self._fast:                      # solve_closed: aqueous phase already known to be stable, wet branch only
+            out = self._wet(aq, b, V, c, T, ln_rh, tol, max_outer, max_newton)
+            if out is None:
+                out = self._homotopy(aq, b, V, lnk, hyd, T, ln_rh, tol, max_outer, max_newton)
+            if out is None:
+                return make("failed", np.zeros(J), None, [], msg="wet branch failed")
+            u, S, st, nn, no = out
+            return make("solid+aqueous" if np.any(u[:Js] > 1e-14) else "aqueous", u, st, S, nn, no)
+        lp = linprog(c, A_eq=V, b_eq=b, bounds=[(0, None)] * Js + [(None, None)] * len(gc), method="highs")
+        if lp.status == 3 and gc:
+            return make("failed", np.zeros(J), None, [],
+                        msg="no equilibrium: the gas reservoir is supersaturated (solid growth is unbounded)")
         if lp.status == 0:
-            u_dry = np.maximum(lp.x, 0.0)
+            u_dry = np.concatenate([np.maximum(lp.x[:Js], 0.0), lp.x[Js:]])
             y = np.asarray(lp.eqlin.marginals, dtype=float)
-            f_min = self._tangent_plane(aq, y, T, ln_rh, q_feed=b / b.sum())
-            sup = [j for j in range(J) if u_dry[j] > 1e-12]
+            f_min = self._tangent_plane(aq, y, T, ln_rh, q_feed=np.maximum(b, 0.0) / max(float(b.sum()), 1e-300) if b.min() >= 0 else None)
+            sup = [j for j in range(Js) if u_dry[j] > 1e-12]
             if self.verbose:
                 print(f"[sle] dry LP: {[keys_r[j] for j in sup]}  TPD_min={f_min:.3e}")
             if f_min >= -1.0e-9:
@@ -462,13 +686,29 @@ class SLESolver:
             out = self._homotopy(aq, b, V, lnk, hyd, T, ln_rh, tol, max_outer, max_newton)
         if out is None:
             if u_dry is not None:
-                sup = [j for j in range(J) if u_dry[j] > 1e-12]
+                sup = [j for j in range(Js) if u_dry[j] > 1e-12]
                 return make("dry", u_dry, None, sup, msg="wet branch failed; dry LP assemblage returned")
             return make("failed", np.zeros(J), None, [], msg="no equilibrium found")
         u, S, st, nn, no = out
         self._warm = ((tuple(ion_idx), tuple(sol_idx)), u.copy(), list(S))
-        status = "solid+aqueous" if np.any(u > 1e-14) else "aqueous"
+        status = "solid+aqueous" if np.any(u[:Js] > 1e-14) else "aqueous"
         return make(status, u, st, S, nn, no)
+
+    # ------------------------------------------------------------------------------------------------
+    @staticmethod
+    def _interior(b, G, positive: bool = False):
+        """Gas amounts u_g (free sign) that make every aqueous ion amount b - G u_g strictly positive."""
+        K = G.shape[1]
+        N = G.shape[0]
+        cost = np.zeros(K + 1); cost[-1] = -1.0
+        A = np.hstack([G, np.ones((N, 1))])
+        bound = 20.0 * max(float(np.abs(b).max()), 1e-300)
+        lo = 1.0e-4 * float(np.abs(b).max()) if positive else -bound
+        out = linprog(cost, A_ub=A, b_ub=b, bounds=[(lo, bound)] * K + [(None, 1.0e-3 * float(np.abs(b).max()))],
+                      method="highs")
+        if out.status != 0 or out.x[-1] <= 1.0e-12 * float(np.abs(b).max()):
+            return None
+        return out.x[:K]
 
     # ------------------------------------------------------------------------------------------------
     def _tangent_plane(self, aq: AqueousIons, y, T, ln_rh, q_feed=None, early_negative: bool = True) -> float:
@@ -551,9 +791,31 @@ class SLESolver:
         Returns (u, S, (ln a, w, lnM), n_newton, n_outer) or None if it breaks down.
         """
         N, J = V.shape
-        u = np.zeros(J) if u0 is None else np.array(u0, dtype=float)
-        S = [] if S0 is None else list(S0)
+        gc = list(self._gcols)
+        isgas = np.zeros(J, dtype=bool); isgas[gc] = True
+        if u0 is None:
+            u = np.zeros(J)
+            if gc:
+                ug = self._interior(b, V[:, gc], positive=self._closed is not None)
+                if ug is None:
+                    return None
+                u[gc] = ug
+        else:
+            u = np.array(u0, dtype=float)
+        S = list(gc) if S0 is None else list(dict.fromkeys(list(S0) + gc))
         lnM = [None]
+        closed = self._closed
+
+        def lnp_gas(uu):
+            g = uu[gc]
+            return np.log(closed[1] * g / (closed[0] + g.sum()))
+
+        def si_of(uu, st_):
+            si_ = V.T @ st_[0] - c
+            if closed is not None and gc:
+                si_ = si_.copy()
+                si_[gc] -= lnp_gas(uu)
+            return si_
 
         def st_at(uu):
             n = b - V @ uu
@@ -565,7 +827,12 @@ class SLESolver:
             return r
 
         def phi_of(uu, st):
-            return float(np.sum((b - V @ uu) * st[0]) + c @ uu)
+            val = float(np.sum((b - V @ uu) * st[0]) + c @ uu)
+            if closed is not None and gc:
+                g = uu[gc]
+                Ng = closed[0] + g.sum()
+                val += float(np.sum(g * np.log(closed[1] * g / Ng)) - closed[0] * math.log(Ng))
+            return val
 
         st = st_at(u)
         if st is None:
@@ -587,7 +854,7 @@ class SLESolver:
                 if not S:
                     converged = True
                     break
-                si = V.T @ st[0] - c
+                si = si_of(u, st)
                 F = si[S]
                 if float(np.max(np.abs(F))) < tol:
                     converged = True
@@ -599,13 +866,20 @@ class SLESolver:
                 for kk, jk in enumerate(S):
                     vk = V[:, jk]
                     pos = vk > 0
-                    eps = min(1.0e-4 * bmax, 0.1 * float(np.min(n_now[pos] / vk[pos])))
+                    eps = 1.0e-4 * bmax
+                    if np.any(pos):
+                        eps = min(eps, 0.1 * float(np.min(n_now[pos] / vk[pos])))
+                    ngv = vk < 0
+                    if np.any(ngv):
+                        eps = min(eps, 0.1 * float(np.min(n_now[ngv] / -vk[ngv])))
+                    if closed is not None and isgas[jk]:
+                        eps = min(eps, 0.1 * float(u[jk]))
                     up, um = u.copy(), u.copy()
                     up[jk] += eps; um[jk] -= eps
                     sp, sm = st_at(up), st_at(um)
                     if sp is None or sm is None:
                         return None
-                    H[:, kk] = -((V.T @ sp[0] - c)[S] - (V.T @ sm[0] - c)[S]) / (2.0 * eps)
+                    H[:, kk] = -(si_of(up, sp)[S] - si_of(um, sm)[S]) / (2.0 * eps)
                 H = 0.5 * (H + H.T)
                 reg = 1.0e-12 * max(1.0, float(np.trace(np.abs(H))))
                 try:
@@ -618,10 +892,15 @@ class SLESolver:
                 m_pos = Vd > 0
                 if np.any(m_pos):
                     alpha = min(alpha, 0.9 * float(np.min(n_now[m_pos] / Vd[m_pos])))
+                if closed is not None and gc:                         # closed gas amounts stay positive
+                    for kk2, jk2 in enumerate(S):
+                        if isgas[jk2] and delta[kk2] < 0:
+                            alpha = min(alpha, 0.9 * float(u[jk2] / -delta[kk2]))
                 block = None
                 neg = np.flatnonzero(delta < 0)
                 if neg.size:
                     ratios = -u[S][neg] / delta[neg]
+                    ratios = np.where(isgas[np.array(S)[neg]], np.inf, ratios)       # gas amounts are free in sign
                     kmin = int(np.argmin(ratios))
                     if ratios[kmin] <= alpha:
                         alpha = float(max(ratios[kmin], 0.0)); block = neg[kmin]
@@ -651,12 +930,12 @@ class SLESolver:
             if st is None:
                 return None
             # ---------------- Table 1 step 4: constraint test --------------------------------------------------
-            zero = [j for j in S if u[j] <= 1.0e-14]
+            zero = [j for j in S if u[j] <= 1.0e-14 and not isgas[j]]
             if zero:
                 S = [j for j in S if j not in zero]
                 continue
-            si = V.T @ st[0] - c
-            inactive = [j for j in range(J) if j not in S]
+            si = si_of(u, st)
+            inactive = [j for j in range(J) if j not in S and not isgas[j]]
             if inactive:
                 jmax = max(inactive, key=lambda j: si[j])
                 if si[jmax] > 1.0e-8:

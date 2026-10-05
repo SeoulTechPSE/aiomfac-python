@@ -9,7 +9,7 @@
 |---|---|---|
 | 이온 | Li, Na, K, NH4, Mg, Ca / F, Cl, Br, I, NO3, SO4, CO3 | 용액 활동도는 `lle.py`의 AIOMFAC(LR+MR+SR)를 그대로 사용 |
 | 산성 황산염계 (H+, HSO4−) | **지원** | H+와 SO4²⁻를 총량(화학양론 이온)으로 두고 HSO4⁻ ⇌ H⁺+SO4²⁻를 수용액 활동도 계산 안에서 풂 (3.4절). 고체: NH4HSO4, letovicite |
-| 기체상 (NH3/HNO3/HCl) | 미지원 | RH 고정, 고체–수용액 2상만. HNO3·HCl 용액은 비휘발성으로 취급 |
+| 기체상 (NH3/HNO3/HCl) | 지원(열린계 p 고정, 닫힌계) | `gases.py`, `solve(p_gas=…)`, `solve_closed(…)` (3.5절) |
 | 고체 | 25종 (아래 DB) | 복염은 glauberite, syngenite, letovicite. NaHSO4·KHSO4·H2SO4 수화물 등은 미포함 |
 | 입력 | 염 몰수(전기중성; `H2SO4`, `NH4HSO4`, `HSO4-` 허용), T, RH | 출력: 상태(dry/aqueous/solid+aqueous), 고체 질량, 물 질량, 몰랄농도, SI |
 
@@ -112,8 +112,17 @@ r = s.solve(feed_from_salts({"NaCl":1.0,"(NH4)2SO4":1.0}), 298.15, 0.70)
 print(r.status, r.solids, r.water_kg)
 ```
 
+### 3.5 기체상 (NH3, HNO3, HCl)
+**정식화.** 기체 j를 "고체와 같은 열": 기체가 1 mol 생길 때 수용액에서 사라지는 이온을 열 벡터 G_j로 둡니다 (HNO3: H⁺+NO3⁻, HCl: H⁺+Cl⁻, NH3: NH4⁺−H⁺, 즉 NH3가 생기면 NH4⁺가 H⁺로 바뀜). 평형조건은 SI_j = G_jᵀ ln a − ln K_j − ln p_j = 0이며 K_j는 몰랄 기준 (`gases.py`).
+- 데이터(Clegg et al. 1998): xK′H(NH3) = 1.066e11 atm⁻¹ (ΔH −86.25 kJ/mol, ΔCp 34.35), HNO3 xKH = 853.1 atm⁻¹ (몰랄 2.63e6, 논문 식 15의 T 의존성), HCl 662.1 atm⁻¹ (298 K; T 의존성은 논문에 없어 NBS ΔH −74.85 kJ/mol, ΔCp −165.5로 추정, 품질 C). **주의**: 식 12 추출 텍스트의 (1/Tr − 1/T)는 부호가 반대여야 논문 자신의 ΔH와 Kp(NH4NO3)의 ΔH 184.2 kJ/mol과 일치합니다(본 모듈 182~184로 재현). 원문 확인 필요.
+- 일관성: Kp(NH4NO3) = K_s/(K′H K_H) = 4.22e-17 atm² (Clegg 4.36e-17, 3 %), 온도 의존성 ΔH ≈ 184 kJ/mol.
+**열린계** (`solve(feed, T, rh, p_gas={…})`): p 고정, 기체량 u_g는 부호가 자유(+는 기체로 이동, −는 흡수)이고 항상 활성 집합에 포함됩니다. 초기 내점은 LP로 구합니다. 건조 판정(LP+TPD)은 그대로 쓰되 LP가 유계가 아니면(저장고가 고체에 대해 과포화) 평형이 없다고 보고합니다. 모든 이온이 휘발성인 공급물(예: 순수 NH4NO3)은 총량이 정해지지 않아 퇴화합니다.
+**닫힌계** (`solve_closed(feed, gas_total, T, rh, n_air, P)`): 기체량 g_j > 0이 미지수, ln p_j = ln(P g_j/(n_air+Σg)) (이상기체 + 공기). (i) 수용액 없는 상태(고체+기체)를 쌍대(원소 퍼텐셜) 공간에서 활성집합 Newton으로 풀고 (y, u_A: V_Aᵀy = c_A, b − V_A u_A − G g(y) = 0), TPD로 수용액 안정성을 검사; (ii) 수용액이 안정하면 `_wet` 활성집합 Newton에 기체 열을 양의 변수(ln p 항 포함)로 넣어 풉니다. Φ가 볼록하므로 전역해입니다.
+- 검증: 고체 NH4NO3 + 증기에서 p(NH3)p(HNO3) = Kp(T) (상대오차 1e-6); 완전 증발; (NH4)2SO4 + HNO3 + NH3 습윤계의 질량수지(1e-16)와 ln p 일치; NaCl + HNO3 → 염화물 소실(HCl(g)); 열린계 p 복원(1e-7).
+- 한계: 이상기체·공기 외 불활성, 유기물·CO2 미결합, 모든 데이터는 298 K에서 검증(HCl T 의존성 미검증), 열린계 퇴화 경우 위 참조. 닫힌계 건조 판정 비용은 TPD(1~5 s)가 지배합니다.
+
 ## 5. 검증 결과
-- 테스트 `tests/test_sle.py` 52개(~13 s) + `tests/test_sle_acid.py` 17개(~45 s) 통과 (전체 스위트 266 passed): DB 전기중성·K 유한성, fitted==anchored(298 K), 단일염 DRH(298 K) 문헌 ±1.6 %p, 피팅 용해도 vs 핸드북 ≤ 4 %, Na2SO4 수화물 전이(≈305.5 K 재현), NaCl–KCl 상 순서·MDRH(0.715–0.74), KKT/질량수지/a_w=RH, active-set Gibbs ≤ SLSQP, RH 스캔 단조성, ERH 일관성, 비중성 입력 거부; 산성계: HSO4⁻ 속도론 일치(1e-7), KKT·질량수지·a_w=RH, 순수 H2SO4 wt%, 상 순서.
+- 테스트 `tests/test_sle.py` 52개(~13 s) + `tests/test_sle_acid.py` 17개(~45 s) 통과 (전체 스위트 274 passed; `tests/test_sle_gas.py` 8개): DB 전기중성·K 유한성, fitted==anchored(298 K), 단일염 DRH(298 K) 문헌 ±1.6 %p, 피팅 용해도 vs 핸드북 ≤ 4 %, Na2SO4 수화물 전이(≈305.5 K 재현), NaCl–KCl 상 순서·MDRH(0.715–0.74), KKT/질량수지/a_w=RH, active-set Gibbs ≤ SLSQP, RH 스캔 단조성, ERH 일관성, 비중성 입력 거부; 산성계: HSO4⁻ 속도론 일치(1e-7), KKT·질량수지·a_w=RH, 순수 H2SO4 wt%, 상 순서.
 - 무작위 교차검증(SLSQP 전역 Gibbs 대조): 0/40(seed 42), 0/60(seed 7) 불일치.
 - 복분해 반응 ΔG: NBS 대비 ≈ 0.2 kJ 이내.
 - DRH(T): NH4NO3 73.7 %(273 K) → 61.2 %(298 K) → 54.0 %(313 K), NaCl 거의 평탄 — 문헌 경향과 일치.
@@ -134,7 +143,7 @@ print(r.status, r.solids, r.water_kg)
 
 ## 7. 로드맵
 1. 산성계 확장(진행): NH4/Na 산성 고체는 Clegg 1998 K로 반영 완료. 남은 것: KHSO4, H2SO4 수화물, 복염, 문헌 상도(Tang 1980, Clegg 1998)·JOTA-1 예제 정량 비교, 이중염 화학양론 퇴화 대응.
-2. NH3/HNO3/HCl 기체상 결합 (JOTA-1 휘발성 평형).
+2. NH3/HNO3/HCl 기체상 결합: 완료(3.5절). 남은 것: HCl 온도 의존성 원문 확인, NH4NO3 상전이·복염, 모든 이온이 휘발성일 때의 열린계 퇴화.
 3. 해석적 야코비안(AIOMFAC 미분)·TPD 가속 → 속도·견고성 (산성계 건조 판정이 느림).
 4. ERH 보정: 2021 DRH/ERH 데이터베이스로 ln S_crit 체계화.
 5. 저온(<273 K) 데이터, 품질 C/B 고체 문헌값 확충.

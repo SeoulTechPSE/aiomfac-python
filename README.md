@@ -244,12 +244,20 @@ so it absorbs AIOMFAC's γ(T) error along the saturation line), `"anchored"` (li
 `efflorescence_rh` takes a user-supplied critical supersaturation ln S (`implied_ln_s_crit` inverts it from a
 literature ERH).
 
+Gas phase (NH3, HNO3, HCl): the volatile species are extra columns of the same active-set problem
+(`aiomfac_py.gases`: Henry constants of Clegg et al. 1998; HCl T-dependence from NBS enthalpies). Two modes:
+`solver.solve(feed, T, rh, p_gas={"HNO3": 1e-9, "NH3": 5e-9})` puts the particle in contact with a gas reservoir of
+fixed partial pressures (atm), and `solver.solve_closed(feed, {"HNO3": 2e-6, "NH3": 3e-6}, T, rh, n_air=41.0)` conserves
+the totals in a closed volume of ideal gas + air (mol), returning `result.gas`, `result.p_gas` and the condensed phases
+(aqueous, or solids + gas such as NH4NO3(s) with p(NH3) p(HNO3) = Kp). Verified against the Clegg Kp(NH4NO3).
+Fixed-p mode fails (reported) when the reservoir is supersaturated with respect to a solid.
+
 Verification (see `tests/test_sle.py`, `tests/test_sle_acid.py` and `notebooks/06_sle_solver.ipynb`): single-salt DRH at 298 K
 within ~1.6 percentage points of literature, fitted solubilities within 4 % of handbook values, the
 mirabilite/thenardite transition near 305.5 K, and 100 random mixtures agreeing with a brute-force SLSQP
 global Gibbs minimization. **Limitations:** gas-phase partitioning (NH3, HNO3, HCl), acid solids other than
 KHSO4, H2SO4 hydrates, other double salts and NH4NO3 solid
-phase transitions are not implemented; HNO3/HCl solutions are treated as non-volatile; fits are valid for roughly
+phase transitions are not implemented; gases other than NH3/HNO3/HCl (and organics, CO2) are not coupled; fits are valid for roughly
 0–60 °C only (Na acid solids: 298 K only); solids with data-quality flag C (NaH3(SO4)2·H2O,
 MgCl2·4H2O/2H2O, Mg(NO3)2·6H2O, CaCl2·6H2O, Ca(NO3)2·4H2O) are estimates; the dry-state test can take several
 seconds for many-ion feeds (up to ~10 s with acid speciation). Full design, data sources and roadmap: `docs/SLE_design_ko.md` (Korean).
