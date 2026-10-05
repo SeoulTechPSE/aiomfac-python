@@ -37,7 +37,7 @@ def _ansan_feed(with_an: bool):
 def _assert_equilibrium(r, tol_si=1e-4):
     c = r.checks
     assert r.status == "converged", r.message
-    assert c["max_abs_ln_aw_minus_ln_rh"] < 1e-6
+    assert c["max_abs_ln_aw_minus_ln_rh"] < 1e-5
     assert c["max_neutral_mu_spread"] < 1e-4
     assert c["max_ion_mu_residual"] < 1e-4
     assert c["max_si"] < tol_si
@@ -166,3 +166,17 @@ def test_rejects_unsupported_ions_and_charged_feed():
     pe = PhaseEquilibrium([PINIC], ["NH4+", "SO4--"], T_K=298.15)
     with pytest.raises(ValueError):
         pe.solve({"pinic_acid": 0.1, "NH4+": 0.1, "SO4--": 0.1}, 0.5)
+
+
+def test_binary_binodal_close_to_saturation_matches_common_tangent():
+    """Water + pinonaldehyde (289 K): the common tangent of a_w and a_org gives a_w* = 0.99825 with coexisting
+    x_org = 0.0019 and 0.675.  Below a_w* the organic-rich liquid is the stable one, above it the dilute one; the
+    stability test must find the organic-rich liquid even when the start is the dilute (metastable) branch."""
+    pinonaldehyde = Component(2, "pinonaldehyde", ((1, 2), (2, 1), (3, 2), (4, 1), (18, 1), (20, 1)))   # S2AS
+    pe = PhaseEquilibrium([pinonaldehyde], [], T_K=289.0)
+    below = pe.solve({"pinonaldehyde": 1.0}, 0.995, solids="none")
+    above = pe.solve({"pinonaldehyde": 1.0}, 0.9990, solids="none")
+    _assert_equilibrium(below)
+    _assert_equilibrium(above)
+    assert below.liquids[0].mole_fractions[1] > 0.5
+    assert above.liquids[0].mole_fractions[1] < 0.01

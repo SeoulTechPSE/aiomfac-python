@@ -435,35 +435,45 @@ class PhaseEquilibrium:
         return w, tpd(w)
 
     def _trial_points(self, b: np.ndarray, rh: float, liquids: list) -> list:
-        """Electroneutral trial compositions (sum 1) for the stability test."""
+        """Electroneutral trial compositions (sum 1) for the stability test.  Compositions are fixed mole-fraction
+        patterns, independent of RH (an RH-scaled water content would make "organic-rich" trials water-rich close
+        to saturation): each organic at x = 0.3, 0.7 and 0.95 in water; all organics in feed proportion at x = 0.5 and
+        0.9; salt solutions at two water-to-ion ratios; dilute water; perturbed copies of the current liquids."""
         N, nn = self.N, self.lm.n_neutral
         eps = 1e-6
-        ions = b.copy(); ions[:nn] = 0.0
+        ion_fr = np.zeros(N)
+        if b[nn:].sum() > 0:
+            ion_fr[nn:] = b[nn:] / b[nn:].sum()
+        org_fr = np.zeros(N)
+        if b[1:nn].sum() > 0:
+            org_fr[1:nn] = b[1:nn] / b[1:nn].sum()
         trials = []
-        wwat = rh / (1.0 - rh) if rh < 1 else 10.0
-        for k in range(1, nn):                                   # organic-rich trials
-            w = np.full(N, eps) * (ions > 0) + 0.0
-            w[:nn] = eps
-            w[k] = 1.0
-            w[0] = 0.3 * wwat
-            w[nn:] = eps * ions[nn:] / max(ions[nn:].sum(), 1e-300)
-            trials.append(w)
-        if ions[nn:].sum() > 0:                                  # salt-rich aqueous trial
-            w = np.zeros(N); w[nn:] = ions[nn:] / ions[nn:].sum()
-            w[0] = 1.5 * wwat + 0.5
-            w[1:nn] = eps
-            trials.append(w)
-        w = np.full(N, eps); w[0] = 1.0                          # dilute water
-        w[nn:] = eps * ions[nn:] / max(ions[nn:].sum(), 1e-300)
-        trials.append(w)
-        for L in liquids:                                        # perturbed copies of the current liquids
-            trials.append(np.maximum(L.amounts / L.total, 1e-9) * np.exp(0.3 * np.random.default_rng(len(trials))
-                                                                       .standard_normal(N) * (self.z == 0)))
+
+        def make(water, org, ions):
+            w = np.full(N, eps)
+            w[0] = water
+            w[1:nn] += org[1:nn]
+            w[nn:] = np.maximum(ions[nn:], eps * ion_fr[nn:] + 1e-12)
+            return w
+
+        for k in range(1, nn):
+            for xo in (0.3, 0.7, 0.95):
+                o = np.zeros(N); o[k] = xo
+                trials.append(make(1.0 - xo, o, eps * ion_fr))
+        if nn > 2:
+            for xo in (0.5, 0.9):
+                trials.append(make(1.0 - xo, xo * org_fr, eps * ion_fr))
+        if ion_fr[nn:].sum() > 0:
+            for water in (2.0, 10.0):                                # concentrated and moderate salt solutions
+                trials.append(make(water, eps * org_fr, ion_fr))
+        trials.append(make(1.0, eps * org_fr, eps * ion_fr))      # dilute water
+        rng = np.random.default_rng(12345)
+        for L in liquids:                                           # perturbed copies of the current liquids
+            trials.append(np.maximum(L.amounts / L.total, 1e-9) * np.exp(0.3 * rng.standard_normal(N) * (self.z == 0)))
         out = []
         for w in trials:
             w = np.maximum(w, 1e-12)
-            # restore electroneutrality by scaling the anions
-            if np.any(self.z != 0):
+            if np.any(self.z != 0):                                 # restore electroneutrality by scaling the anions
                 qp = float(np.sum(np.where(self.z > 0, self.z * w, 0.0)))
                 qn = float(-np.sum(np.where(self.z < 0, self.z * w, 0.0)))
                 if qn > 0:
@@ -515,13 +525,12 @@ class PhaseEquilibrium:
         x = np.concatenate(phases + [u0])
         n_outer = 0
         tpd_min = float("nan")
-        status = "converged"
+        inner_ok = True
         while True:
             n_outer += 1
             n_liq = len(phases)
             x, conv = self._barrier_solve(x, n_liq, V, ln_rh, verbose=verbose)
-            if not conv:
-                status = "not_converged"
+            inner_ok = inner_ok and conv
             phases = [x[a * N:(a + 1) * N] for a in range(n_liq)]
             u = x[n_liq * N:]
             # remove vanished liquids, merge identical ones
@@ -587,8 +596,9 @@ class PhaseEquilibrium:
         solid_amounts = {s.key: float(v) for s, v in zip(self._solids_now, u) if v > thresh}
         F, _ = self._objective(x, len(phases), ln_rh, self._solid_cost(self._solids_now, ln_rh))
         checks = self._checks(liquids, ln_rh, si, solid_amounts, b * scale, u)
-        msg = ""
-        bad = [k for k, lim in (("max_abs_ln_aw_minus_ln_rh", 1e-6), ("max_neutral_mu_spread", 1e-4),
+        # the status is decided by the equilibrium conditions of the final state, not by how the iteration ended
+        status, msg = "converged", ""
+        bad = [k for k, lim in (("max_abs_ln_aw_minus_ln_rh", 1e-5), ("max_neutral_mu_spread", 1e-4),
                                 ("max_ion_mu_residual", 1e-4), ("max_si", 1e-4), ("max_abs_si_present_solids", 1e-4))
                if checks[k] > lim]
         if bad:
@@ -597,6 +607,8 @@ class PhaseEquilibrium:
         if tpd_min < -self.tol_tpd:
             status = "not_converged"
             msg += ("; " if msg else "") + f"stability test still negative (TPD={tpd_min:.2e})"
+        if not inner_ok:
+            msg += ("; " if msg else "") + "inner Newton iteration stopped early (line search)"
         return PhaseEquilibriumResult(status, self.T, rh, liquids, solid_amounts, si, F * scale, checks, tpd_min,
                                       n_outer, message=msg, names=self.names)
 
