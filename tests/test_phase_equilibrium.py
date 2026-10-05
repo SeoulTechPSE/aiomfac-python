@@ -162,7 +162,9 @@ def test_drying_path_crystallizes_only_after_critical_supersaturation():
 
 def test_rejects_unsupported_ions_and_charged_feed():
     with pytest.raises(NotImplementedError):
-        PhaseEquilibrium([PINIC], ["H+", "SO4--"], T_K=298.15)
+        PhaseEquilibrium([PINIC], ["NH4+", "CO3--"], T_K=298.15)
+    with pytest.raises(ValueError):
+        PhaseEquilibrium([PINIC], ["H+", "HSO4-"], T_K=298.15)
     pe = PhaseEquilibrium([PINIC], ["NH4+", "SO4--"], T_K=298.15)
     with pytest.raises(ValueError):
         pe.solve({"pinic_acid": 0.1, "NH4+": 0.1, "SO4--": 0.1}, 0.5)
@@ -180,3 +182,42 @@ def test_binary_binodal_close_to_saturation_matches_common_tangent():
     _assert_equilibrium(above)
     assert below.liquids[0].mole_fractions[1] > 0.5
     assert above.liquids[0].mole_fractions[1] < 0.01
+
+
+# ---------------------------------------------------------------------------------------------------------
+# acid sulfate: stoichiometric H+ and SO4--, bisulfate speciated in every liquid
+# ---------------------------------------------------------------------------------------------------------
+def test_acid_activities_match_activity_model_with_bisulfate_speciation():
+    T = 298.15
+    lm = LiquidModel([PINIC], ["NH4+", "H+", "SO4--"])
+    n = np.array([5.0, 0.3, 0.2, 0.1, 0.15])                      # water, pinic, NH4+, H+ (total), SO4-- (total)
+    la = lm.ln_a(n, T)
+    m = ActivityModel([WATER, Component(2, "org", PINIC.subgroups), AS, Component(4, "H2SO4", ((205, 2), (261, 1)))])
+    x = np.array([5.0, 0.3, 0.1, 0.05]); x /= x.sum()
+    ev = m.evaluate(x, T, basis="mole")
+    assert np.allclose(la[:2], np.log(ev.activity[:2]), atol=1e-12)
+    assert 2 * la[2] + la[4] == pytest.approx(math.log(ev.activity[2]), abs=1e-10)
+    assert 2 * la[3] + la[4] == pytest.approx(math.log(ev.activity[3]), abs=1e-10)
+    H = lm.hessian(n, T)
+    assert np.max(np.abs(H @ n)) < 1e-7 * np.max(np.abs(H))
+
+
+@pytest.mark.parametrize("feed,rh,status,solids", [
+    ({"NH4+": 1.0, "H+": 1.0, "SO4--": 1.0}, 0.45, "converged", {"letovicite"}),     # letovicite + aqueous
+    ({"NH4+": 3.0, "H+": 1.0, "SO4--": 2.0}, 0.60, "dry", {"letovicite"}),           # below the DRH: no liquid
+])
+def test_acid_inorganic_limit_matches_sle_solver(feed, rh, status, solids):
+    T = 298.15
+    ions = ["NH4+", "H+", "SO4--"]
+    rs = SLESolver(ions).solve(feed, T, rh)
+    rp = PhaseEquilibrium([], ions, T_K=T).solve(feed, rh, solids="all")
+    assert rp.status == status and set(rp.solids) == solids == set(rs.solids)
+    for k, v in rs.solids.items():
+        assert rp.solids[k] == pytest.approx(v, rel=1e-4)
+    if status == "converged":
+        _assert_equilibrium(rp)
+        L = rp.liquids[0]
+        w_kg = L.amounts[0] * 0.01801528
+        assert w_kg == pytest.approx(rs.water_kg, rel=1e-5)
+        for ion in ions:
+            assert L.amounts[L.names.index(ion)] / w_kg == pytest.approx(rs.molality[ion], rel=1e-5)

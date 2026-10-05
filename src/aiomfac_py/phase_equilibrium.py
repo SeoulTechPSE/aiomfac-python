@@ -56,7 +56,11 @@ saturation index in the metastable liquid exceeds a critical supersaturation ``l
 
 Scope of this version
 ---------------------
-Non-reactive ion sets only: H+, HSO4-, CO3--, HCO3- and OH- (which need dissociation equilibria) are rejected.  No gas
+Acid sulfate systems are supported in the same way as in :mod:`aiomfac_py.sle`: H+ and SO4-- are *stoichiometric*
+(total) components, and the bisulfate equilibrium HSO4- <-> H+ + SO4-- (Knopf et al. 2003 constant, as in
+:mod:`aiomfac_py.dissociation`) is solved inside every activity evaluation of every liquid; the potential of a
+stoichiometric component equals that of the free ion at the speciation equilibrium, so the formulation above is
+unchanged.  Pass H+ and SO4-- (never HSO4-).  Carbonate species (CO3--, HCO3-, OH-) are not supported.  No gas
 phase other than water.  A state without any liquid (all salts crystalline and no organic present) is not represented;
 use :class:`aiomfac_py.sle.SLESolver` for purely inorganic systems below their deliquescence RH.  Like
 :mod:`aiomfac_py.lle` and :mod:`aiomfac_py.sle`, this module is not part of the Fortran AIOMFAC code (which provides
@@ -72,11 +76,12 @@ import numpy as np
 from scipy.linalg import null_space
 
 from .io import Component
+from .dissociation import solve_bisulfate
 from .model import ActivityModel
 from .solids import ION_REGISTRY, SOLIDS, Solid
 
 WATER = Component(1, "Water", ((16, 1),))
-_UNSUPPORTED_IONS = ("H+", "HSO4-", "CO3--", "HCO3-", "OH-")
+_UNSUPPORTED_IONS = ("HSO4-", "CO3--", "HCO3-", "OH-")
 
 
 # ============================================================================================================
@@ -87,9 +92,11 @@ class LiquidModel:
     """AIOMFAC activities of one liquid phase given species amounts: water, organics, individual ions."""
 
     def __init__(self, organics: Sequence[Component], ions: Sequence[str]):
+        if "HSO4-" in ions:
+            raise ValueError("pass the stoichiometric ions H+ and SO4-- instead of HSO4- (bisulfate is speciated internally)")
         bad = [i for i in ions if i in _UNSUPPORTED_IONS]
         if bad:
-            raise NotImplementedError(f"ions {bad} need dissociation equilibria and are not supported in this version")
+            raise NotImplementedError(f"ions {bad} (carbonate system) are not supported in this version")
         for i in ions:
             if i not in ION_REGISTRY:
                 raise KeyError(f"unknown ion {i!r}")
@@ -103,8 +110,10 @@ class LiquidModel:
         self.z = np.array([0.0] * self.n_neutral + [float(ION_REGISTRY[i][1]) for i in self.ions])
 
         comps = [WATER] + [Component(k + 2, c.name, tuple(c.subgroups)) for k, c in enumerate(self.organics)]
-        cats = [i for i in self.ions if ION_REGISTRY[i][1] > 0]
-        ans = [i for i in self.ions if ION_REGISTRY[i][1] < 0]
+        self._acid = "H+" in self.ions and "SO4--" in self.ions
+        model_ions = list(self.ions) + (["HSO4-"] if self._acid else [])
+        cats = [i for i in model_ions if ION_REGISTRY[i][1] > 0]
+        ans = [i for i in model_ions if ION_REGISTRY[i][1] < 0]
         if bool(cats) != bool(ans):
             raise ValueError("ions must include at least one cation and one anion (or none at all)")
         if cats:
@@ -124,6 +133,10 @@ class LiquidModel:
         for ion in self.ions:
             sid, z = ION_REGISTRY[ion]
             self._pos.append((z > 0, mx.cat_index[sid] if z > 0 else mx.an_index[sid]))
+        if self._acid:
+            self._ih = mx.cat_index[ION_REGISTRY["H+"][0]]
+            self._iso = mx.an_index[ION_REGISTRY["SO4--"][0]]
+            self._ihs = mx.an_index[ION_REGISTRY["HSO4-"][0]]
         self.n_eval = 0
 
     def ln_a(self, n: np.ndarray, T: float) -> np.ndarray:
@@ -139,6 +152,10 @@ class LiquidModel:
         for (is_cat, idx), v in zip(self._pos, n[nn:]):
             (smc if is_cat else sma)[idx] = v / solv
         mod = self.model
+        if self._acid and smc[self._ih] > 0.0 and sma[self._iso] > 0.0:
+            # stoichiometric H+ and SO4-- -> free H+, HSO4-, SO4-- at the bisulfate equilibrium of this phase
+            r = solve_bisulfate(mod, T, xn, smc, sma, self._ih, self._ihs, self._iso)
+            smc[self._ih], sma[self._ihs], sma[self._iso] = r.m_h, r.m_hso4, r.m_so4
         x = mod._x_from_molalities(xn, smc, sma)
         lr, mr, sr = mod.lr_mr_sr(T, smc, sma, xn, x)
         out = np.empty(self.N)
@@ -535,6 +552,8 @@ class PhaseEquilibrium:
             u = x[n_liq * N:]
             # remove vanished liquids, merge identical ones
             keep = [a for a in range(n_liq) if phases[a].sum() > 1e-8]
+            if not keep:                                       # never drop the last liquid (see the "dry" status)
+                keep = [int(np.argmax([p.sum() for p in phases]))]
             merged = []
             for a in keep:
                 xa = phases[a] / phases[a].sum()
@@ -552,6 +571,10 @@ class PhaseEquilibrium:
                 phases = [x[a * N:(a + 1) * N] for a in range(n_liq)]
                 u = x[n_liq * N:]
             liquids = [LiquidPhase(p.copy(), self.lm.ln_a(p, self.T), self.names) for p in phases]
+            dry = len(phases) == 1 and float(phases[0].sum()) < 1e-6
+            if dry:                                            # everything crystallized: no liquid to test
+                tpd_min = 0.0
+                break
             # stability test of the liquid set (potentials of the largest liquid; water at ln RH)
             mu_eq = self._reference_potentials(liquids, ln_rh)
             best = (0.0, None)
@@ -596,6 +619,13 @@ class PhaseEquilibrium:
         solid_amounts = {s.key: float(v) for s, v in zip(self._solids_now, u) if v > thresh}
         F, _ = self._objective(x, len(phases), ln_rh, self._solid_cost(self._solids_now, ln_rh))
         checks = self._checks(liquids, ln_rh, si, solid_amounts, b * scale, u)
+        if dry:
+            # all non-water material is in solids; the remaining "liquid" is a numerical remnant of the barrier
+            si = self.si_of(liquids[0].ln_a, ln_rh)
+            return PhaseEquilibriumResult("dry", self.T, rh, [], solid_amounts, si, F * scale,
+                                          {"max_mass_balance_residual": checks["max_mass_balance_residual"]},
+                                          0.0, n_outer, message="no liquid phase (all solutes crystalline)",
+                                          names=self.names)
         # the status is decided by the equilibrium conditions of the final state, not by how the iteration ended
         status, msg = "converged", ""
         bad = [k for k, lim in (("max_abs_ln_aw_minus_ln_rh", 1e-5), ("max_neutral_mu_spread", 1e-4),
