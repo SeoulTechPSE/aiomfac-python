@@ -280,3 +280,19 @@ def test_organic_with_hcl_evaporation_is_in_equilibrium():
     _assert_equilibrium(r)
     assert r.gas["HCl"] > 0.99 * m                                   # practically all chloride evaporated
     assert r.checks["max_abs_gas_residual"] < 1e-4
+
+
+def test_near_complete_hcl_evaporation_converges():
+    """DLT + NaCl + H2SO4 (r = 0.75) open to 1e-9 atm HCl at RH 0.2: chloride evaporates to a trace that must still
+    satisfy the gas and ion-potential conditions (relative-step convergence test of the inner iteration)."""
+    from aiomfac_py.s2as import smiles_to_components
+    try:
+        dlt = smiles_to_components(["CCOC(=O)C(O)C(O)C(=O)OCC"], names=["DLT"]).components[1]
+    except ImportError:
+        pytest.skip("S2AS (epam.indigo) not installed")
+    pe = PhaseEquilibrium([dlt], ["Na+", "H+", "Cl-", "SO4--"], T_K=298.15)
+    m, r = 1 / 58.44, 0.75
+    feed = {"DLT": 3 / 206.19, "Na+": m, "Cl-": m, "H+": 2 * r * m, "SO4--": r * m}
+    res = pe.solve(feed, 0.2, solids="none", p_gas={"HCl": 1e-9})
+    _assert_equilibrium(res)
+    assert res.gas["HCl"] > 0.999 * m

@@ -535,7 +535,10 @@ class PhaseEquilibrium:
                 dx = Z @ d
                 dec = float(-gr @ d)
                 r0 = float(np.linalg.norm(gr))
-                if dec < 1.0e-14 + 1.0e-10 * mu * len(x):
+                # converged when the decrement is small AND the Newton step is small relative to every bounded variable
+                # (trace species have curvature ~1/n: a small decrement alone can hide a large error in their ln a)
+                rel = float(np.max(np.abs(dx[bnd]) / x[bnd])) if np.any(bnd) else 0.0
+                if dec < 1.0e-14 + 1.0e-10 * mu * len(x) and rel < 1.0e-8:
                     break
                 neg = (dx < 0) & bnd
                 amax = min(1.0, 0.995 * float(np.min(-x[neg] / dx[neg]))) if np.any(neg) else 1.0
@@ -550,7 +553,9 @@ class PhaseEquilibrium:
                             break
                     step *= 0.5
                 if not ok:
-                    if dec < 1.0e-8:
+                    # a failed line search counts as converged only when the decrement is tiny in absolute terms:
+                    # trace species have curvature ~1/n, so a moderate decrement can hide a large potential error
+                    if dec < 1.0e-14:
                         break
                     converged = False
                     break
@@ -799,6 +804,7 @@ class PhaseEquilibrium:
         n_outer = 0
         tpd_min = float("nan")
         inner_ok = True
+        history = []
         while True:
             n_outer += 1
             n_liq = len(phases)
@@ -851,20 +857,46 @@ class PhaseEquilibrium:
                 print(f"  outer {n_outer}: {n_liq} liquid(s), TPD_min={tpd_min:.3e}")
             if best[1] is None or tpd_min > -self.tol_tpd or n_liq >= max_liquids or n_outer >= max_outer:
                 break
+            # an added phase that merges back gives the same phase count and the same TPD again: stop (near-critical
+            # split of two similar liquids); the result is then reported as not converged with this TPD
+            if (n_liq, round(tpd_min, 9)) in history:
+                break
+            history.append((n_liq, round(tpd_min, 9)))
             # add the trial phase: take a small neutral amount of w out of the liquid that can supply the most
             w = best[1]
             nonw = w.copy(); nonw[0] = 0.0
+            # species that are traces in the trial composition do not limit the amount moved into the new phase
+            major = (nonw > 1e-4 * float(np.max(np.abs(nonw[~free])))) & ~free
+            major[0] = False
             cand = []
             for a, p in enumerate(phases):
-                mask = (nonw > 0) & ~free
-                mask[0] = False
-                theta = 0.5 * float(np.min(p[mask] / nonw[mask])) if np.any(mask) else 0.0
+                theta = 0.5 * float(np.min(p[major] / nonw[major])) if np.any(major) else 0.0
                 cand.append((theta, a))
             theta, a = max(cand)
-            newp = theta * w.copy()
+            donor = phases[a]
+            tr = theta * nonw
+            minor = ~major & ~free
+            minor[0] = False
+            tr[minor] = np.minimum(tr[minor], 0.5 * donor[minor])
+            q = float(np.dot(self.z, tr))                      # keep the transferred amount electroneutral
+            if abs(q) > 0.0:
+                if free.any():
+                    tr[np.argmax(free)] -= q / self.z[np.argmax(free)]
+                else:
+                    opp = [i for i in range(self.N) if major[i] and self.z[i] * q < 0]
+                    if opp:
+                        k = max(opp, key=lambda i: donor[i])
+                        tr[k] -= q / self.z[k]
+            newp = tr.copy()
             newp[0] = theta * w[0]
-            phases[a] = phases[a] - theta * nonw
-            phases.append(newp)
+            if np.all(donor[~free] - tr[~free] > 0) and np.all(newp[~free] >= 0):
+                phases[a] = donor - tr
+                phases.append(newp)
+            else:                                              # fall back to the strictly proportional transfer
+                theta = min(theta, 0.5 * float(np.min(donor[~free & (nonw > 0)] / nonw[~free & (nonw > 0)])))
+                newp = theta * w.copy()
+                phases[a] = donor - theta * nonw
+                phases.append(newp)
             x = np.concatenate(phases + [u])
 
         liquids = [LiquidPhase(p * scale, self.lm.ln_a(p, self.T), self.names) for p in phases]
@@ -907,8 +939,62 @@ class PhaseEquilibrium:
             msg += ("; " if msg else "") + f"stability test still negative (TPD={tpd_min:.2e})"
         if not inner_ok:
             msg += ("; " if msg else "") + "inner Newton iteration stopped early (line search)"
-        return PhaseEquilibriumResult(status, self.T, rh, liquids, solid_amounts, si, F * scale, checks, tpd_min,
-                                      n_outer, message=msg, names=self.names, gas=gas, p_gas=p_out)
+        result = PhaseEquilibriumResult(status, self.T, rh, liquids, solid_amounts, si, F * scale, checks, tpd_min,
+                                        n_outer, message=msg, names=self.names, gas=gas, p_gas=p_out)
+        if self._gas_mode == "open":
+            result = self._complete_evaporation(result, feed, rh, solids, p_gas, max_liquids, max_outer, verbose)
+        return result
+
+    def _complete_evaporation(self, res, feed, rh, solids, p_gas, max_liquids, max_outer, verbose):
+        """Open system: a species that has (practically) all left the particle through a gas is removed exactly.
+
+        When the amount of an ion left in all liquids is below 1e-9 of the particle's ion content and the ion belongs
+        to a gas that is releasing it, the remainder is assigned to the gas as well, the feed is reduced by the total
+        release and the problem is solved again without that ion and that gas.  The barrier would otherwise keep a
+        trace whose potentials fail the equilibrium checks.  The removed gas is then undersaturated, i.e. the particle's
+        equilibrium pressure is below the reservoir pressure (reported in ``checks``)."""
+        if not res.liquids or not res.gas:
+            return res
+        names = res.names
+        liq_tot = sum(L.amounts for L in res.liquids)
+        nn = 1 + sum(1 for n in names[1:] if n not in ION_REGISTRY)
+        ion_scale = float(np.sum(np.abs(liq_tot[nn:]))) + sum(abs(v) for v in res.gas.values())
+        for gk, g in res.gas.items():
+            if g <= 0.0:
+                continue
+            gas = GASES[gk]
+            for ion, nu in gas.ions.items():
+                if nu <= 0 or ion not in names:
+                    continue
+                left = float(liq_tot[names.index(ion)]) + sum(SOLIDS[k].ions.get(ion, 0) * v for k, v in res.solids.items())
+                if left > 1e-9 * ion_scale:
+                    continue
+                extra = left / nu
+                release = g + extra
+                new_feed = dict(feed)
+                for i2, nu2 in gas.ions.items():
+                    new_feed[i2] = new_feed.get(i2, 0.0) - nu2 * release
+                new_feed[ion] = 0.0
+                for k in list(new_feed):
+                    if abs(new_feed[k]) < 1e-14 * max(1.0, ion_scale):
+                        new_feed[k] = 0.0
+                rest = {k: v for k, v in p_gas.items() if k != gk}
+                sub = self.solve(new_feed, rh, solids=solids, p_gas=rest or None, max_liquids=max_liquids,
+                                 max_outer=max_outer, verbose=verbose)
+                # undersaturation of the removed gas in the final state (gauge-free combination of the remaining ions)
+                ok_ions = all(i2 in sub.names for i2, nu2 in gas.ions.items() if i2 != ion)
+                sub.gas = dict(sub.gas)
+                for k2, v2 in res.gas.items():
+                    if k2 != gk and k2 not in sub.gas:
+                        sub.gas[k2] = 0.0
+                sub.gas[gk] = release + sub.gas.get(gk, 0.0)
+                sub.p_gas = dict(sub.p_gas); sub.p_gas[gk] = p_gas[gk]
+                sub.checks = dict(sub.checks)
+                sub.checks[f"{gk}_fully_released"] = 1.0 if ok_ions else 0.0
+                sub.message = ((sub.message + "; ") if sub.message else "") + \
+                    f"{ion} left the particle completely as {gk} ({release:.4g} mol)"
+                return sub
+        return res
 
     def _initial_gas(self, b, vu, G, gt):
         """Initial gas amounts that leave every bounded species of the liquid strictly positive, so that species absent
