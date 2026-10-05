@@ -51,6 +51,7 @@ paper, and `tests/test_lle.py` for how the solver itself, independent of AIOMFAC
 | `src/aiomfac_py/s2as/` | SMILES -> AIOMFAC subgroups (optional `epam.indigo` dependency) — integration of the upstream S2AS tool, validated bit-for-bit against it |
 | `src/aiomfac_py/lle.py` | liquid-liquid equilibrium (`solve_pep`/`solve_pep_gfe`) — primal-dual interior-point/active-set Gibbs-energy minimization on top of `ActivityModel`, port of Amundson et al. (2006, JOTA 130); **not** part of AIOMFAC-web, not Fortran-validated (see the module docstring and `tests/test_lle.py`) |
 | `src/aiomfac_py/solids.py`, `src/aiomfac_py/sle.py` | solid–liquid equilibrium (`SLESolver`) at fixed T and RH on top of `ActivityModel` — primal-dual active-set Gibbs minimization after Amundson et al. (2006, JOTA 128, 469–498), with a 23-solid database of K_sp(T) and hydrates for atmospheric salts; neutral/alkali–alkaline-earth systems only (no H+/HSO4-, no gas phase). **Not** part of AIOMFAC-web, not Fortran-validated — see the "Solid–liquid equilibrium" section and `docs/SLE_design_ko.md` |
+| `src/aiomfac_py/phase_equilibrium.py` | combined liquid–liquid–solid equilibrium (`PhaseEquilibrium`) of water + organics + ions at fixed T and RH: one transformed-Gibbs minimization over all liquid phases (ion basis, per-phase electroneutrality, water open at a_w = RH) and all candidate solids, with an outer tangent-plane stability test that adds liquid phases; equilibrium, metastable (`solids="none"`) and drying-path modes. Non-reactive ion sets only (no H+/HSO4-/carbonate). **Not** part of AIOMFAC-web, not Fortran-validated — see the "Combined liquid–liquid–solid equilibrium" section and `tests/test_phase_equilibrium.py` |
 | `src/aiomfac_py/gp_partition.py` | gas/particle partitioning at fixed RH (`gp_partition`) — joint Levenberg-Marquardt solver (default), a pseudo-transient RH-continuation fallback (inspired by Amundson et al., 2007, C. R. Acad. Sci.), and the original successive-substitution method, all on top of `ActivityModel`; **not** part of AIOMFAC-web (see the module docstring and `tests/test_gp_partition.py`) |
 | `src/aiomfac_py/viscosity.py` | AIOMFAC-VISC (`electrolyte_viscosity`, `water_viscosity_pas`) — predictive dynamic-viscosity model for **aqueous electrolyte** solutions, port of Lilek and Zuend (2022, *Atmos. Chem. Phys.* 22, 3203–3233); built on top of `ActivityModel`'s ion molal activities/activity coefficients. Covers the 17 ions and all cation–anion pairs the paper fits. Also covers the paper's organic-inorganic mixing extension (Sect. 3): `organic_mixture_viscosity`/`pure_organic_viscosity_vtf` port the group-contribution organic-viscosity engine of Gervasi, Topping and Zuend (2020, *Atmos. Chem. Phys.* 20, 2987–3008); `aquelec_viscosity`/`aquorg_viscosity` implement two of Lilek and Zuend's three mixing rules (Sect. 3.4.1–3.4.2); and `predict_tg_derieux2018` implements the closed-form glass-transition-temperature estimate of DeRieux et al. (2018, *Atmos. Chem. Phys.* 18, 6331–6351) that the organic-viscosity model's Tg-dependent pure-component estimate relies on. Does **not** implement the ZSR mixing rule (Sect. 3.4.3, needs an iterative nonlinear solve) — see the module docstring and `tests/test_viscosity.py` |
 | `src/aiomfac_py/tgml_armeli/` | `predict_tg_ml_fg`/`predict_tg_ml_smiles` — the newer, more accurate machine-learning Tg predictor of Armeli, Peters and Koop (2023, *ACS Omega* 8, 12298–12309; optional `tgml`/`tgml-smiles` dependencies). Not a reimplementation — loads the authors' own trained `scikit-learn` model files (`data/*.pkl`, from the paper's own Zenodo deposit, see `PROVENANCE.md`) directly, with no SMILES-featurization dependency on `deepchem`/`tensorflow` (confirmed unnecessary by reading `deepchem`'s own source, see `PROVENANCE.md`). Incidentally the same "TgML_Armeli" module the Fortran reference itself only ships as a separately-licensed, optional add-on (see the `smiles-based pure-component method?` note further down). Installs normally alongside the rest of this package (no separate environment needed) — the vendored pickle files were migrated (`tools/migrate_tgml_pickles.py`) so any reasonably current `scikit-learn` can load them directly, and SMILES-mode descriptors are looked up by name so any reasonably current `rdkit` works too (see `PROVENANCE.md` and the module docstring for the full story, including one small known accuracy caveat vs. the exact RDKit version A2023 trained on) |
@@ -266,6 +267,36 @@ phase transitions are not implemented; gases other than NH3/HNO3/HCl/CO2 (and or
 0–60 °C only (Na acid solids: 298 K only); solids with data-quality flag C (NaH3(SO4)2·H2O,
 MgCl2·4H2O/2H2O, Mg(NO3)2·6H2O, CaCl2·6H2O, Ca(NO3)2·4H2O) are estimates; the dry-state test can take several
 seconds for many-ion feeds (up to ~10 s with acid speciation). Full design, data sources and roadmap: `docs/SLE_design_ko.md` (Korean).
+
+## Combined liquid–liquid–solid equilibrium
+
+`aiomfac_py.PhaseEquilibrium` computes the phase state of an organic–inorganic mixture at fixed T and RH: how many
+liquid phases form, their compositions (water, organics and individual ions), and which salts crystallize. Water is an
+open component (a_w = RH in every liquid). All liquid phases and all candidate solids are optimized together in one
+Gibbs-energy minimization (log-barrier Newton method on the linear mass-balance and electroneutrality constraints), so
+salt precipitation and the liquid–liquid split adjust to each other; an outer tangent-plane-distance test from several
+trial compositions decides whether another liquid phase is needed. Every result reports its own equilibrium checks
+(a_w − RH, potential differences between liquids, saturation indices, charge and mass balance).
+
+```python
+from aiomfac_py import Component, PhaseEquilibrium, implied_ln_s_crit
+pinic = Component(2, "pinic_acid", ((1, 2), (2, 2), (3, 2), (4, 1), (137, 2)))
+pe = PhaseEquilibrium([pinic], ["NH4+", "SO4--", "NO3-"], T_K=298.15)
+feed = {"pinic_acid": 0.006, "NH4+": 0.0146, "SO4--": 0.0059, "NO3-": 0.0028}     # mol (water is set by RH)
+print(pe.solve(feed, rh=0.6).summary())                          # equilibrium: solids allowed
+print(pe.solve(feed, rh=0.6, solids="none").summary())           # metastable: crystallization suppressed
+path = pe.drying_path(feed, [0.8, 0.6, 0.4, 0.3, 0.2],
+                      ln_s_crit={"ammonium_sulfate": implied_ln_s_crit("ammonium_sulfate", 298.15, 0.35)})
+```
+
+Verification (`tests/test_phase_equilibrium.py`): the ion-basis activities equal `ActivityModel.evaluate` and satisfy
+the Gibbs–Duhem relation; without organics the results equal `SLESolver` (water content, molalities, solids, including
+a solid + aqueous case); without solids the liquid–liquid split of pinic acid + ammonium sulfate equals the split found
+with `aiomfac_py.lle` at the same water activity and lowers the same Gibbs function. At lower RH the stability test finds
+splits that `solve_pep`'s multi-start initialization misses (for example at RH 0.30 the one-phase state has TPD < −0.7
+and the split lowers the Gibbs function by 0.6 in `AiomfacGFE` units). **Limitations:** no H+/HSO4- or carbonate
+speciation, no gas phase other than water, and no state without any liquid (use `SLESolver` for purely inorganic
+systems below their deliquescence RH).
 
 ## Validation status (what is and is not verified)
 

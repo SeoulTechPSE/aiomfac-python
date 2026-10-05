@@ -28,8 +28,11 @@ try:  # solid-liquid equilibrium (needs scipy, optional dependency "sle")
     from .solids import SOLIDS, Solid, ION_REGISTRY  # noqa: E402
     from .sle import (SLESolver, SLEResult, AqueousIons, binary_saturation, feed_from_salts,  # noqa: E402
                       implied_ln_s_crit)
+    from .phase_equilibrium import (PhaseEquilibrium, PhaseEquilibriumResult, LiquidPhase,  # noqa: E402
+                                    LiquidModel)
     _SLE_NAMES = ["SOLIDS", "Solid", "ION_REGISTRY", "SLESolver", "SLEResult", "AqueousIons", "binary_saturation",
-                  "feed_from_salts", "implied_ln_s_crit"]
+                  "feed_from_salts", "implied_ln_s_crit", "PhaseEquilibrium", "PhaseEquilibriumResult", "LiquidPhase",
+                  "LiquidModel"]
 except ImportError:  # pragma: no cover
     _SLE_NAMES = []
 
