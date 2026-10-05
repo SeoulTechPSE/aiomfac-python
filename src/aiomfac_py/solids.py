@@ -57,7 +57,7 @@ ION_REGISTRY: dict[str, tuple[int, int]] = {
     "Li+": (201, 1), "Na+": (202, 1), "K+": (203, 1), "NH4+": (204, 1), "H+": (205, 1),
     "Ca++": (221, 2), "Mg++": (223, 2),
     "F-": (241, -1), "Cl-": (242, -1), "Br-": (243, -1), "I-": (244, -1), "NO3-": (245, -1),
-    "HSO4-": (248, -1), "SO4--": (261, -2),
+    "HSO4-": (248, -1), "SO4--": (261, -2), "CO3--": (262, -2), "HCO3-": (250, -1), "OH-": (247, -1),
 }
 
 
@@ -118,11 +118,26 @@ class Solid:
     source: str = ""
     note: str = ""
     kfit: KFit | None = None          # AIOMFAC-consistent fitted K(T) (default when available)
+    n_oh: int = 0                     # hydroxide solids: OH- is carried as -H+ ("proton excess"); K is converted with Kw
+
+    @property
+    def h_eff(self) -> int:
+        """water exponent in the saturation condition: hydrate water plus the water of the OH- -> -H+ substitution"""
+        return self.h + self.n_oh
 
     def ln_k_ref(self, T: float) -> float:
         return self.kspec.ln_k(T)
 
     def ln_k(self, T: float, mode: str | None = None) -> float:
+        """ln K for the dissolution written with the solid's own ``ions`` (see ``_ln_k_core``); for hydroxides
+        (``n_oh``) OH- is replaced by -H+ using a_H a_OH = Kw a_w, so  ln K -> ln K - n_oh ln Kw(T)."""
+        val = self._ln_k_core(T, mode)
+        if self.n_oh:
+            from .carbonate import ln_kw_at_t
+            val -= self.n_oh * ln_kw_at_t(T)
+        return val
+
+    def _ln_k_core(self, T: float, mode: str | None = None) -> float:
         """ln of the molal solubility product incl. a_w^h (so that  sum nu ln a_i + h ln a_w = ln K  at saturation).
 
         ``mode``:
@@ -146,7 +161,7 @@ class Solid:
 
     def ln_k_eff(self, T: float, ln_rh: float, mode: str | None = None) -> float:
         """ln K with the hydrate water taken out at fixed water activity:  sum nu ln a_i = ln K - h ln(a_w)."""
-        return self.ln_k(T, mode) - self.h * ln_rh
+        return self.ln_k(T, mode) - self.h_eff * ln_rh
 
     @property
     def charge_balance(self) -> int:
@@ -267,6 +282,61 @@ _DB: list[Solid] = [
           source="Clegg et al. (1998) J. Phys. Chem. A 102, 2155, Table 3: ln(xK_s)=-13.02 at 298.15 K (the paper calls "
                  "this value tentative)",
           note="298.15 K only; strongly acidic solutions (> 21 mol/kg H2SO4 equivalent)"),
+    # ---- carbonates (PHREEQC pitzer.dat 298 K constants; stoichiometric ions CO3--/H+; not anchored) -------
+    Solid("natron", "Na2CO3.10H2O", {"Na+": 2, "CO3--": 1}, 10,
+          _vh(-0.825 * math.log(10.0), 65.3e3, 0.0, T_min=273.15, T_max=305.15), quality="B",
+          source="log K = -0.825 (PHREEQC pitzer.dat); dH = +65.3 kJ/mol from NBS formation enthalpies (Na2CO3.10H2O -4081, "
+                 "Na+ -240.12, CO3-- -677.14, H2O -285.83), dCp = 0",
+          note="melts/transforms near 305 K (to thermonatrite/heptahydrate, not included)"),
+    Solid("nahcolite", "NaHCO3", {"Na+": 1, "CO3--": 1, "H+": 1}, 0,
+          _vh(-10.742 * math.log(10.0), 33.5e3, 0.0, T_min=273.15, T_max=323.15), quality="B",
+          source="log K = -10.742 (PHREEQC pitzer.dat) for NaHCO3 = Na+ + CO3-- + H+; dH +33.5 kJ/mol (NBS: NaHCO3 -950.8), dCp = 0"),
+    Solid("trona", "Na3H(CO3)2.2H2O", {"Na+": 3, "CO3--": 2, "H+": 1}, 2,
+          _vh(-11.384 * math.log(10.0), 0.0, 0.0, T_min=288.15, T_max=308.15), quality="C",
+          source="log K = -11.384 (PHREEQC pitzer.dat)", note="298.15 K only (dH = 0 assumed)"),
+    Solid("kalicinite", "KHCO3", {"K+": 1, "CO3--": 1, "H+": 1}, 0,
+          _vh(-9.94 * math.log(10.0), 0.0, 0.0, T_min=288.15, T_max=308.15), quality="C",
+          source="log K = -9.94 (PHREEQC pitzer.dat, Harvie et al. 1984)", note="298.15 K only"),
+    Solid("calcite", "CaCO3", {"Ca++": 1, "CO3--": 1}, 0,
+          _ph(-237.04, -0.1077, 0, 102.25, 6.79e5), quality="A",
+          source="PHREEQC pitzer.dat analytical expression (Plummer & Busenberg 1982, Ellis 1959)"),
+    Solid("aragonite", "CaCO3", {"Ca++": 1, "CO3--": 1}, 0,
+          _ph(-171.8607, -0.077993, 2903.293, 71.595), quality="A", source="PHREEQC pitzer.dat analytical expression"),
+    Solid("magnesite", "MgCO3", {"Mg++": 1, "CO3--": 1}, 0,
+          _vh(-7.834 * math.log(10.0), -6.169e3, 0.0, T_min=273.15, T_max=323.15), quality="B",
+          source="log K -7.834, delta_h -6.169 kJ/mol (PHREEQC pitzer.dat)"),
+    Solid("nesquehonite", "MgCO3.3H2O", {"Mg++": 1, "CO3--": 1}, 3,
+          _vh(-5.167 * math.log(10.0), 0.0, 0.0, T_min=273.15, T_max=323.15), quality="C",
+          source="log K -5.167 (PHREEQC pitzer.dat)", note="298.15 K only"),
+    Solid("dolomite", "CaMg(CO3)2", {"Ca++": 1, "Mg++": 1, "CO3--": 2}, 0,
+          _vh(-17.083 * math.log(10.0), -39.48e3, 0.0, T_min=273.15, T_max=323.15), quality="C",
+          source="log K -17.083, delta_h -9.436 kcal (PHREEQC pitzer.dat)", note="ordered dolomite; kinetically hindered"),
+    Solid("gaylussite", "Na2Ca(CO3)2.5H2O", {"Na+": 2, "Ca++": 1, "CO3--": 2}, 5,
+          _vh(-9.421 * math.log(10.0), 0.0, 0.0, T_min=273.15, T_max=313.15), quality="C",
+          source="log K -9.421 (PHREEQC pitzer.dat)", note="298.15 K only"),
+    Solid("pirssonite", "Na2Ca(CO3)2.2H2O", {"Na+": 2, "Ca++": 1, "CO3--": 2}, 2,
+          _vh(-9.234 * math.log(10.0), 0.0, 0.0, T_min=273.15, T_max=313.15), quality="C",
+          source="log K -9.234 (PHREEQC pitzer.dat)", note="298.15 K only"),
+    Solid("burkeite", "Na6CO3(SO4)2", {"Na+": 6, "CO3--": 1, "SO4--": 2}, 0,
+          _vh(-0.772 * math.log(10.0), 0.0, 0.0, T_min=273.15, T_max=323.15), quality="C",
+          source="log K -0.772 (PHREEQC pitzer.dat)", note="298.15 K only"),
+    Solid("thermonatrite", "Na2CO3.H2O", {"Na+": 2, "CO3--": 1}, 1,
+          _vh(1.392, -12.1e3, 0.0, T_min=273.15, T_max=323.15), quality="C",
+          source="NBS formation Gibbs energies / enthalpies (Na2CO3.H2O -1285.3 / -1431.1 kJ/mol; Na+ -261.9 / -240.1; "
+                 "CO3-- -527.8 / -677.1; H2O -237.1 / -285.8) recalled from tables, not re-verified"),
+    Solid("sodium_carbonate", "Na2CO3", {"Na+": 2, "CO3--": 1}, 0,
+          _vh(2.913, -26.7e3, 0.0, T_min=273.15, T_max=323.15), quality="C",
+          source="NBS (Na2CO3 -1044.4 / -1130.7 kJ/mol) recalled from tables, not re-verified"),
+    Solid("sodium_hydroxide", "NaOH", {"Na+": 1, "H+": -1}, 0,
+          _vh(16.0, -44.3e3, 0.0, T_min=273.15, T_max=323.15), n_oh=1, quality="C",
+          source="NBS (NaOH -379.5 / -425.8 kJ/mol; OH- -157.2 / -230.0) recalled, not re-verified; OH- carried as -H+"),
+    Solid("portlandite", "Ca(OH)2", {"Ca++": 1, "H+": -2}, 0,
+          _vh(-5.190 * math.log(10.0), 0.0, 0.0, T_min=273.15, T_max=323.15), n_oh=2, quality="C",
+          source="log K -5.190 (PHREEQC pitzer.dat) for Ca(OH)2 = Ca++ + 2 OH-; OH- carried as -H+",
+          note="298.15 K only (real dH ~ -16 kJ/mol)"),
+    Solid("brucite", "Mg(OH)2", {"Mg++": 1, "H+": -2}, 0,
+          _vh(-10.88 * math.log(10.0), 20.29e3, 0.0, T_min=273.15, T_max=323.15), n_oh=2, quality="B",
+          source="log K -10.88, delta_h 4.85 kcal (PHREEQC pitzer.dat); OH- carried as -H+"),
     # ---- double salts (not anchored) ---------------------------------------------------------------------
     Solid("glauberite", "Na2Ca(SO4)2", {"Na+": 2, "Ca++": 1, "SO4--": 2}, 0,
           _ph(218.142, 0, -9285, -77.735), quality="B", source=_PH_REF),

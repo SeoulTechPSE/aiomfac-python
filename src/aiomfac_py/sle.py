@@ -77,6 +77,7 @@ from scipy.optimize import brentq, linprog, minimize
 
 from .io import Component
 from .dissociation import ln_k_hso4_at_t
+from .carbonate import gamma_co2_mr, ln_k1_hco3_at_t, ln_k2_hco3_at_t, ln_kw_at_t
 from .model import ActivityModel
 from .params import load_subgroup_params
 from .solids import ION_REGISTRY, SOLIDS, Solid
@@ -123,8 +124,15 @@ class AqueousIons:
         self.M_cap = M_cap
         # acid-sulfate system: H+ and SO4-- are *total* (stoichiometric) amounts; the HSO4- <-> H+ + SO4-- equilibrium is
         # solved inside every activity evaluation (see ln_gamma_aw) and HSO4- is carried by the template model only.
-        self._acid = ("H+" in self.ions) and ("SO4--" in self.ions)
-        model_ions = self.ions + (["HSO4-"] if self._acid else [])
+        self._carb = "CO3--" in self.ions
+        if self._carb and "H+" not in self.ions:
+            raise ValueError("a carbonate system needs H+ as the (sign-free) proton-excess component")
+        self._acid = ("H+" in self.ions) and ("SO4--" in self.ions) and not self._carb
+        model_ions = list(self.ions)
+        if self._acid:
+            model_ions += ["HSO4-"]
+        if self._carb:
+            model_ions += ["HCO3-", "OH-"] + (["HSO4-"] if "SO4--" in self.ions else [])
         cats = [i for i in model_ions if ION_REGISTRY[i][1] > 0]
         ans = [i for i in model_ions if ION_REGISTRY[i][1] < 0]
         if not cats or not ans:
@@ -135,7 +143,7 @@ class AqueousIons:
             zc, za = ION_REGISTRY[c][1], -ION_REGISTRY[a][1]
             g = math.gcd(zc, za)
             comps.append(Component(k, c + a, ((ION_REGISTRY[c][0], za // g), (ION_REGISTRY[a][0], zc // g))))
-        self.model = ActivityModel(comps)
+        self.model = ActivityModel(comps, assume_complete=self._carb)
         mx = self.model.mixture
         self._mx = mx
         self._ngi = mx.ngi
@@ -150,6 +158,20 @@ class AqueousIons:
             self._ihs = mx.an_index[ION_REGISTRY["HSO4-"][0]]
             self._kh = self.ions.index("H+")
             self._kso = self.ions.index("SO4--")
+        if self._carb:
+            self._ih = mx.cat_index[ION_REGISTRY["H+"][0]]
+            self._kh = self.ions.index("H+")
+            self._kc = self.ions.index("CO3--")
+            self._ico3 = mx.an_index[ION_REGISTRY["CO3--"][0]]
+            self._ihco3 = mx.an_index[ION_REGISTRY["HCO3-"][0]]
+            self._ioh = mx.an_index[ION_REGISTRY["OH-"][0]]
+            self._ks = self.ions.index("SO4--") if "SO4--" in self.ions else None
+            if self._ks is not None:
+                self._iso = mx.an_index[ION_REGISTRY["SO4--"][0]]
+                self._ihs = mx.an_index[ION_REGISTRY["HSO4-"][0]]
+            self._A_last = None
+            self._lnh_last = None
+        self.free_h_row = self._kh if self._carb else None      # H+ is a sign-free proton-excess amount in carbonate systems
         self._x_last = None
         self._xmax_last = 1.0
         self.charge = np.array([ION_REGISTRY[i][1] for i in self.ions], dtype=float)
@@ -205,6 +227,99 @@ class AqueousIons:
         self._x_last, self._xmax_last = xh, xmax
         return x, lr, mr, sr, xh
 
+    # -------------------------------------------------------------------------------------------------
+    def _gam_prime(self, mr, sr, lr, is_cat: bool, idx: int) -> float:
+        nn, nc = 1, self._nc
+        if is_cat:
+            return mr.ln_gamma_cation[idx] + sr.ln_gamma_sr[nn + idx] + lr.ln_gamma_cation[idx] - mr.tmolal
+        return mr.ln_gamma_anion[idx] + sr.ln_gamma_sr[nn + nc + idx] + lr.ln_gamma_anion[idx] - mr.tmolal
+
+    def _speciate_carb(self, m: np.ndarray, T: float, smc, sma):
+        """Carbonate (and, if SO4-- is present, bisulfate) speciation for the stoichiometric totals ``m``:
+
+        C_T = [CO2] + [HCO3-] + [CO3--]   (carried as ``CO3--``),
+        P   = [H+] - [OH-] + [HCO3-] + 2[CO2] (+ [HSO4-])   (carried as ``H+``; sign-free proton excess),
+        K1 = a_H a_HCO3/(a_CO2 a_w), K2 = a_H a_CO3/a_HCO3, Kw = a_H a_OH/a_w  (constants and conventions of
+        :mod:`aiomfac_py.carbonate`, i.e. the AIOMFAC Fortran code; gamma(CO2) from the salting-out coefficients).
+        At fixed activity-coefficient ratios the system reduces to one monotone equation in [H+]; the ratios are updated
+        by fixed-point iteration.  Returns ln a of the free species of every stoichiometric ion and ln a_w."""
+        CT, P = float(m[self._kc]), float(m[self._kh])
+        ST = float(m[self._ks]) if self._ks is not None else 0.0
+        K1, K2, Kw = math.exp(ln_k1_hco3_at_t(T)), math.exp(ln_k2_hco3_at_t(T)), math.exp(ln_kw_at_t(T))
+        K3 = math.exp(ln_k_hso4_at_t(T)) if self._ks is not None else 0.0
+        A = self._A_last if self._A_last is not None else (K1, K2, Kw, K3)
+        A1, A2, Aw, q = A
+        lnh0 = self._lnh_last
+        for it in range(60):
+            def f(lnh):
+                h = math.exp(lnh)
+                den = 1.0 + A1 / h + A1 * A2 / (h * h)
+                val = h - Aw / h + CT * (A1 / h + 2.0) / den - P
+                if ST > 0.0:
+                    val += ST * h / (h + q)
+                return val
+            lo, hi = math.log(1.0e-40), math.log(1.0e4)
+            if lnh0 is not None:
+                a, b = lnh0 - 1.0, lnh0 + 1.0
+                if f(a) < 0.0 < f(b):
+                    lo, hi = a, b
+            lnh = brentq(f, lo, hi, xtol=1.0e-14, rtol=1.0e-13)
+            h = math.exp(lnh)
+            den = 1.0 + A1 / h + A1 * A2 / (h * h)
+            co2 = CT / den
+            hco3 = co2 * A1 / h
+            co3 = co2 * A1 * A2 / (h * h)
+            oh = Aw / h
+            hso4 = ST * h / (h + q) if ST > 0.0 else 0.0
+            smc[self._ih] = h
+            sma[self._ico3], sma[self._ihco3], sma[self._ioh] = co3, hco3, oh
+            if self._ks is not None:
+                sma[self._iso], sma[self._ihs] = ST - hso4, hso4
+            x, lr, mr, sr = self._terms(smc, sma, T)
+            g = lambda c, i: self._gam_prime(mr, sr, lr, c, i)
+            lgH, lgHC, lgC, lgOH = g(True, self._ih), g(False, self._ihco3), g(False, self._ico3), g(False, self._ioh)
+            lgCO2 = gamma_co2_mr(self._mx, smc, sma)
+            lgW = mr.ln_gamma_neutral[0] + sr.ln_gamma_sr[0] + lr.ln_gamma_neutral[0]
+            xw = float(x[0])
+            nA1 = xw * math.exp(math.log(K1) - (lgH + lgHC - lgCO2 - lgW))
+            nA2 = math.exp(math.log(K2) - (lgH + lgC - lgHC))
+            nAw = xw * math.exp(math.log(Kw) - (lgH + lgOH - lgW))
+            nq = q
+            if self._ks is not None:
+                # raw (no -tmolal) gamma ratio as in _speciate: the net conversion term is a single -tmolal
+                lg_h = mr.ln_gamma_cation[self._ih] + sr.ln_gamma_sr[1 + self._ih] + lr.ln_gamma_cation[self._ih]
+                nc = self._nc
+                lg_hs = mr.ln_gamma_anion[self._ihs] + sr.ln_gamma_sr[1 + nc + self._ihs] + lr.ln_gamma_anion[self._ihs]
+                lg_so = mr.ln_gamma_anion[self._iso] + sr.ln_gamma_sr[1 + nc + self._iso] + lr.ln_gamma_anion[self._iso]
+                nq = K3 / math.exp(max(min(lg_h + lg_so - lg_hs - mr.tmolal, 50.0), -50.0))
+            err = max(abs(math.log(nA1 / A1)), abs(math.log(nA2 / A2)), abs(math.log(nAw / Aw)),
+                      abs(math.log(nq / q)) if self._ks is not None else 0.0)
+            A1, A2, Aw, q = nA1, nA2, nAw, nq
+            lnh0 = lnh
+            if err < 1.0e-11:
+                break
+        self._A_last = (A1, A2, Aw, q)
+        self._lnh_last = lnh
+        ln_a = np.empty(self.N)
+        for k, (is_cat, idx) in enumerate(self._pos):
+            ln_a[k] = self._gam_prime(mr, sr, lr, is_cat, idx) + math.log(max(
+                {self._kh: h, self._kc: co3}.get(k, (ST - hso4) if (self._ks is not None and k == self._ks) else float(m[k])),
+                1.0e-300))
+        ln_w = lgW + math.log(xw)
+        return ln_a, ln_w
+
+    def ln_a_aw(self, m: np.ndarray, T: float):
+        """ln a_i of the free species behind every stoichiometric ion, and ln a_w (``m``: total molalities; in carbonate
+        systems the H+ entry is the sign-free proton excess)."""
+        if not self._carb:
+            lng, lw = self.ln_gamma_aw(m, T)
+            return lng + np.log(m), lw
+        self.n_eval += 1
+        smc = np.zeros(self._ngi); sma = np.zeros(self._ngi)
+        for (is_cat, idx), v in zip(self._pos, m):
+            (smc if is_cat else sma)[idx] = v
+        return self._speciate_carb(m, T, smc, sma)
+
     def ln_gamma_aw(self, m: np.ndarray, T: float):
         """Effective ln gamma_i of all (stoichiometric) ions and ln a_w, for the total ion molalities ``m`` [mol/kg water].
 
@@ -214,6 +329,9 @@ class AqueousIons:
         :mod:`aiomfac_py.dissociation`) is solved first.  The chemical potential of the stoichiometric component H (or SO4)
         equals that of the free ion in equilibrium, so ln a_i of the free ion is exactly what the solid saturation
         conditions need."""
+        if self._carb:
+            ln_a, lw = self.ln_a_aw(m, T)
+            return ln_a - np.log(np.maximum(np.abs(m), 1.0e-300)), lw
         self.n_eval += 1
         smc = np.zeros(self._ngi); sma = np.zeros(self._ngi)
         for (is_cat, idx), v in zip(self._pos, m):
@@ -245,7 +363,7 @@ class AqueousIons:
 
         With ``clip=True`` an unreachable RH returns the state at the concentration cap ``M_cap`` and the extra element
         ``ln a_w - ln RH`` (> 0) as a fourth entry (used by the stability test to keep its objective continuous)."""
-        S = float(np.sum(n))
+        S = float(np.sum(np.abs(n)))
 
         def g(lnM):
             M = math.exp(lnM)
@@ -277,15 +395,14 @@ class AqueousIons:
                         return None
                     M = self.M_cap
                     m = n * (M / S)
-                    lng, ln_w = self.ln_gamma_aw(m, T)
-                    return lng + np.log(m), S / M, hi, ln_w - ln_rh
+                    ln_a_, ln_w = self.ln_a_aw(m, T)
+                    return ln_a_, S / M, hi, ln_w - ln_rh
             lnM = brentq(g, lo, hi, xtol=1.0e-13, rtol=1.0e-13)
         except (FloatingPointError, ValueError, ZeroDivisionError, OverflowError):
             return None
         M = math.exp(lnM)
         m = n * (M / S)
-        lng, _ = self.ln_gamma_aw(m, T)
-        ln_a = lng + np.log(m)
+        ln_a, _ = self.ln_a_aw(m, T)
         return ln_a, S / M, lnM
 
 
@@ -350,10 +467,14 @@ class SLESolver:
                  M_cap: float = 400.0, verbose: bool = False):
         # bisulfate is carried as its stoichiometric ions: HSO4- -> H+ + SO4-- (speciated inside AqueousIons)
         self.ions = []
+        alias = {"HSO4-": ("H+", "SO4--"), "HCO3-": ("H+", "CO3--"), "OH-": ("H+",)}
         for i in ions:
-            for j in (("H+", "SO4--") if i == "HSO4-" else (i,)):
+            for j in alias.get(i, (i,)):
                 if j not in self.ions:
                     self.ions.append(j)
+        if "CO3--" in self.ions and "H+" not in self.ions:
+            self.ions.append("H+")                # carbonate systems always carry the proton-excess component
+        self._carb = "CO3--" in self.ions
         self.M_cap = M_cap
         keys = list(solids) if solids is not None else [k for k, s in SOLIDS.items() if set(s.ions) <= set(self.ions)]
         self.solids: list[Solid] = [SOLIDS[k] for k in keys]
@@ -365,7 +486,7 @@ class SLESolver:
             for ion, nu in s.ions.items():
                 V[self.ions.index(ion), j] = nu
         self.V = V
-        self.hyd = np.array([s.h for s in self.solids], dtype=float)
+        self.hyd = np.array([s.h_eff for s in self.solids], dtype=float)
         self.z = np.array([ION_REGISTRY[i][1] for i in self.ions], dtype=float)
         self._aq: dict[tuple, AqueousIons] = {}
         self._warm: tuple | None = None
@@ -382,11 +503,18 @@ class SLESolver:
         return self._aq[key]
 
     def _vec(self, feed: dict[str, float]) -> np.ndarray:
-        if "HSO4-" in feed:                      # as-input bisulfate = H+ + SO4--  (stoichiometric ions)
+        if any(k in feed for k in ("HSO4-", "HCO3-", "OH-")):   # as-input aliases -> stoichiometric ions
             feed = dict(feed)
-            nb = feed.pop("HSO4-")
-            feed["H+"] = feed.get("H+", 0.0) + nb
-            feed["SO4--"] = feed.get("SO4--", 0.0) + nb
+            if "HSO4-" in feed:                  # bisulfate = H+ + SO4--
+                nb = feed.pop("HSO4-")
+                feed["H+"] = feed.get("H+", 0.0) + nb
+                feed["SO4--"] = feed.get("SO4--", 0.0) + nb
+            if "HCO3-" in feed:                  # bicarbonate = H+ + CO3--
+                nb = feed.pop("HCO3-")
+                feed["H+"] = feed.get("H+", 0.0) + nb
+                feed["CO3--"] = feed.get("CO3--", 0.0) + nb
+            if "OH-" in feed:                    # hydroxide = -H+ (proton excess)
+                feed["H+"] = feed.get("H+", 0.0) - feed.pop("OH-")
         for k in feed:
             if k not in self.ions:
                 raise KeyError(f"feed contains ion {k!r} that is not in the solver's ion set {self.ions}")
@@ -407,7 +535,10 @@ class SLESolver:
         if not 0.0 < rh < 1.0:
             raise ValueError("rh must be in (0, 1)")
         bfull = self._vec(feed)
-        if np.any(bfull < 0.0):
+        neg = bfull < 0.0
+        if self._carb and "H+" in self.ions:
+            neg[self.ions.index("H+")] = False         # H+ is the sign-free proton excess (OH- = -H+)
+        if np.any(neg):
             raise ValueError("feed amounts must be non-negative")
         gk = list(p_gas) if p_gas else []
         lnp = np.array([math.log(p_gas[k]) for k in gk])
@@ -436,7 +567,7 @@ class SLESolver:
         Gr = G[ion_idx]
         N, J = Vs.shape
         lnk = np.array([self.solids[j].ln_k(T, self.mode) for j in sol_idx])
-        lnKg = np.array([GASES[g].ln_k(T) for g in gk])
+        lnKg = np.array([GASES[g].ln_k(T) - GASES[g].h * math.log(rh) for g in gk])     # water activity of the gas reaction
         c = lnk                                                       # dry: hydrate water is absent, a_w^h only matters in solution
         # a dry crystalline phase has no water activity; the hydrates are therefore excluded unless RH is high enough
         # to keep them stable: solids with h > 0 enter through c_j = ln K - h ln RH (aw = RH of the surroundings)
@@ -550,13 +681,15 @@ class SLESolver:
                 G[self.ions.index(ion), k] = nu
         return G
 
-    def _solve_vec(self, bfull, T_K, rh, gk, lnp, warm, tol, max_outer, max_newton, closed=None) -> SLEResult:
+    def _solve_vec(self, bfull, T_K, rh, gk, lnp, warm, tol, max_outer, max_newton, closed=None, start=None) -> SLEResult:
         if abs(float(np.dot(self.z, bfull))) > 1.0e-8 * max(1.0, float(np.sum(np.abs(bfull)))):
             raise ValueError("feed is not electroneutral")
         G = self._gas_matrix(gk)
         present = bfull != 0.0
         for k in range(len(gk)):
             present = present | (G[:, k] != 0.0)
+        if self._carb and present[self.ions.index("CO3--")]:
+            present[self.ions.index("H+")] = True       # proton excess is always a component of a carbonate solution
         if not np.any(present):
             raise ValueError("empty feed")
         ion_idx = np.flatnonzero(present)
@@ -566,10 +699,15 @@ class SLESolver:
         V = np.hstack([self.V[np.ix_(ion_idx, sol_idx)], G[ion_idx]])
         lnk = np.array([self.solids[j].ln_k(T_K, self.mode) for j in sol_idx]
                        + [GASES[g].ln_k(T_K) + lp for g, lp in zip(gk, lnp)])
-        hyd = np.concatenate([self.hyd[sol_idx], np.zeros(len(gk))])
+        hyd = np.concatenate([self.hyd[sol_idx], np.array([float(GASES[g].h) for g in gk])])
         self._closed = None if closed is None else (closed[0] / scale, closed[1])
         self._gcols = list(range(len(sol_idx), len(sol_idx) + len(gk)))
         self._gnames = list(gk)
+        if start is not None:                        # initial point (reduced/scaled units) from a previous result
+            u0 = np.array([start.solids.get(self.solids[j].key, 0.0) / scale for j in sol_idx]
+                          + [start.gas.get(g, 0.0) / scale for g in gk])
+            S0 = [k for k in range(len(sol_idx)) if u0[k] > 1.0e-14] + list(self._gcols)
+            self._warm = ((tuple(ion_idx), tuple(sol_idx)), u0, S0)
         try:
             res = self._solve_reduced(b, V, lnk, hyd, ion_idx, sol_idx, T_K, math.log(rh), warm, tol, max_outer, max_newton)
         finally:
@@ -613,11 +751,52 @@ class SLESolver:
             return dry
         self._fast = True
         try:
-            res = self._solve_vec(bfull, T_K, rh, gk, np.zeros(K), False, tol * 1.0e-2, 80, 80, closed=(n_air, P_atm))
+            # warm start: the fixed-pressure problem at the ideal-gas pressures of the total gas amounts (reduced by
+            # factors of 10 until the open solution leaves a positive amount in the gas phase)
+            self._warm = None
+            y = np.maximum(gt0, 1.0e-12 * scale) / (n_air + gt0.sum())
+            for _ in range(12):
+                r0 = self._solve_vec(bfull, T_K, rh, gk, np.log(P_atm * y), False, 1.0e-10, 80, 80)
+                if r0.status != "failed" and all(r0.gas.get(g, 0.0) > 0.0 for g in gk):
+                    break
+                y = y * 0.1
+            else:
+                r0 = None
+            res = self._solve_vec(bfull, T_K, rh, gk, np.zeros(K), r0 is not None, tol * 1.0e-2, 80, 80,
+                                  closed=(n_air, P_atm), start=r0)
+            if res.status == "failed":
+                # reservoir >> particle (ill-conditioned gas variable): fixed-point on the gas mole fractions with
+                # fixed-pressure (open) solves; converges when the uptake is small against the gas amounts
+                fp = self._closed_fixed_point(bfull, gk, gt0, T_K, rh, n_air, P_atm, tol)
+                if fp is not None:
+                    res = fp
         finally:
             self._fast = False
         res.message = (res.message + " " if res.message else "") + "closed gas phase (ideal gas + air)"
         return res
+
+    def _closed_fixed_point(self, bfull, gk, gt0, T_K, rh, n_air, P_atm, tol):
+        """Closed-system fallback: iterate y_j = g_j/(n_air + sum g) with g_j = total_j + (open-solve gas amount_j; negative = uptake)."""
+        y = gt0 / (n_air + gt0.sum())
+        K = len(gk)
+        res = None
+        bfeed = bfull - self._gas_matrix(gk) @ gt0
+        for _ in range(200):
+            self._warm = None
+            res = self._solve_vec(bfeed, T_K, rh, gk, np.log(P_atm * np.maximum(y, 1e-300)), False, 1.0e-10, 80, 80)
+            if res.status == "failed":
+                return None
+            g = np.array([gt0[k] + res.gas.get(gk[k], 0.0) for k in range(K)])
+            if np.any(g <= 0.0):
+                return None
+            ynew = g / (n_air + g.sum())
+            if np.max(np.abs(ynew - y) / y) < max(tol, 1e-9):
+                res.gas = {gk[k]: float(g[k]) for k in range(K)}
+                res.p_gas = {gk[k]: float(P_atm * ynew[k]) for k in range(K)}
+                res.message = (res.message + " " if res.message else "") + "[closed: fixed-point on gas pressures]"
+                return res
+            y = ynew
+        return None
 
     # ------------------------------------------------------------------------------------------------
     def _solve_reduced(self, b, V, lnk, hyd, ion_idx, sol_idx, T, ln_rh, warm, tol, max_outer, max_newton) -> SLEResult:
@@ -669,8 +848,12 @@ class SLESolver:
                         msg="no equilibrium: the gas reservoir is supersaturated (solid growth is unbounded)")
         if lp.status == 0:
             u_dry = np.concatenate([np.maximum(lp.x[:Js], 0.0), lp.x[Js:]])
-            y = np.asarray(lp.eqlin.marginals, dtype=float)
-            f_min = self._tangent_plane(aq, y, T, ln_rh, q_feed=np.maximum(b, 0.0) / max(float(b.sum()), 1e-300) if b.min() >= 0 else None)
+            y = self._refine_dual(aq, b, V, c, Js, np.asarray(lp.eqlin.marginals, dtype=float), float(lp.fun), T, ln_rh)
+            if aq.free_h_row is not None:
+                qf = b / max(float(np.abs(b).sum()), 1e-300)
+            else:
+                qf = np.maximum(b, 0.0) / max(float(b.sum()), 1e-300) if b.min() >= 0 else None
+            f_min = self._tangent_plane(aq, y, T, ln_rh, q_feed=qf)
             sup = [j for j in range(Js) if u_dry[j] > 1e-12]
             if self.verbose:
                 print(f"[sle] dry LP: {[keys_r[j] for j in sup]}  TPD_min={f_min:.3e}")
@@ -696,12 +879,47 @@ class SLESolver:
 
     # ------------------------------------------------------------------------------------------------
     @staticmethod
-    def _interior(b, G, positive: bool = False):
+    def _refine_dual(aq, b, V, c, Js, y0, obj, T, ln_rh):
+        """The dual solution of the dry LP is not unique when the dry assemblage does not fix all ion potentials (e.g.
+        one solid in a 3-ion system).  Among the dual-optimal y (V_s^T y <= c_s, V_g^T y = c_g, b.y = obj) take the one
+        closest (L1) to the ion activities of the metastable aqueous solution of the feed, so the tangent-plane test is
+        not decided by an arbitrary vertex.  Falls back to ``y0``."""
+        N = V.shape[0]
+        try:
+            okb = b if aq.free_h_row is None else np.delete(b, aq.free_h_row)
+            if np.any(okb <= 0.0) or b.shape[0] != N:
+                return y0
+            r = aq.solve_water(b, T, ln_rh)
+            if r is None:
+                return y0
+            ya = r[0]
+            cost = np.concatenate([np.zeros(N), np.ones(N)])
+            A_ub = [np.hstack([V[:, :Js].T, np.zeros((Js, N))]),
+                    np.hstack([np.eye(N), -np.eye(N)]), np.hstack([-np.eye(N), -np.eye(N)])]
+            b_ub = [c[:Js], ya, -ya]
+            A_eq = [np.concatenate([b, np.zeros(N)])[None, :]]
+            b_eq = [np.atleast_1d(float(obj))]
+            if V.shape[1] > Js:
+                A_eq.append(np.hstack([V[:, Js:].T, np.zeros((V.shape[1] - Js, N))]))
+                b_eq.append(c[Js:])
+            out = linprog(cost, A_ub=np.vstack(A_ub), b_ub=np.concatenate(b_ub), A_eq=np.vstack(A_eq),
+                          b_eq=np.concatenate(b_eq), bounds=[(None, None)] * N + [(0, None)] * N, method="highs")
+            if out.status == 0:
+                return out.x[:N]
+        except Exception:
+            pass
+        return y0
+
+    # ------------------------------------------------------------------------------------------------
+    @staticmethod
+    def _interior(b, G, positive: bool = False, okrow=None):
         """Gas amounts u_g (free sign) that make every aqueous ion amount b - G u_g strictly positive."""
         K = G.shape[1]
         N = G.shape[0]
         cost = np.zeros(K + 1); cost[-1] = -1.0
         A = np.hstack([G, np.ones((N, 1))])
+        if okrow is not None:
+            A, b = A[okrow], b[okrow]
         bound = 20.0 * max(float(np.abs(b).max()), 1e-300)
         lo = 1.0e-4 * float(np.abs(b).max()) if positive else -bound
         out = linprog(cost, A_ub=A, b_ub=b, bounds=[(lo, bound)] * K + [(None, 1.0e-3 * float(np.abs(b).max()))],
@@ -728,12 +946,22 @@ class SLESolver:
                 g = math.gcd(zc, za)
                 v = np.zeros(aq.N); v[cc] = za // g; v[a] = zc // g
                 cols.append(v / v.sum())
+        fr = aq.free_h_row
+        if fr is not None:                        # carbonate system: bases (cation + OH- = cation - H+) are neutral components too
+            for cc in cats:
+                if cc != fr:
+                    v = np.zeros(aq.N); v[cc] = 1.0; v[fr] = -z[cc]
+                    cols.append(v / np.abs(v).sum())
         P = np.array(cols).T
         npair = P.shape[1]
         guess = {"lnM": None}
+        floor = np.ones(aq.N, dtype=bool)
+        if fr is not None:
+            floor[fr] = False
 
         def f_n(n):
-            n = np.maximum(n / n.sum(), 1.0e-9)
+            n = n / np.abs(n).sum()
+            n = np.where(floor, np.maximum(n, 1.0e-9), n)
             r = aq.solve_water(n, T, ln_rh, guess["lnM"], clip=True)
             if r is None:
                 return 1.0e3
@@ -756,7 +984,7 @@ class SLESolver:
             if fv < -1.0e-9 and early_negative:
                 return fv
             best = fv
-            scored.append((fv, q_feed / q_feed.sum()))
+            scored.append((fv, q_feed / np.abs(q_feed).sum()))
         cand = [np.eye(npair)[k] for k in range(npair)]
         for i in range(npair):
             for j in range(i + 1, npair):
@@ -793,10 +1021,13 @@ class SLESolver:
         N, J = V.shape
         gc = list(self._gcols)
         isgas = np.zeros(J, dtype=bool); isgas[gc] = True
+        okrow = np.ones(N, dtype=bool)                      # rows whose aqueous amount must stay positive
+        if aq.free_h_row is not None:
+            okrow[aq.free_h_row] = False                    # carbonate systems: H+ is a sign-free proton excess
         if u0 is None:
             u = np.zeros(J)
             if gc:
-                ug = self._interior(b, V[:, gc], positive=self._closed is not None)
+                ug = self._interior(b, V[:, gc], positive=self._closed is not None, okrow=okrow)
                 if ug is None:
                     return None
                 u[gc] = ug
@@ -819,7 +1050,7 @@ class SLESolver:
 
         def st_at(uu):
             n = b - V @ uu
-            if np.any(n <= 0.0):
+            if np.any(n[okrow] <= 0.0):
                 return None
             r = aq.solve_water(n, T, ln_rh, lnM[0])
             if r is not None:
@@ -865,15 +1096,18 @@ class SLESolver:
                 H = np.zeros((s, s))
                 for kk, jk in enumerate(S):
                     vk = V[:, jk]
-                    pos = vk > 0
+                    pos = (vk > 0) & okrow
                     eps = 1.0e-4 * bmax
                     if np.any(pos):
                         eps = min(eps, 0.1 * float(np.min(n_now[pos] / vk[pos])))
-                    ngv = vk < 0
+                    ngv = (vk < 0) & okrow
                     if np.any(ngv):
                         eps = min(eps, 0.1 * float(np.min(n_now[ngv] / -vk[ngv])))
                     if closed is not None and isgas[jk]:
                         eps = min(eps, 0.1 * float(u[jk]))
+                    fh = aq.free_h_row
+                    if fh is not None and vk[fh] != 0:        # keep the step small against the proton excess (pH jumps near it)
+                        eps = min(eps, 0.1 * max(abs(float(n_now[fh])), 1.0e-6 * bmax) / abs(float(vk[fh])))
                     up, um = u.copy(), u.copy()
                     up[jk] += eps; um[jk] -= eps
                     sp, sm = st_at(up), st_at(um)
@@ -889,7 +1123,7 @@ class SLESolver:
                 # step length: aqueous ions stay positive; solid amounts stay non-negative
                 Vd = V[:, S] @ delta
                 alpha = 1.0
-                m_pos = Vd > 0
+                m_pos = (Vd > 0) & okrow
                 if np.any(m_pos):
                     alpha = min(alpha, 0.9 * float(np.min(n_now[m_pos] / Vd[m_pos])))
                 if closed is not None and gc:                         # closed gas amounts stay positive
@@ -916,6 +1150,14 @@ class SLESolver:
                     if sn is not None and phi_of(un, sn) <= phi0 + 1.0e-4 * a * slope + 1.0e-13 * (1.0 + abs(phi0)):
                         ok = True
                         break
+                    if sn is not None and aq.free_h_row is not None:
+                        # carbonate speciation neglects the water consumed by CO2 + H2O <-> H+ + HCO3- and CO2(aq) in the
+                        # mole fractions, so the Gibbs-Duhem identity (and with it the merit function) holds only to ~1e-3:
+                        # accept a step that reduces the KKT residual instead
+                        Fn = si_of(un, sn)[S]
+                        if float(np.max(np.abs(Fn))) < (1.0 - 1.0e-4 * a) * float(np.max(np.abs(F))):
+                            ok = True
+                            break
                     a *= 0.5
                 if not ok:
                     return None
@@ -996,7 +1238,7 @@ class SLESolver:
                              message="RH not reachable within the concentration cap")
         ln_a, w, _ = r
         V = self.V[np.ix_(ion_idx, sol_idx)]
-        c = np.array([self.solids[j].ln_k(T_K, self.mode) - self.solids[j].h * ln_rh for j in sol_idx])
+        c = np.array([self.solids[j].ln_k(T_K, self.mode) - self.solids[j].h_eff * ln_rh for j in sol_idx])
         si = V.T @ ln_a - c
         ions_r = [self.ions[i] for i in ion_idx]
         n = bfull[ion_idx]
@@ -1085,7 +1327,7 @@ def implied_ln_s_crit(solid: str, T_K: float, rh_eff: float, mode: str | None = 
     if r is None:
         return float("nan")
     ln_a = r[0]
-    return float(np.sum(nu * ln_a) + s.h * math.log(rh_eff) - s.ln_k(T_K, mode))
+    return float(np.sum(nu * ln_a) + s.h_eff * math.log(rh_eff) - s.ln_k(T_K, mode))
 
 
 # ============================================================================================================
@@ -1103,8 +1345,8 @@ def binary_saturation(solid: str, T_K: float, mode: str | None = None, M_cap: fl
 
     def f(m_salt):
         m = nu * m_salt
-        lng, ln_w = aq.ln_gamma_aw(m, T_K)
-        return float(np.sum(nu * (lng + np.log(m))) + s.h * ln_w - ln_k), ln_w
+        ln_a_, ln_w = aq.ln_a_aw(m, T_K)
+        return float(np.sum(nu * ln_a_) + s.h_eff * ln_w - ln_k), ln_w
 
     ms = np.geomspace(1.0e-3, M_cap / float(nu.sum()), 120)
     prev = None
