@@ -66,8 +66,12 @@ JOTA-1과의 차이점: (0) 산성계는 논문의 "noncomponent" 방식 대신 
 | anhydrite | CaSO4 | 0 | A | – | – |
 | antarcticite | CaCl2·6H2O | 6 | C | 7.4 | – |
 | Ca_nitrate_4H2O | Ca(NO3)2·4H2O | 4 | C | 8.675 | 273–313 |
-| ammonium_bisulfate | NH4HSO4 | 0 | C | DRH 40 % 앵커 | – |
-| letovicite | (NH4)3H(SO4)2 | 0 | C | DRH 69.5 % 앵커 | – |
+| ammonium_bisulfate | NH4HSO4 | 0 | B | Clegg 1998 | 273–323 |
+| letovicite | (NH4)3H(SO4)2 | 0 | B | Clegg 1998 | 273–323 |
+| sodium_bisulfate_hydrate | NaHSO4·H2O | 1 | B | Clegg 1998(298 K) | – |
+| sodium_bisulfate | NaHSO4 | 0 | B | Clegg 1998(298 K) | – |
+| trisodium_hydrogen_sulfate | Na3H(SO4)2 | 0 | B | Clegg 1998(298 K) | – |
+| NaH3_SO4_2_hydrate | NaH3(SO4)2·H2O | 1 | C | Clegg 1998(잠정) | – |
 | glauberite | Na2Ca(SO4)2 | 0 | B | – | – |
 | syngenite | K2Ca(SO4)2·H2O | 1 | B | – | – |
 
@@ -76,17 +80,19 @@ JOTA-1과의 차이점: (0) 산성계는 논문의 "noncomponent" 방식 대신 
 ### 3.4 산성 황산염 고체와 HSO4⁻ 처리
 **정식화.** 수용액 성분을 화학양론 총량 H(총), SO4(총), NH4, …로 둡니다. 평형에서 총량 성분의 화학퍼텐셜은 자유 이온의 ln a와 같으므로(HSO4⁻ ⇌ H⁺+SO4²⁻), 고체 포화지수 SI_j = Σν_i ln a_i − c_j, 질량수지, KKT 조건, active-set, TPD 검사가 **형태 변화 없이** 그대로 성립합니다. 다만 `AqueousIons.ln_gamma_aw`가 총 몰랄농도에서 자유 H⁺, SO4²⁻ 몰랄농도를 먼저 구해 ln a를 돌려줍니다(유효 ln γ = ln γ_free + ln(m_free/m_total)).
 **HSO4⁻ 평형.** K₂(T)는 `dissociation.py`(Knopf et al. 2003)의 식을 그대로 사용합니다. 풀이는 γ비 Γ = γ_H γ_SO4 / γ_HSO4를 고정한 2차방정식 + 고정점 반복(2–5회 활동도 평가, 이전 해로 warm start)이고, Fortran과 검증된 `solve_bisulfate`와 상대오차 1e-7 이내로 일치합니다.
-**고체.** `ammonium_bisulfate` NH4HSO4, `letovicite` (NH4)3H(SO4)2를 NH4⁺/H⁺/SO4²⁻ 자유 이온으로의 해리로 정의했습니다.
-- K 수준: 순수 염의 298.15 K DRH에 AIOMFAC 해를 맞춤(`tools/calibrate_acid_solids.py`). NH4HSO4 DRH 40 %, letovicite 69.5 %(Tang & Munkelwitz 1994, **기억에 의존한 값, 원문 확인 필요**) → ln K = 0.543, −1.802.
-- 온도 의존성: NH4HSO4는 NBS ΔfH(−1026.96 kJ/mol, 확인 필요)로 ΔH = −14.8 kJ/mol, letovicite는 (NH4)2SO4 + NH4HSO4 ΔH의 합(−8.3 kJ/mol, ±10 추정), ΔCp = 0. 모두 품질 C.
-- 이번 단계에서 뺀 고체: NaHSO4·H2O, Na3H(SO4)2, KHSO4, H2SO4 수화물. 웹 접근으로 검증 가능한 DRH·용해도 값을 확보하지 못했기 때문입니다(DRH/ERH 2021 데이터베이스 표 열람 불가).
+**고체.** NH4HSO4, letovicite (NH4)3H(SO4)2와 Na 산성염 NaHSO4, NaHSO4·H2O, Na3H(SO4)2, NaH3(SO4)2·H2O를 자유 이온(NH4⁺, Na⁺, H⁺, SO4²⁻)으로의 해리로 정의했습니다.
+- K: Clegg et al.(1998, J. Phys. Chem. A 102:2137 Table 2; 102:2155 Table 3)의 열역학 값. ln xK는 몰분율 기준·자유 이온 기준이므로 ln K_m = ln xK + n_ions·ln(1000/18.01528)로 몰랄 환산(수화수의 a_w^h 항은 그대로). 기존 DB 값과 대조: NaCl 3.645 vs 3.606, mirabilite −2.820 vs −2.830, NH4NO3 2.50 vs 2.47 등 ±0.05–0.15 (AS 0.09 vs 0.04).
+- T 의존성: NH4HSO4 ΔH −15.17 kJ/mol, ΔCp −242.3; letovicite ΔH −5.32, ΔCp −630.4 (논문값, 273–323 K). Na 산성염은 298 K 값만 있어 ΔH=0 (품질 B, NaH3(SO4)2·H2O는 논문이 "tentative"라 C).
+- DRH 독립 점검(`tools/calibrate_acid_solids.py`): 이 K와 AIOMFAC이 내는 순수 염 DRH는 NH4HSO4 37.9 %(문헌 ~40 %), letovicite 70.1 %(69.5 %), NaHSO4·H2O 57.6 %, NaHSO4 40.9 %, Na3H(SO4)2 74.3 %. 즉 앵커링 없이도 문헌과 ~2–3 %p 이내입니다(DRH 문헌값 자체는 기억 기준).
+- Na/H/SO4계: 정상 스캔 시 thenardite+Na3H → Na3H+NaHSO4·H2O → NaHSO4·H2O → 수용액 순. **한계**: 공급물이 이중염 화학양론과 정확히 일치(예: Na 1.5 : H 0.5 : SO4 1, RH 0.7)하면 상률상 퇴화되어 Newton 풀이가 실패하고 homotopy 대체 경로가 매우 느립니다(>100 s). 인접 조성은 0–3 s. 대응(시간 제한/미소 섭동)은 로드맵.
+- 이번 단계에서 뺀 고체: KHSO4, H2SO4 수화물, 복염(NH4NO3 상전이, (NH4)2SO4·2NH4NO3 등).
 **검증.**
 - 속도: 활동도 평가당 약 2 ms, 습윤 해는 0.2–1 s, 건조 판정(TPD)은 3–9 s (속도 개선은 로드맵).
-- 순수 H2SO4 용액: a_w = 0.6에서 황산 약 38 wt%(문헌값 약 38–40 %는 기억 기준, 확인 필요), a_w = 0.3에서 약 52 wt%.
+- 순수 H2SO4 용액: a_w = 0.6에서 황산 약 38 wt%(문헌 약 38–40 %, 기억 기준), a_w = 0.3에서 약 52 wt%.
 - 상 순서(RH 30 %, 298 K): 산성도 증가에 따라 AS+LET → AHS+LET → AHS → 액체(과잉 H2SO4). RH 50 %에서는 AHS가 DRH(40 %) 위라 액체로 존재.
 - letovicite는 (모델상) 비일치 용해: 69.5 % 근처 위에서 AS가 잔류 고체로 남음.
 - 무작위 acid 공급물에 대한 전역 최적성 표본검사는 `tools/check_sle_sampling.py`.
-**주의.** 산성 고체의 K는 단일 DRH에 의존하므로, 산성 혼합계 DRH·상 경계는 AIOMFAC 자체 오차와 이 앵커 오차가 겹칩니다. 문헌 상도(Tang 1980; Clegg et al. 1998)와의 정량 비교가 필요합니다.
+**주의.** 산성 혼합계 DRH·상 경계에는 Clegg의 K가 아니라 AIOMFAC 활동도 모델 자체 오차(Clegg 모델 대비)가 들어갑니다. 문헌 상도(Tang 1980; Clegg et al. 1998)와의 정량 비교는 남아 있습니다.
 
 ### 3.5 ERH(효력상 RH)
 결정화는 동역학적이므로 열역학 ERH는 존재하지 않음. 사용자가 임계 과포화도 ln S_crit을 입력(`efflorescence_rh`), 문헌 ERH로부터 역산하는 `implied_ln_s_crit` 제공 (예: NaCl 45% → ln S ≈ 3.0).
@@ -107,7 +113,7 @@ print(r.status, r.solids, r.water_kg)
 ```
 
 ## 5. 검증 결과
-- 테스트 `tests/test_sle.py` 52개(~13 s) + `tests/test_sle_acid.py` 15개(~45 s) 통과 (전체 스위트 260 passed): DB 전기중성·K 유한성, fitted==anchored(298 K), 단일염 DRH(298 K) 문헌 ±1.6 %p, 피팅 용해도 vs 핸드북 ≤ 4 %, Na2SO4 수화물 전이(≈305.5 K 재현), NaCl–KCl 상 순서·MDRH(0.715–0.74), KKT/질량수지/a_w=RH, active-set Gibbs ≤ SLSQP, RH 스캔 단조성, ERH 일관성, 비중성 입력 거부; 산성계: HSO4⁻ 속도론 일치(1e-7), KKT·질량수지·a_w=RH, 순수 H2SO4 wt%, 상 순서.
+- 테스트 `tests/test_sle.py` 52개(~13 s) + `tests/test_sle_acid.py` 17개(~45 s) 통과 (전체 스위트 266 passed): DB 전기중성·K 유한성, fitted==anchored(298 K), 단일염 DRH(298 K) 문헌 ±1.6 %p, 피팅 용해도 vs 핸드북 ≤ 4 %, Na2SO4 수화물 전이(≈305.5 K 재현), NaCl–KCl 상 순서·MDRH(0.715–0.74), KKT/질량수지/a_w=RH, active-set Gibbs ≤ SLSQP, RH 스캔 단조성, ERH 일관성, 비중성 입력 거부; 산성계: HSO4⁻ 속도론 일치(1e-7), KKT·질량수지·a_w=RH, 순수 H2SO4 wt%, 상 순서.
 - 무작위 교차검증(SLSQP 전역 Gibbs 대조): 0/40(seed 42), 0/60(seed 7) 불일치.
 - 복분해 반응 ΔG: NBS 대비 ≈ 0.2 kJ 이내.
 - DRH(T): NH4NO3 73.7 %(273 K) → 61.2 %(298 K) → 54.0 %(313 K), NaCl 거의 평탄 — 문헌 경향과 일치.
@@ -127,7 +133,7 @@ print(r.status, r.solids, r.water_kg)
 - 단일염 RH≠DRH 퇴화는 LP+TPD로 우회(혼합 자유도 s ≤ N−2 필요).
 
 ## 7. 로드맵
-1. 산성계 확장: Na/K 산성염(NaHSO4·H2O, Na3H(SO4)2, KHSO4), H2SO4 수화물, 문헌 상도(Tang 1980, Clegg 1998)·JOTA-1 예제 정량 비교, 산성 고체 K 재보정.
+1. 산성계 확장(진행): NH4/Na 산성 고체는 Clegg 1998 K로 반영 완료. 남은 것: KHSO4, H2SO4 수화물, 복염, 문헌 상도(Tang 1980, Clegg 1998)·JOTA-1 예제 정량 비교, 이중염 화학양론 퇴화 대응.
 2. NH3/HNO3/HCl 기체상 결합 (JOTA-1 휘발성 평형).
 3. 해석적 야코비안(AIOMFAC 미분)·TPD 가속 → 속도·견고성 (산성계 건조 판정이 느림).
 4. ERH 보정: 2021 DRH/ERH 데이터베이스로 ln S_crit 체계화.

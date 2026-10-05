@@ -237,18 +237,36 @@ _DB: list[Solid] = [
                  "(Apelblat & Korin, quoted in AIOMFAC ModMRpart.f90)",
           note="dCp is an ESTIMATE"),
     # ---- acid sulfates (H+ and SO4-- are stoichiometric ions; HSO4- is speciated by the aqueous-phase model) ----
+    # ln K(molal) = ln xK(Clegg) + n_ions ln(1000/18.01528): the mole-fraction constants of the E-AIM papers refer to the
+    # dissolution into the FREE ions (NH4+, H+, SO4-- ...; HSO4- <-> H+ + SO4-- is a separate equilibrium).
     Solid("ammonium_bisulfate", "NH4HSO4", {"NH4+": 1, "H+": 1, "SO4--": 1}, 0,
-          _vh(0.0, -14.82e3, 0.0), anchor_m=None, quality="C",
-          source="K level: AIOMFAC at the 298.15 K DRH of the pure salt (40 %, Tang & Munkelwitz 1994 -- recalled, "
-                 "verify; tools/calibrate_acid_solids.py).  dH from NBS dfH NH4HSO4(s) -1026.96 (verify), NH4+ -132.51, "
-                 "SO4-- -909.27, H+ 0;  dCp set to 0",
-          note="dissolution to the FREE ions NH4+ + H+ + SO4--; incongruent/other hydrates not considered"),
+          _vh(0.6416, -15.17e3, -242.3, T_min=273.15, T_max=323.15), anchor_m=None, quality="B",
+          source="Clegg, Brimblecombe & Wexler (1998) J. Phys. Chem. A 102, 2137, Table 2: ln(xK_s)=-11.408 at 298.15 K, "
+                 "dH=-15.17 kJ/mol, dCp=-242.3 J/mol/K (free ions NH4+ + H+ + SO4--)",
+          note="K from the E-AIM thermodynamic model; AIOMFAC-consistent without any anchor (DRH check in "
+               "tools/calibrate_acid_solids.py); AIOMFAC's own gamma(T) error is not absorbed"),
     Solid("letovicite", "(NH4)3H(SO4)2", {"NH4+": 3, "H+": 1, "SO4--": 2}, 0,
-          _vh(0.0, -8.26e3, 0.0), anchor_m=None, quality="C",
-          source="K level: AIOMFAC at the 298.15 K DRH of the pure salt (69.5 %, Tang & Munkelwitz 1994 -- recalled, "
-                 "verify).  dH ESTIMATED as dH[(NH4)2SO4] + dH[NH4HSO4] (ideal double-salt formation, +/- 10 kJ/mol); "
-                 "dCp set to 0",
-          note="congruent dissolution at 298 K assumed; ln K is only as good as the single DRH value"),
+          _vh(-1.9078, -5.32e3, -630.4, T_min=273.15, T_max=323.15), anchor_m=None, quality="B",
+          source="Clegg, Brimblecombe & Wexler (1998) J. Phys. Chem. A 102, 2137, Table 2: ln(xK_s)=-26.007 at 298.15 K, "
+                 "dH=-5.32 kJ/mol, dCp=-630.4 J/mol/K (free ions)",
+          note="the large negative dCp makes the extrapolation outside ~0-50 C unreliable"),
+    Solid("sodium_bisulfate_hydrate", "NaHSO4.H2O", {"Na+": 1, "H+": 1, "SO4--": 1}, 1,
+          _vh(-0.2404, 0.0, 0.0, T_min=288.15, T_max=308.15), anchor_m=None, quality="B",
+          source="Clegg, Brimblecombe & Wexler (1998) J. Phys. Chem. A 102, 2155, Table 3: ln(xK_s)=-12.29 at 298.15 K",
+          note="298.15 K only: no enthalpy given in the paper, dH = dCp = 0 assumed (K constant)"),
+    Solid("sodium_bisulfate", "NaHSO4", {"Na+": 1, "H+": 1, "SO4--": 1}, 0,
+          _vh(1.3996, 0.0, 0.0, T_min=288.15, T_max=308.15), anchor_m=None, quality="B",
+          source="Clegg et al. (1998) J. Phys. Chem. A 102, 2155, Table 3: ln(xK_s)=-10.65 at 298.15 K",
+          note="298.15 K only (dH = dCp = 0 assumed)"),
+    Solid("trisodium_hydrogen_sulfate", "Na3H(SO4)2", {"Na+": 3, "H+": 1, "SO4--": 2}, 0,
+          _vh(-1.6708, 0.0, 0.0, T_min=288.15, T_max=308.15), anchor_m=None, quality="B",
+          source="Clegg et al. (1998) J. Phys. Chem. A 102, 2155, Table 3: ln(xK_s)=-25.77 at 298.15 K",
+          note="298.15 K only (dH = dCp = 0 assumed)"),
+    Solid("NaH3_SO4_2_hydrate", "NaH3(SO4)2.H2O", {"Na+": 1, "H+": 3, "SO4--": 2}, 1,
+          _vh(11.0792, 0.0, 0.0, T_min=288.15, T_max=308.15), anchor_m=None, quality="C",
+          source="Clegg et al. (1998) J. Phys. Chem. A 102, 2155, Table 3: ln(xK_s)=-13.02 at 298.15 K (the paper calls "
+                 "this value tentative)",
+          note="298.15 K only; strongly acidic solutions (> 21 mol/kg H2SO4 equivalent)"),
     # ---- double salts (not anchored) ---------------------------------------------------------------------
     Solid("glauberite", "Na2Ca(SO4)2", {"Na+": 2, "Ca++": 1, "SO4--": 2}, 0,
           _ph(218.142, 0, -9285, -77.735), quality="B", source=_PH_REF),
@@ -272,9 +290,6 @@ ANCHOR_OFFSETS: dict[str, float] = {
     "epsomite": -0.1763,
     "antarcticite": 9.0691,
     "Ca_nitrate_4H2O": 4.5486,
-    # acid sulfates: ln K at 298.15 K from the pure-salt DRH (tools/calibrate_acid_solids.py); van't Hoff ln_k0 = 0
-    "ammonium_bisulfate": 0.5431,
-    "letovicite": -1.8017,
 }
 
 # solids of the same electrolyte (same ions) without an own binary solubility anchor borrow the offset of a sibling:

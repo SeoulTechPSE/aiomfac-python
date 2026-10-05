@@ -2,8 +2,9 @@
 NH4HSO4 and letovicite as solids.
 
 Reference values: the bisulfate speciation is compared with the (Fortran-validated) ``dissociation.solve_bisulfate``;
-the K level of the acid solids is *anchored* to their 298.15 K deliquescence RH (Tang & Munkelwitz 1994, recalled --
-see ``tools/calibrate_acid_solids.py``), so those DRH values are consistency checks, not independent validation.
+the acid-solid K are the thermodynamic values of Clegg et al. (1998) (J. Phys. Chem. A 102:2137/2155; 2155 for Na),
+converted from mole-fraction/free-ion to molal; the DRH implied by them (``tools/calibrate_acid_solids.py``) is an
+independent check against the literature (NH4HSO4 ~40 %, letovicite ~69.5 %).
 """
 import math
 
@@ -45,7 +46,7 @@ def test_hso4_alias_in_ions_and_feed():
 @pytest.mark.parametrize("key", ["ammonium_bisulfate", "letovicite"])
 def test_acid_solid_database(key):
     s = SOLIDS[key]
-    assert s.charge_balance == 0 and math.isfinite(s.ln_k(T0)) and s.quality == "C"
+    assert s.charge_balance == 0 and math.isfinite(s.ln_k(T0)) and s.quality == "B"
 
 
 @pytest.mark.parametrize("rh", [0.45, 0.60, 0.75])
@@ -69,14 +70,33 @@ def test_acid_feed_kkt_and_balances(rh):
     assert aq.ln_gamma_aw(m, T0)[1] == pytest.approx(math.log(rh), abs=1e-7)
 
 
-def test_pure_acid_salt_deliquescence_at_anchor_rh():
+def test_pure_acid_salt_deliquescence_near_literature():
+    """Clegg-K-implied DRH (independent of any DRH data) lies within ~3 RH points of the literature values."""
     sol = SLESolver(["NH4+", "H+", "SO4--"])
     feed = feed_from_salts({"NH4HSO4": 1.0})
-    assert sol.solve(feed, T0, 0.37).status == "dry"
+    assert sol.solve(feed, T0, 0.35).status == "dry"          # implied 37.9 %, literature ~40 %
     assert sol.solve(feed, T0, 0.43).status != "dry"
     let = feed_from_salts({"(NH4)3H(SO4)2": 1.0})
-    assert sol.solve(let, T0, 0.66).solids.get("letovicite", 0.0) == pytest.approx(1.0, abs=1e-9)
-    assert sol.solve(let, T0, 0.72).solids.get("letovicite", 0.0) == pytest.approx(0.0, abs=1e-9)
+    assert sol.solve(let, T0, 0.67).solids.get("letovicite", 0.0) == pytest.approx(1.0, abs=1e-9)
+    assert sol.solve(let, T0, 0.73).solids.get("letovicite", 0.0) == pytest.approx(0.0, abs=1e-9)
+
+
+def test_clegg_mole_fraction_to_molal_conversion():
+    """ln K_m = ln xK + n_ions ln(1000/M_w) for dissolution into free ions"""
+    L = math.log(1000.0 / 18.01528)
+    assert SOLIDS["ammonium_bisulfate"].ln_k(T0) == pytest.approx(-11.408 + 3 * L, abs=1e-3)
+    assert SOLIDS["letovicite"].ln_k(T0) == pytest.approx(-26.007 + 6 * L, abs=1e-3)
+
+
+def test_sodium_acid_solids_present_and_ordered():
+    for k in ("sodium_bisulfate", "sodium_bisulfate_hydrate", "trisodium_hydrogen_sulfate", "NaH3_SO4_2_hydrate"):
+        s = SOLIDS[k]
+        assert s.charge_balance == 0 and math.isfinite(s.ln_k(T0))
+    sol = SLESolver(["Na+", "H+", "SO4--"])
+    r = sol.solve({"Na+": 1.0, "H+": 1.0, "SO4--": 1.0}, T0, 0.30)     # NaHSO4 composition, dry
+    assert r.status == "dry" and r.solids
+    r = sol.solve({"Na+": 1.0, "H+": 1.0, "SO4--": 1.0}, T0, 0.90)
+    assert r.status == "aqueous"
 
 
 def test_acid_ammonium_sulfate_mixture_phase_sequence():
