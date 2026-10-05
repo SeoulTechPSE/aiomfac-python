@@ -93,9 +93,37 @@ def fig_scan_mixed():
     fig.tight_layout(); fig.savefig(os.path.join(OUT, "sle_scan_nacl_as.png"), dpi=140)
 
 
+def fig_acid_phase_map():
+    """NH4+/H+/SO4-- system at 298.15 K: stable assemblage vs. RH and acidity (H+ per sulfate, 0 = (NH4)2SO4, 2 = H2SO4)."""
+    from matplotlib.colors import ListedColormap
+    import matplotlib.patches as mp
+    sol = SLESolver(["NH4+", "H+", "SO4--"])
+    fh = np.linspace(0.04, 1.96, 17)
+    rhs = np.linspace(0.30, 0.90, 17)
+    short = {"ammonium_sulfate": "AS", "ammonium_bisulfate": "AHS", "letovicite": "LET"}
+    labels = {}
+    code = np.zeros((len(rhs), len(fh)), dtype=int)
+    for i, rh in enumerate(rhs):
+        for j, f in enumerate(fh):
+            r = sol.solve({"SO4--": 1.0, "H+": f, "NH4+": 2.0 - f}, 298.15, rh)
+            lab = "+".join(short[k] for k in sorted(r.solids, key=lambda k: list(short).index(k)))
+            lab = ("L" if r.status != "dry" else "") + ("+" if lab and r.status != "dry" else "") + lab
+            lab = lab or "L"
+            code[i, j] = labels.setdefault(lab, len(labels))
+    cols = plt.cm.tab20(np.linspace(0, 1, 20))[:len(labels)]
+    fig, ax = plt.subplots(figsize=(6.2, 4.4))
+    ax.pcolormesh(fh, rhs * 100, code, cmap=ListedColormap(cols), vmin=-0.5, vmax=len(labels) - 0.5, shading="nearest")
+    ax.legend(handles=[mp.Patch(color=cols[v], label=k) for k, v in labels.items()], fontsize=7, loc="upper right",
+              ncol=2, title="L = aqueous", title_fontsize=7)
+    ax.set_xlabel("acidity: H$^+$ per SO$_4$  [(NH$_4$)$_2$SO$_4$ = 0, NH$_4$HSO$_4$ = 1, H$_2$SO$_4$ = 2]")
+    ax.set_ylabel("RH / %"); ax.set_title("NH$_4^+$-H$^+$-SO$_4^{2-}$-H$_2$O, 298.15 K", fontsize=9)
+    fig.tight_layout(); fig.savefig(os.path.join(OUT, "sle_acid_phase_map.png"), dpi=140)
+
+
 if __name__ == "__main__":
-    which = sys.argv[1:] or ["sol", "drh", "phase", "scan"]
+    which = sys.argv[1:] or ["sol", "drh", "phase", "scan", "acid"]
     if "sol" in which: fig_solubility()
     if "drh" in which: fig_drh_T()
     if "phase" in which: fig_phase_nacl_kcl()
     if "scan" in which: fig_scan_mixed()
+    if "acid" in which: fig_acid_phase_map()

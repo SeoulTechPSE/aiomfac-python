@@ -217,6 +217,13 @@ reduced (extent-of-dissolution) problem, with a linear-programming + tangent-pla
 dry (no aqueous phase) state and an RH-continuation fallback because AIOMFAC activities are not guaranteed
 convex. Requires `scipy` (`pip install aiomfac_py[sle]`).
 
+Acid sulfates (H+ together with SO4--) are supported for the NH4+/H+/SO4-- system (also mixed with Na+, K+, Mg++,
+Ca++): H+ and SO4-- are carried as *stoichiometric totals* and the HSO4- <-> H+ + SO4-- equilibrium (the Knopf et
+al. 2003 constant of `aiomfac_py.dissociation`) is solved inside every activity evaluation, so the solver itself is
+unchanged. NH4HSO4 and letovicite, (NH4)3H(SO4)2, are in the solid database (data quality C: their K level is
+anchored to a single recalled 298 K DRH value each, see `tools/calibrate_acid_solids.py`); feeds may use
+`"H2SO4"`, `"NH4HSO4"`, `"(NH4)3H(SO4)2"` in `feed_from_salts` or `"HSO4-"` as an ion.
+
 ```python
 from aiomfac_py import SLESolver, feed_from_salts
 sol = SLESolver(["Na+", "NH4+", "Cl-", "SO4--"])
@@ -233,14 +240,15 @@ so it absorbs AIOMFAC's γ(T) error along the saturation line), `"anchored"` (li
 `efflorescence_rh` takes a user-supplied critical supersaturation ln S (`implied_ln_s_crit` inverts it from a
 literature ERH).
 
-Verification (see `tests/test_sle.py`, 53 tests, and `notebooks/06_sle_solver.ipynb`): single-salt DRH at 298 K
+Verification (see `tests/test_sle.py`, `tests/test_sle_acid.py` and `notebooks/06_sle_solver.ipynb`): single-salt DRH at 298 K
 within ~1.6 percentage points of literature, fitted solubilities within 4 % of handbook values, the
 mirabilite/thenardite transition near 305.5 K, and 100 random mixtures agreeing with a brute-force SLSQP
-global Gibbs minimization. **Limitations:** acidic systems (H+, HSO4-), gas-phase partitioning, most double
-salts (letovicite, etc.) and NH4NO3 solid phase transitions are not implemented (`H+`/`HSO4-` raise
-`NotImplementedError`); fits are valid for roughly 0–60 °C only; solids with data-quality flag C
-(MgCl2·4H2O/2H2O, Mg(NO3)2·6H2O, CaCl2·6H2O, Ca(NO3)2·4H2O) are estimates; the dry-state test can take
-several seconds for many-ion feeds. Full design, data sources and roadmap: `docs/SLE_design_ko.md` (Korean).
+global Gibbs minimization. **Limitations:** gas-phase partitioning (NH3, HNO3, HCl), acid solids other than
+NH4HSO4/letovicite (NaHSO4 hydrates, Na3H(SO4)2, KHSO4, H2SO4 hydrates), other double salts and NH4NO3 solid
+phase transitions are not implemented; HNO3/HCl solutions are treated as non-volatile; fits are valid for roughly
+0–60 °C only (acid solids: 298 K anchor, estimated enthalpies); solids with data-quality flag C (acid solids,
+MgCl2·4H2O/2H2O, Mg(NO3)2·6H2O, CaCl2·6H2O, Ca(NO3)2·4H2O) are estimates; the dry-state test can take several
+seconds for many-ion feeds (up to ~10 s with acid speciation). Full design, data sources and roadmap: `docs/SLE_design_ko.md` (Korean).
 
 ## Validation status (what is and is not verified)
 

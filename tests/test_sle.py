@@ -177,11 +177,6 @@ def test_efflorescence_threshold_consistency():
     assert out0["rh"] == pytest.approx(binary_saturation("halite", T0)["aw"], abs=2e-3)
 
 
-def test_acidic_ions_not_supported():
-    with pytest.raises(NotImplementedError):
-        SLESolver(["H+", "NH4+", "HSO4-", "SO4--"])
-
-
 def test_feed_must_be_electroneutral():
     sol = SLESolver(["Na+", "Cl-"])
     with pytest.raises(ValueError):

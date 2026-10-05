@@ -236,6 +236,19 @@ _DB: list[Solid] = [
           source="dH from NBS dfH Ca(NO3)2.4H2O(s) -2132.3, Ca++ -542.83, NO3- -207.36; saturation 8.675 m "
                  "(Apelblat & Korin, quoted in AIOMFAC ModMRpart.f90)",
           note="dCp is an ESTIMATE"),
+    # ---- acid sulfates (H+ and SO4-- are stoichiometric ions; HSO4- is speciated by the aqueous-phase model) ----
+    Solid("ammonium_bisulfate", "NH4HSO4", {"NH4+": 1, "H+": 1, "SO4--": 1}, 0,
+          _vh(0.0, -14.82e3, 0.0), anchor_m=None, quality="C",
+          source="K level: AIOMFAC at the 298.15 K DRH of the pure salt (40 %, Tang & Munkelwitz 1994 -- recalled, "
+                 "verify; tools/calibrate_acid_solids.py).  dH from NBS dfH NH4HSO4(s) -1026.96 (verify), NH4+ -132.51, "
+                 "SO4-- -909.27, H+ 0;  dCp set to 0",
+          note="dissolution to the FREE ions NH4+ + H+ + SO4--; incongruent/other hydrates not considered"),
+    Solid("letovicite", "(NH4)3H(SO4)2", {"NH4+": 3, "H+": 1, "SO4--": 2}, 0,
+          _vh(0.0, -8.26e3, 0.0), anchor_m=None, quality="C",
+          source="K level: AIOMFAC at the 298.15 K DRH of the pure salt (69.5 %, Tang & Munkelwitz 1994 -- recalled, "
+                 "verify).  dH ESTIMATED as dH[(NH4)2SO4] + dH[NH4HSO4] (ideal double-salt formation, +/- 10 kJ/mol); "
+                 "dCp set to 0",
+          note="congruent dissolution at 298 K assumed; ln K is only as good as the single DRH value"),
     # ---- double salts (not anchored) ---------------------------------------------------------------------
     Solid("glauberite", "Na2Ca(SO4)2", {"Na+": 2, "Ca++": 1, "SO4--": 2}, 0,
           _ph(218.142, 0, -9285, -77.735), quality="B", source=_PH_REF),
@@ -259,6 +272,9 @@ ANCHOR_OFFSETS: dict[str, float] = {
     "epsomite": -0.1763,
     "antarcticite": 9.0691,
     "Ca_nitrate_4H2O": 4.5486,
+    # acid sulfates: ln K at 298.15 K from the pure-salt DRH (tools/calibrate_acid_solids.py); van't Hoff ln_k0 = 0
+    "ammonium_bisulfate": 0.5431,
+    "letovicite": -1.8017,
 }
 
 # solids of the same electrolyte (same ions) without an own binary solubility anchor borrow the offset of a sibling:

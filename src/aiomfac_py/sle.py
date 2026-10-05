@@ -43,8 +43,13 @@ constraint is violated, which is the KKT test.
 
 Differences from the paper (read before trusting the numbers)
 ----------------------------------------------------------------
-* No gas phase / noncomponent species (NH3, HNO3, HCl partitioning; H+/HSO4- speciation) in this version: the feed is
-  a closed set of ions + water at fixed RH.  Acidic systems (H+, HSO4-) are not supported yet.
+* No gas phase / noncomponent species (NH3, HNO3, HCl partitioning) in this version: the feed is a closed set of ions
+  + water at fixed RH (strong acids other than sulfuric stay in the particle).
+* Acid sulfates (H+ with SO4--): the ions H+ and SO4-- are *stoichiometric totals*; the HSO4- <-> H+ + SO4--
+  equilibrium is solved inside every activity evaluation (:class:`AqueousIons`, constant of
+  :mod:`aiomfac_py.dissociation`).  Because the chemical potential of a stoichiometric component equals that of the
+  free ion in equilibrium, the KKT conditions, active-set logic and tangent-plane test keep exactly the same form;
+  acid solids (NH4HSO4, letovicite) are ordinary entries of :mod:`aiomfac_py.solids` whose ions are NH4+/H+/SO4--.
 * The paper keeps the iterates dual feasible (starting from an arbitrary feasible lambda^0); here the iteration is
   primal feasible (n_s >= 0, n_c > 0) and the dual feasibility (SI <= 0) is the stopping test.  For starting points
   where the fully dissolved state cannot reach the target RH within the AIOMFAC concentration range, an RH-continuation
@@ -66,6 +71,7 @@ import numpy as np
 from scipy.optimize import brentq, linprog, minimize
 
 from .io import Component
+from .dissociation import ln_k_hso4_at_t
 from .model import ActivityModel
 from .params import load_subgroup_params
 from .solids import ION_REGISTRY, SOLIDS, Solid
@@ -80,6 +86,10 @@ SALT_IONS: dict[str, dict[str, int]] = {
     "Na2SO4": {"Na+": 2, "SO4--": 1}, "K2SO4": {"K+": 2, "SO4--": 1}, "(NH4)2SO4": {"NH4+": 2, "SO4--": 1},
     "MgCl2": {"Mg++": 1, "Cl-": 2}, "Mg(NO3)2": {"Mg++": 1, "NO3-": 2}, "MgSO4": {"Mg++": 1, "SO4--": 1},
     "CaCl2": {"Ca++": 1, "Cl-": 2}, "Ca(NO3)2": {"Ca++": 1, "NO3-": 2}, "CaSO4": {"Ca++": 1, "SO4--": 1},
+    # acid sulfates (H+ / SO4-- are stoichiometric totals; HSO4- is speciated in the aqueous phase)
+    "H2SO4": {"H+": 2, "SO4--": 1}, "NH4HSO4": {"NH4+": 1, "H+": 1, "SO4--": 1},
+    "(NH4)3H(SO4)2": {"NH4+": 3, "H+": 1, "SO4--": 2}, "NaHSO4": {"Na+": 1, "H+": 1, "SO4--": 1},
+    "KHSO4": {"K+": 1, "H+": 1, "SO4--": 1},
 }
 
 
@@ -100,14 +110,17 @@ class AqueousIons:
     """Aqueous electrolyte solution of a fixed ion set, evaluated with ``ActivityModel`` (ions + water only)."""
 
     def __init__(self, ions: Sequence[str], M_cap: float = 400.0):
-        bad = [i for i in ions if i in ("H+", "HSO4-")]
-        if bad:
-            raise NotImplementedError(f"acidic species {bad} (bisulfate speciation) are not supported by the SLE solver yet")
+        if "HSO4-" in ions:
+            raise ValueError("pass the stoichiometric ions H+ and SO4-- instead of HSO4- (bisulfate is speciated internally)")
         self.ions = list(ions)
         self.N = len(self.ions)
         self.M_cap = M_cap
-        cats = [i for i in self.ions if ION_REGISTRY[i][1] > 0]
-        ans = [i for i in self.ions if ION_REGISTRY[i][1] < 0]
+        # acid-sulfate system: H+ and SO4-- are *total* (stoichiometric) amounts; the HSO4- <-> H+ + SO4-- equilibrium is
+        # solved inside every activity evaluation (see ln_gamma_aw) and HSO4- is carried by the template model only.
+        self._acid = ("H+" in self.ions) and ("SO4--" in self.ions)
+        model_ions = self.ions + (["HSO4-"] if self._acid else [])
+        cats = [i for i in model_ions if ION_REGISTRY[i][1] > 0]
+        ans = [i for i in model_ions if ION_REGISTRY[i][1] < 0]
         if not cats or not ans:
             raise ValueError("need at least one cation and one anion")
         pairs = [(c, ans[0]) for c in cats] + [(cats[0], a) for a in ans[1:]]
@@ -125,20 +138,88 @@ class AqueousIons:
         for ion in self.ions:
             sid, z = ION_REGISTRY[ion]
             self._pos.append((z > 0, mx.cat_index[sid] if z > 0 else mx.an_index[sid]))
+        if self._acid:
+            self._ih = mx.cat_index[ION_REGISTRY["H+"][0]]
+            self._iso = mx.an_index[ION_REGISTRY["SO4--"][0]]
+            self._ihs = mx.an_index[ION_REGISTRY["HSO4-"][0]]
+            self._kh = self.ions.index("H+")
+            self._kso = self.ions.index("SO4--")
+        self._x_last = None
+        self._xmax_last = 1.0
         self.charge = np.array([ION_REGISTRY[i][1] for i in self.ions], dtype=float)
         self._xn = np.array([1.0])
         self.n_eval = 0
 
     # -------------------------------------------------------------------------------------------------
+    def _terms(self, smc, sma, T):
+        mod = self.model
+        x = mod._x_from_molalities(self._xn, smc, sma)
+        lr, mr, sr = mod.lr_mr_sr(T, smc, sma, self._xn, x)
+        return x, lr, mr, sr
+
+    def _speciate(self, mh: float, ms: float, smc, sma, T: float):
+        """Bisulfate equilibrium for total H+ (``mh``) and sulfate (``ms``) molalities by fixed-point iteration on the
+        activity-coefficient ratio  Gamma = g_H g_SO4 / g_HSO4  with the exact quadratic solution at fixed Gamma
+        ((mh-x)(ms-x)/x = K/Gamma).  Warm-started from the previous solution; converges in 2-5 activity evaluations.
+        Fills ``smc/sma`` with the speciated molalities and returns the final (x, lr, mr, sr) and HSO4 molality."""
+        K = math.exp(ln_k_hso4_at_t(T))
+        xmax = min(mh, ms)
+        xh = min(max(self._x_last * xmax / max(self._xmax_last, 1.0e-300), 0.0), xmax) if self._x_last is not None \
+            else 0.5 * xmax
+        xh = min(max(xh, 1.0e-12 * xmax), xmax * (1.0 - 1.0e-12))
+        nn, nc = 1, self._nc
+        lo_b, hi_b = 1.0e-12 * xmax, xmax * (1.0 - 1.0e-12)
+        x_prev = f_prev = None
+        for it in range(80):
+            smc[self._ih] = mh - xh
+            sma[self._ihs] = xh
+            sma[self._iso] = ms - xh
+            x, lr, mr, sr = self._terms(smc, sma, T)
+            lg_h = mr.ln_gamma_cation[self._ih] + sr.ln_gamma_sr[nn + self._ih] + lr.ln_gamma_cation[self._ih]
+            lg_hs = mr.ln_gamma_anion[self._ihs] + sr.ln_gamma_sr[nn + nc + self._ihs] + lr.ln_gamma_anion[self._ihs]
+            lg_so = mr.ln_gamma_anion[self._iso] + sr.ln_gamma_sr[nn + nc + self._iso] + lr.ln_gamma_anion[self._iso]
+            # the -tmolal conversion (molal <-> mole-fraction-based ln gamma) does not cancel: 1 + 1 - 1 = 1 net term
+            q = K / math.exp(max(min(lg_h + lg_so - lg_hs - mr.tmolal, 50.0), -50.0))
+            s_ = mh + ms + q
+            g = 0.5 * (s_ - math.sqrt(max(s_ * s_ - 4.0 * mh * ms, 0.0)))     # fixed-point map x -> G(x)
+            g = min(max(g, lo_b), hi_b)
+            f = g - xh
+            if abs(f) <= 1.0e-10 * xmax:
+                xh = g
+                break
+            # plain substitution first, then secant steps on f(x) = G(x) - x (the map is slowly contracting in
+            # concentrated solutions), safeguarded to stay inside the physical interval
+            if x_prev is not None and abs(f - f_prev) > 1.0e-300 and it >= 2:
+                xs = xh - f * (xh - x_prev) / (f - f_prev)
+                xn = xs if lo_b < xs < hi_b else g
+            else:
+                xn = g
+            x_prev, f_prev = xh, f
+            xh = xn
+        self._x_last, self._xmax_last = xh, xmax
+        return x, lr, mr, sr, xh
+
     def ln_gamma_aw(self, m: np.ndarray, T: float):
-        """ln gamma_i (molal) of all ions and ln a_w, for ion molalities ``m`` [mol/kg water]."""
+        """Effective ln gamma_i of all (stoichiometric) ions and ln a_w, for the total ion molalities ``m`` [mol/kg water].
+
+        "Effective" means  ln gamma_i + ln m_i = ln a_i  of the *free* species.  This only differs from the ordinary
+        activity coefficient for H+ and SO4-- in an acid-sulfate system, where ``m`` holds the total (stoichiometric)
+        molalities and the HSO4- <-> H+ + SO4-- equilibrium (Knopf et al. 2003 constant, as in
+        :mod:`aiomfac_py.dissociation`) is solved first.  The chemical potential of the stoichiometric component H (or SO4)
+        equals that of the free ion in equilibrium, so ln a_i of the free ion is exactly what the solid saturation
+        conditions need."""
         self.n_eval += 1
         smc = np.zeros(self._ngi); sma = np.zeros(self._ngi)
         for (is_cat, idx), v in zip(self._pos, m):
             (smc if is_cat else sma)[idx] = v
-        mod = self.model
-        x = mod._x_from_molalities(self._xn, smc, sma)
-        lr, mr, sr = mod.lr_mr_sr(T, smc, sma, self._xn, x)
+        corr_h = corr_so = 0.0
+        if self._acid and m[self._kh] > 0.0 and m[self._kso] > 0.0:
+            mh_t, mso_t = float(m[self._kh]), float(m[self._kso])
+            x, lr, mr, sr, xh = self._speciate(mh_t, mso_t, smc, sma, T)
+            corr_h = math.log(max(mh_t - xh, 1.0e-300) / mh_t)
+            corr_so = math.log(max(mso_t - xh, 1.0e-300) / mso_t)
+        else:
+            x, lr, mr, sr = self._terms(smc, sma, T)
         nn, nc = 1, self._nc
         ln_w = mr.ln_gamma_neutral[0] + sr.ln_gamma_sr[0] + lr.ln_gamma_neutral[0] + math.log(x[0])
         out = np.empty(self.N)
@@ -147,6 +228,9 @@ class AqueousIons:
                 out[k] = mr.ln_gamma_cation[idx] + sr.ln_gamma_sr[nn + idx] + lr.ln_gamma_cation[idx] - mr.tmolal
             else:
                 out[k] = mr.ln_gamma_anion[idx] + sr.ln_gamma_sr[nn + nc + idx] + lr.ln_gamma_anion[idx] - mr.tmolal
+        if corr_h or corr_so:
+            out[self._kh] += corr_h
+            out[self._kso] += corr_so
         return out, ln_w
 
     def solve_water(self, n: np.ndarray, T: float, ln_rh: float, lnM_guess: float | None = None,
@@ -256,10 +340,12 @@ class SLESolver:
 
     def __init__(self, ions: Sequence[str], solids: Sequence[str] | None = None, *, mode: str | None = None,
                  M_cap: float = 400.0, verbose: bool = False):
-        self.ions = list(ions)
-        bad = [i for i in self.ions if i in ("H+", "HSO4-")]
-        if bad:
-            raise NotImplementedError(f"acidic species {bad} (bisulfate speciation, acid salts) are not supported yet")
+        # bisulfate is carried as its stoichiometric ions: HSO4- -> H+ + SO4-- (speciated inside AqueousIons)
+        self.ions = []
+        for i in ions:
+            for j in (("H+", "SO4--") if i == "HSO4-" else (i,)):
+                if j not in self.ions:
+                    self.ions.append(j)
         self.M_cap = M_cap
         keys = list(solids) if solids is not None else [k for k, s in SOLIDS.items() if set(s.ions) <= set(self.ions)]
         self.solids: list[Solid] = [SOLIDS[k] for k in keys]
@@ -284,6 +370,11 @@ class SLESolver:
         return self._aq[key]
 
     def _vec(self, feed: dict[str, float]) -> np.ndarray:
+        if "HSO4-" in feed:                      # as-input bisulfate = H+ + SO4--  (stoichiometric ions)
+            feed = dict(feed)
+            nb = feed.pop("HSO4-")
+            feed["H+"] = feed.get("H+", 0.0) + nb
+            feed["SO4--"] = feed.get("SO4--", 0.0) + nb
         for k in feed:
             if k not in self.ions:
                 raise KeyError(f"feed contains ion {k!r} that is not in the solver's ion set {self.ions}")
@@ -343,6 +434,12 @@ class SLESolver:
                              {k: float(v) for k, v in zip(keys_r, si)}, act, float(np.sum(n_aq * ln_a) + c @ u), nn, no,
                              msg, aq.n_eval - ev0)
 
+        # ---- 0. no candidate solid for this feed (e.g. pure H2SO4 in water): single aqueous phase -----------------
+        if J == 0:
+            st = aq.solve_water(b, T, ln_rh)
+            if st is None:
+                return make("failed", np.zeros(0), None, [], msg="RH not reachable for the solid-free solution")
+            return make("aqueous", np.zeros(0), st, [])
         # ---- 1. dry assemblage (LP) and stability of the aqueous phase -----------------------------------------
         u_dry = None
         lp = linprog(c, A_eq=V, b_eq=b, bounds=[(0, None)] * J, method="highs")
