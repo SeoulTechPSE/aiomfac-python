@@ -161,8 +161,10 @@ def test_drying_path_crystallizes_only_after_critical_supersaturation():
 
 
 def test_rejects_unsupported_ions_and_charged_feed():
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(ValueError):                         # carbonate needs H+ as the proton excess
         PhaseEquilibrium([PINIC], ["NH4+", "CO3--"], T_K=298.15)
+    with pytest.raises(ValueError):                         # HCO3- is speciated internally, not an input
+        PhaseEquilibrium([PINIC], ["Na+", "H+", "HCO3-"], T_K=298.15)
     with pytest.raises(ValueError):
         PhaseEquilibrium([PINIC], ["H+", "HSO4-"], T_K=298.15)
     pe = PhaseEquilibrium([PINIC], ["NH4+", "SO4--"], T_K=298.15)
@@ -221,3 +223,60 @@ def test_acid_inorganic_limit_matches_sle_solver(feed, rh, status, solids):
         assert w_kg == pytest.approx(rs.water_kg, rel=1e-5)
         for ion in ions:
             assert L.amounts[L.names.index(ion)] / w_kg == pytest.approx(rs.molality[ion], rel=1e-5)
+
+
+# ---------------------------------------------------------------------------------------------------------
+# gas phase (NH3, HNO3, HCl, CO2) and carbonate system: inorganic limit equals SLESolver
+# ---------------------------------------------------------------------------------------------------------
+_GAS_IONS = ["Na+", "NH4+", "H+", "NO3-", "Cl-", "SO4--"]
+
+
+def _cmp_with_sle(rs, rp, rel=1e-5):
+    assert rp.status == "converged", rp.message
+    L = rp.liquids[0]
+    w_kg = L.amounts[0] * 0.01801528
+    assert w_kg == pytest.approx(rs.water_kg, rel=rel)
+    for ion, m in rs.molality.items():
+        if m > 1e-12:
+            assert L.amounts[L.names.index(ion)] / w_kg == pytest.approx(m, rel=rel)
+    for g, v in rs.gas.items():
+        assert rp.gas[g] == pytest.approx(v, rel=rel)
+        assert rp.p_gas[g] == pytest.approx(rs.p_gas[g], rel=rel)
+
+
+def test_open_gas_exchange_matches_sle_solver():
+    p = {"NH3": 1.0e-9, "HNO3": 1.0e-9}
+    rs = SLESolver(_GAS_IONS).solve({"NH4+": 2.0, "SO4--": 1.0}, 298.15, 0.8, p_gas=p)
+    rp = PhaseEquilibrium([], _GAS_IONS, T_K=298.15).solve({"NH4+": 2.0, "SO4--": 1.0}, 0.8, p_gas=p)
+    _cmp_with_sle(rs, rp)
+
+
+@pytest.mark.parametrize("feed,gt", [
+    ({"NH4+": 2e-6, "SO4--": 1e-6}, {"HNO3": 2e-6, "NH3": 3e-6}),
+    ({"Na+": 1e-5, "Cl-": 1e-5}, {"HNO3": 2e-5, "HCl": 0.0}),          # chloride depletion: HCl evaporates
+])
+def test_closed_gas_phase_matches_sle_solver(feed, gt):
+    rs = SLESolver(_GAS_IONS).solve_closed(feed, gt, 298.15, 0.8, n_air=41.0)
+    rp = PhaseEquilibrium([], _GAS_IONS, T_K=298.15).solve(feed, 0.8, gas_total=gt, n_air=41.0)
+    _cmp_with_sle(rs, rp)
+
+
+def test_carbonate_with_co2_matches_sle_solver():
+    ions = ["Na+", "Cl-", "CO3--", "H+"]
+    feed = {"Na+": 1.1e-5, "Cl-": 1e-5, "H+": -1e-6}                  # negative proton excess (base)
+    sle, pe = SLESolver(ions), PhaseEquilibrium([], ions, T_K=298.15)
+    _cmp_with_sle(sle.solve(feed, 298.15, 0.8, p_gas={"CO2": 4.2e-4}), pe.solve(feed, 0.8, p_gas={"CO2": 4.2e-4}))
+    n_air, y = 41.0, 4.2e-4
+    gtc = {"CO2": y * n_air / (1 - y)}
+    _cmp_with_sle(sle.solve_closed(feed, gtc, 298.15, 0.8, n_air=n_air), pe.solve(feed, 0.8, gas_total=gtc, n_air=n_air))
+
+
+def test_organic_with_hcl_evaporation_is_in_equilibrium():
+    """Pinic acid + NaCl + H2SO4 open to 1e-9 atm of HCl: practically all chloride leaves the particle."""
+    pe = PhaseEquilibrium([PINIC], ["Na+", "H+", "Cl-", "SO4--"], T_K=298.15)
+    m = 1.0 / 58.44
+    feed = {"pinic_acid": 3.0 / 184.19, "Na+": m, "Cl-": m, "H+": 2 * m, "SO4--": m}
+    r = pe.solve(feed, 0.8, solids="none", p_gas={"HCl": 1e-9})
+    _assert_equilibrium(r)
+    assert r.gas["HCl"] > 0.99 * m                                   # practically all chloride evaporated
+    assert r.checks["max_abs_gas_residual"] < 1e-4

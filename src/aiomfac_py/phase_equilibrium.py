@@ -76,12 +76,14 @@ import numpy as np
 from scipy.linalg import null_space
 
 from .io import Component
-from .dissociation import solve_bisulfate
+from .carbonate import gamma_co2_mr, ln_k1_hco3_at_t, ln_k2_hco3_at_t, ln_kw_at_t
+from .dissociation import ln_k_hso4_at_t, solve_bisulfate
+from .gases import GASES
 from .model import ActivityModel
 from .solids import ION_REGISTRY, SOLIDS, Solid
 
 WATER = Component(1, "Water", ((16, 1),))
-_UNSUPPORTED_IONS = ("HSO4-", "CO3--", "HCO3-", "OH-")
+_UNSUPPORTED_IONS = ("HSO4-", "HCO3-", "OH-")
 
 
 # ============================================================================================================
@@ -96,7 +98,10 @@ class LiquidModel:
             raise ValueError("pass the stoichiometric ions H+ and SO4-- instead of HSO4- (bisulfate is speciated internally)")
         bad = [i for i in ions if i in _UNSUPPORTED_IONS]
         if bad:
-            raise NotImplementedError(f"ions {bad} (carbonate system) are not supported in this version")
+            raise ValueError(f"pass the stoichiometric ions H+ and CO3-- (total carbonate) instead of {bad}; "
+                             "the carbonate species are speciated internally")
+        if "CO3--" in ions and "H+" not in ions:
+            raise ValueError("a carbonate system needs H+ as the (sign-free) proton-excess component")
         for i in ions:
             if i not in ION_REGISTRY:
                 raise KeyError(f"unknown ion {i!r}")
@@ -110,8 +115,13 @@ class LiquidModel:
         self.z = np.array([0.0] * self.n_neutral + [float(ION_REGISTRY[i][1]) for i in self.ions])
 
         comps = [WATER] + [Component(k + 2, c.name, tuple(c.subgroups)) for k, c in enumerate(self.organics)]
-        self._acid = "H+" in self.ions and "SO4--" in self.ions
-        model_ions = list(self.ions) + (["HSO4-"] if self._acid else [])
+        self._carb = "CO3--" in self.ions
+        self._acid = "H+" in self.ions and "SO4--" in self.ions and not self._carb
+        model_ions = list(self.ions)
+        if self._acid:
+            model_ions += ["HSO4-"]
+        if self._carb:
+            model_ions += ["HCO3-", "OH-"] + (["HSO4-"] if "SO4--" in self.ions else [])
         cats = [i for i in model_ions if ION_REGISTRY[i][1] > 0]
         ans = [i for i in model_ions if ION_REGISTRY[i][1] < 0]
         if bool(cats) != bool(ans):
@@ -137,6 +147,22 @@ class LiquidModel:
             self._ih = mx.cat_index[ION_REGISTRY["H+"][0]]
             self._iso = mx.an_index[ION_REGISTRY["SO4--"][0]]
             self._ihs = mx.an_index[ION_REGISTRY["HSO4-"][0]]
+        # species whose amount may take either sign (barrier-free): the proton excess of a carbonate system
+        self.free = np.zeros(self.N, dtype=bool)
+        if self._carb:
+            self._ih = mx.cat_index[ION_REGISTRY["H+"][0]]
+            self._ico3 = mx.an_index[ION_REGISTRY["CO3--"][0]]
+            self._ihco3 = mx.an_index[ION_REGISTRY["HCO3-"][0]]
+            self._ioh = mx.an_index[ION_REGISTRY["OH-"][0]]
+            self._has_so4 = "SO4--" in self.ions
+            if self._has_so4:
+                self._iso = mx.an_index[ION_REGISTRY["SO4--"][0]]
+                self._ihs = mx.an_index[ION_REGISTRY["HSO4-"][0]]
+            self._kh = self.n_neutral + self.ions.index("H+")
+            self._kc = self.n_neutral + self.ions.index("CO3--")
+            self._ks = self.n_neutral + self.ions.index("SO4--") if self._has_so4 else None
+            self.free[self._kh] = True
+            self._carb_cache = None
         self.n_eval = 0
 
     def ln_a(self, n: np.ndarray, T: float) -> np.ndarray:
@@ -152,6 +178,8 @@ class LiquidModel:
         for (is_cat, idx), v in zip(self._pos, n[nn:]):
             (smc if is_cat else sma)[idx] = v / solv
         mod = self.model
+        if self._carb:
+            return self._ln_a_carb(n, T, xn, smc, sma, solv)
         if self._acid and smc[self._ih] > 0.0 and sma[self._iso] > 0.0:
             # stoichiometric H+ and SO4-- -> free H+, HSO4-, SO4-- at the bisulfate equilibrium of this phase
             r = solve_bisulfate(mod, T, xn, smc, sma, self._ih, self._ihs, self._iso)
@@ -170,12 +198,110 @@ class LiquidModel:
                 out[nn + k] = lg + math.log(sma[idx])
         return out
 
+    def _gp(self, mr, sr, lr, is_cat: bool, idx: int) -> float:
+        nn, nc = self.n_neutral, self._nc
+        if is_cat:
+            return mr.ln_gamma_cation[idx] + sr.ln_gamma_sr[nn + idx] + lr.ln_gamma_cation[idx] - mr.tmolal
+        return mr.ln_gamma_anion[idx] + sr.ln_gamma_sr[nn + nc + idx] + lr.ln_gamma_anion[idx] - mr.tmolal
+
+    def _ln_a_carb(self, n, T, xn, smc, sma, solv):
+        """Carbonate (and bisulfate) speciation of one liquid, generalizing :meth:`aiomfac_py.sle.AqueousIons.
+        _speciate_carb` to phases that contain organics.  Stoichiometric components: C_T = CO2 + HCO3- + CO3--
+        (carried as ``CO3--``) and the sign-free proton excess P = H+ - OH- + HCO3- + 2 CO2 (+ HSO4-) (carried as
+        ``H+``); K1 = a_H a_HCO3/(a_CO2 a_w), K2 = a_H a_CO3/a_HCO3, Kw = a_H a_OH/a_w with the constants of
+        :mod:`aiomfac_py.carbonate`; gamma(CO2) from the salting-out coefficients.  The potential of each
+        stoichiometric component equals that of its free species (H+, CO3--, SO4--) at the speciation equilibrium."""
+        mod, nn = self.model, self.n_neutral
+        P, CT = n[self._kh] / solv, n[self._kc] / solv
+        ST = n[self._ks] / solv if self._ks is not None else 0.0
+        K1, K2, Kw = math.exp(ln_k1_hco3_at_t(T)), math.exp(ln_k2_hco3_at_t(T)), math.exp(ln_kw_at_t(T))
+        K3 = math.exp(ln_k_hso4_at_t(T)) if ST > 0.0 else 0.0
+        cache = self._carb_cache
+        if cache is not None and not all(math.isfinite(v) and v > 0 for v in cache[0][:3]):
+            cache = None                                         # never warm-start from a failed evaluation
+        A1, A2, Aw, q = (K1, K2, Kw, K3) if cache is None else cache[0]
+        if ST > 0.0 and not (math.isfinite(q) and q > 0):
+            q = K3
+        lnh0 = None if cache is None else cache[1]
+        from scipy.optimize import brentq
+        for _ in range(60):
+            def f(lnh):
+                h = math.exp(lnh)
+                den = 1.0 + A1 / h + A1 * A2 / (h * h)
+                val = h - Aw / h + CT * (A1 / h + 2.0) / den - P
+                if ST > 0.0:
+                    val += ST * h / (h + q)
+                return val
+            lo, hi = math.log(1.0e-40), math.log(1.0e4)
+            if lnh0 is not None and f(lnh0 - 1.0) < 0.0 < f(lnh0 + 1.0):
+                lo, hi = lnh0 - 1.0, lnh0 + 1.0
+            else:                                   # f rises monotonically in ln h: widen until it brackets the root
+                while f(hi) <= 0.0 and hi < math.log(1.0e30):
+                    hi += math.log(100.0)
+                while f(lo) >= 0.0 and lo > math.log(1.0e-290):
+                    lo = max(lo - math.log(1.0e10), math.log(1.0e-300))
+            lnh = brentq(f, lo, hi, xtol=1.0e-14, rtol=1.0e-13)
+            h = math.exp(lnh)
+            den = 1.0 + A1 / h + A1 * A2 / (h * h)
+            co2 = CT / den
+            hco3 = co2 * A1 / h
+            co3 = co2 * A1 * A2 / (h * h)
+            oh = Aw / h
+            hso4 = ST * h / (h + q) if ST > 0.0 else 0.0
+            smc[self._ih] = h
+            sma[self._ico3], sma[self._ihco3], sma[self._ioh] = co3, hco3, oh
+            if self._ks is not None:
+                sma[self._iso], sma[self._ihs] = ST - hso4, hso4
+            x = mod._x_from_molalities(xn, smc, sma)
+            lr, mr, sr = mod.lr_mr_sr(T, smc, sma, xn, x)
+            lgH, lgHC = self._gp(mr, sr, lr, True, self._ih), self._gp(mr, sr, lr, False, self._ihco3)
+            lgC, lgOH = self._gp(mr, sr, lr, False, self._ico3), self._gp(mr, sr, lr, False, self._ioh)
+            lgCO2 = gamma_co2_mr(self._mx, smc, sma)
+            lgW = mr.ln_gamma_neutral[0] + sr.ln_gamma_sr[0] + lr.ln_gamma_neutral[0]
+            xw = float(x[0])
+            clip = lambda v: min(max(v, -700.0), 700.0)          # keep the fixed-point ratios finite
+            nA1 = math.exp(clip(math.log(xw) + math.log(K1) - (lgH + lgHC - lgCO2 - lgW)))
+            nA2 = math.exp(clip(math.log(K2) - (lgH + lgC - lgHC)))
+            nAw = math.exp(clip(math.log(xw) + math.log(Kw) - (lgH + lgOH - lgW)))
+            nq = q
+            if ST > 0.0:
+                nc = self._nc
+                lg_h = mr.ln_gamma_cation[self._ih] + sr.ln_gamma_sr[nn + self._ih] + lr.ln_gamma_cation[self._ih]
+                lg_hs = mr.ln_gamma_anion[self._ihs] + sr.ln_gamma_sr[nn + nc + self._ihs] + lr.ln_gamma_anion[self._ihs]
+                lg_so = mr.ln_gamma_anion[self._iso] + sr.ln_gamma_sr[nn + nc + self._iso] + lr.ln_gamma_anion[self._iso]
+                nq = K3 / math.exp(max(min(lg_h + lg_so - lg_hs - mr.tmolal, 50.0), -50.0))
+            err = max(abs(math.log(nA1 / A1)), abs(math.log(nA2 / A2)), abs(math.log(nAw / Aw)),
+                      abs(math.log(nq / q)) if ST > 0.0 else 0.0)
+            A1, A2, Aw, q = nA1, nA2, nAw, nq
+            lnh0 = lnh
+            if err < 1.0e-11:
+                break
+        if all(math.isfinite(v) and v > 0 for v in (A1, A2, Aw)) and math.isfinite(lnh):
+            self._carb_cache = ((A1, A2, Aw, q), lnh)
+        out = np.empty(self.N)
+        out[:nn] = lr.ln_gamma_neutral[:nn] + mr.ln_gamma_neutral[:nn] + sr.ln_gamma_sr[:nn] + np.log(x[:nn])
+        for k, (is_cat, idx) in enumerate(self._pos):
+            i = nn + k
+            if i == self._kh:
+                m = h
+            elif i == self._kc:
+                m = co3
+            elif self._ks is not None and i == self._ks:
+                m = ST - hso4
+            else:
+                m = (smc if is_cat else sma)[idx]
+            out[i] = self._gp(mr, sr, lr, is_cat, idx) + math.log(max(m, 1.0e-300))
+        return out
+
     def hessian(self, n: np.ndarray, T: float, rel: float = 1.0e-5) -> np.ndarray:
         """d ln a_i / d n_j by central differences, symmetrized."""
         n = np.asarray(n, dtype=float)
         H = np.empty((self.N, self.N))
+        floor = 1.0e-10 * float(np.sum(np.abs(n)))
         for j in range(self.N):
-            h = rel * n[j]
+            # bounded species: a step proportional to the amount keeps the perturbed state positive; only the
+            # sign-free proton excess (carbonate) needs an absolute floor
+            h = rel * max(abs(n[j]), floor) if self.free[j] else rel * abs(n[j])
             p = n.copy(); p[j] += h
             m = n.copy(); m[j] -= h
             H[:, j] = (self.ln_a(p, T) - self.ln_a(m, T)) / (2.0 * h)
@@ -222,6 +348,8 @@ class PhaseEquilibriumResult:
     n_outer: int = 0
     message: str = ""
     names: list = field(default_factory=list)
+    gas: dict = field(default_factory=dict)     # mol in the gas phase (closed) or net mol released, < 0 = uptake (open)
+    p_gas: dict = field(default_factory=dict)   # partial pressures [atm]
 
     @property
     def n_liquids(self) -> int:
@@ -230,6 +358,9 @@ class PhaseEquilibriumResult:
     def summary(self) -> str:
         lines = [f"{self.status}: T={self.T_K} K, RH={self.rh:.4f}, {self.n_liquids} liquid phase(s), "
                  f"solids={ {k: round(v, 8) for k, v in self.solids.items()} }"]
+        if self.gas:
+            lines.append(f"  gas: { {k: float(f'{v:.4g}') for k, v in self.gas.items()} } mol, "
+                         f"p = { {k: float(f'{v:.4g}') for k, v in self.p_gas.items()} } atm")
         for k, L in enumerate(self.liquids):
             xs = ", ".join(f"{n}={v:.4g}" for n, v in zip(L.names, L.mole_fractions))
             lines.append(f"  liquid {k}: n_tot={L.total:.6g} mol, a_w={L.water_activity:.5f}; x: {xs}")
@@ -254,12 +385,16 @@ class PhaseEquilibrium:
     def __init__(self, organics: Sequence[Component], ions: Sequence[str], T_K: float, *,
                  k_mode: str | None = None, solid_keys: Sequence[str] | None = None):
         self.lm = LiquidModel(organics, ions)
+        self._organics, self._ions, self._solid_keys = list(organics), list(ions), solid_keys
+        self._children: dict = {}
         self.T = float(T_K)
         self.names = self.lm.names
         self.N = self.lm.N
         self.z = self.lm.z
         if solid_keys is None:
-            cand = [s for s in SOLIDS.values() if set(s.ions) <= set(ions) and not getattr(s, "n_oh", 0)
+            # hydroxide solids carry OH- as -H+ and are meaningful only when H+ is the proton excess (carbonate system)
+            cand = [s for s in SOLIDS.values() if set(s.ions) <= set(ions)
+                    and (not getattr(s, "n_oh", 0) or self.lm._carb)
                     and not any(i in _UNSUPPORTED_IONS for i in s.ions)]
         else:
             cand = [SOLIDS[k] for k in solid_keys]
@@ -270,45 +405,67 @@ class PhaseEquilibrium:
 
     # ---------------------------------------------------------------------------------------------------
     def _solid_columns(self, solids: list[Solid]) -> np.ndarray:
-        V = np.zeros((self.N, len(solids)))
-        for j, s in enumerate(solids):
-            for ion, nu in s.ions.items():
-                V[self.names.index(ion), j] = nu
-        return V
+        return self._columns(solids)
 
     def _solid_cost(self, solids: list[Solid], ln_rh: float) -> np.ndarray:
-        return np.array([self._lnk[s.key] - s.h * ln_rh for s in solids])
+        return np.array([self._lnk[s.key] - s.h_eff * ln_rh for s in solids])
 
     def si_of(self, ln_a: np.ndarray, ln_rh: float, solids: list[Solid] | None = None) -> dict:
         """Saturation index of each solid for the activities of one liquid (gauge-free: solids are neutral)."""
         solids = self.all_solids if solids is None else solids
         out = {}
         for s in solids:
-            v = sum(nu * ln_a[self.names.index(ion)] for ion, nu in s.ions.items()) + s.h * ln_rh - self._lnk[s.key]
+            v = sum(nu * ln_a[self.names.index(ion)] for ion, nu in s.ions.items()) + s.h_eff * ln_rh - self._lnk[s.key]
             out[s.key] = float(v)
         return out
 
     # ---------------------------------------------------------------------------------------------------
     # Inner problem: barrier Newton on the affine set
     # ---------------------------------------------------------------------------------------------------
-    def _build_A(self, n_liq: int, V: np.ndarray):
-        N, S = self.N, V.shape[1]
+    def _columns(self, items) -> np.ndarray:
+        """Ion columns of solids or gases: entry nu_i = amount of species i removed from the liquids per mole."""
+        V = np.zeros((self.N, len(items)))
+        for j, s in enumerate(items):
+            for ion, nu in s.ions.items():
+                V[self.names.index(ion), j] = nu
+        return V
+
+    def _build_A(self, n_liq: int):
+        N = self.N
+        W = self._W                                              # solid + gas columns
+        nx = n_liq * N + W.shape[1]
         rows = []
         for i in range(1, N):                                     # mass balance of non-water species
-            r = np.zeros(n_liq * N + S)
+            r = np.zeros(nx)
             for a in range(n_liq):
                 r[a * N + i] = 1.0
-            r[n_liq * N:] = V[i]
+            r[n_liq * N:] = W[i]
             rows.append(r)
         if np.any(self.z != 0):
             for a in range(n_liq):                                # electroneutrality of each liquid
-                r = np.zeros(n_liq * N + S)
+                r = np.zeros(nx)
                 r[a * N:(a + 1) * N] = self.z
                 rows.append(r)
         return np.array(rows)
 
-    def _objective(self, x, n_liq, ln_rh, cost):
-        N = self.N
+    def _free_mask(self, n_liq: int) -> np.ndarray:
+        S, K = len(self._solids_now), len(self._gases_now)
+        liq = np.tile(self.lm.free, n_liq)
+        return np.concatenate([liq, np.zeros(S, dtype=bool), np.full(K, self._gas_mode == "open", dtype=bool)])
+
+    def _gas_terms(self, g):
+        """Objective, gradient and Hessian of the gas block (closed: ideal-gas mixing with n_air of inert air)."""
+        cg = self._gas_cost
+        if self._gas_mode != "closed" or len(g) == 0:
+            return float(np.dot(g, cg)), cg.copy(), np.zeros((len(g), len(g)))
+        ntot = self._n_air + float(np.sum(g))
+        ln_y = np.log(g / ntot)
+        F = float(np.dot(g, cg + ln_y)) + self._n_air * math.log(self._n_air / ntot)
+        H = np.diag(1.0 / g) - 1.0 / ntot
+        return F, cg + ln_y, H
+
+    def _objective(self, x, n_liq, ln_rh):
+        N, S = self.N, len(self._solids_now)
         F = 0.0
         lna = []
         for a in range(n_liq):
@@ -316,57 +473,79 @@ class PhaseEquilibrium:
             la = self.lm.ln_a(n, self.T)
             lna.append(la)
             F += float(np.dot(n, la)) - n[0] * ln_rh
-        u = x[n_liq * N:]
-        F += float(np.dot(u, cost))
-        return F, lna
+        u = x[n_liq * N:n_liq * N + S]
+        g = x[n_liq * N + S:]
+        F += float(np.dot(u, self._solid_cost_now))
+        Fg, gg, Hg = self._gas_terms(g)
+        return F + Fg, lna, gg, Hg
 
-    def _grad(self, lna, n_liq, ln_rh, cost):
+    def _grad(self, lna, ln_rh, gg):
         g = []
         for la in lna:
-            gg = la.copy(); gg[0] -= ln_rh
-            g.append(gg)
-        g.append(cost)
+            v = la.copy(); v[0] -= ln_rh
+            g.append(v)
+        g.append(self._solid_cost_now)
+        g.append(gg)
         return np.concatenate(g)
 
-    def _barrier_solve(self, x, n_liq, V, ln_rh, *, mu0=1.0e-3, mu_min=1.0e-14, max_newton=60, verbose=False):
-        """Minimize F - mu sum ln x over {A x = A x0} from the strictly feasible x (returns x, converged)."""
-        N = self.N
-        S = V.shape[1]
-        cost = self._solid_cost(self._solids_now, ln_rh)
-        A = self._build_A(n_liq, V)
+    def _barrier_solve(self, x, n_liq, ln_rh, *, mu0=1.0e-3, mu_min=1.0e-14, max_newton=60, verbose=False):
+        """Minimize F - mu sum ln x_b over {A x = A x0} (x_b: bounded entries) from the strictly feasible x.
+
+        A step is accepted when it decreases the barrier function (Armijo) or, failing that, the norm of the reduced
+        gradient: AIOMFAC's carbonate treatment (CO2(aq) with its own salting-out activity coefficient) makes the
+        stoichiometric potentials only approximately the gradient of one Gibbs function, and the equilibrium
+        conditions themselves are what the final checks verify."""
+        N, S = self.N, len(self._solids_now)
+        A = self._build_A(n_liq)
         Z = null_space(A) if A.size else np.eye(len(x))
+        free = self._free_mask(n_liq)
+        bnd = ~free
         mu = mu0
         converged = True
+
+        def evaluate(xx, mu_):
+            try:
+                with np.errstate(all="ignore"):
+                    F, lna, gg, Hg = self._objective(xx, n_liq, ln_rh)
+            except (ValueError, OverflowError, FloatingPointError, ZeroDivisionError):
+                return float("inf"), np.full(len(xx), np.nan), None
+            gfull = self._grad(lna, ln_rh, gg)
+            gfull[bnd] -= mu_ / xx[bnd]
+            phi = F - mu_ * float(np.sum(np.log(xx[bnd])))
+            return phi, gfull, Hg
+
         while True:
             for it in range(max_newton):
-                F, lna = self._objective(x, n_liq, ln_rh, cost)
-                g = self._grad(lna, n_liq, ln_rh, cost) - mu / x
+                phi0, gvec, Hg = evaluate(x, mu)
                 H = np.zeros((len(x), len(x)))
                 for a in range(n_liq):
                     H[a * N:(a + 1) * N, a * N:(a + 1) * N] = self.lm.hessian(x[a * N:(a + 1) * N], self.T)
-                H[np.diag_indices_from(H)] += mu / x ** 2
+                o = n_liq * N + S
+                H[o:, o:] += Hg
+                dg = np.zeros(len(x)); dg[bnd] = mu / x[bnd] ** 2
+                H[np.diag_indices_from(H)] += dg
                 Hr = Z.T @ H @ Z
-                gr = Z.T @ g
+                gr = Z.T @ gvec
                 w, Q = np.linalg.eigh(0.5 * (Hr + Hr.T))
                 shift = 0.0
-                if w[0] <= 1.0e-12 * max(1.0, abs(w[-1])):
-                    shift = -w[0] + 1.0e-8 * max(1.0, abs(w[-1]))
+                big = max(1.0, abs(w[-1]))
+                if w[0] <= 1.0e-12 * big:
+                    shift = -w[0] + 1.0e-8 * big
                 d = -Q @ ((Q.T @ gr) / (w + shift))
                 dx = Z @ d
                 dec = float(-gr @ d)
+                r0 = float(np.linalg.norm(gr))
                 if dec < 1.0e-14 + 1.0e-10 * mu * len(x):
                     break
-                neg = dx < 0
+                neg = (dx < 0) & bnd
                 amax = min(1.0, 0.995 * float(np.min(-x[neg] / dx[neg]))) if np.any(neg) else 1.0
-                phi0 = F - mu * float(np.sum(np.log(x)))
-                step = amax
-                ok = False
+                step, ok = amax, False
                 for _ in range(40):
                     xt = x + step * dx
-                    if np.all(xt > 0):
-                        Ft, _ = self._objective(xt, n_liq, ln_rh, cost)
-                        phit = Ft - mu * float(np.sum(np.log(xt)))
-                        if np.isfinite(phit) and phit <= phi0 - 1.0e-4 * step * dec:
+                    if np.all(xt[bnd] > 0):
+                        phit, gt, _ = evaluate(xt, mu)
+                        if np.isfinite(phit) and np.all(np.isfinite(gt)) and (phit <= phi0 - 1.0e-4 * step * dec
+                                                  or float(np.linalg.norm(Z.T @ gt)) <= (1.0 - 1.0e-4 * step) * r0):
                             ok = True
                             break
                     step *= 0.5
@@ -404,27 +583,32 @@ class PhaseEquilibrium:
                 else:
                     lo = mid
             return math.exp(0.5 * (lo + hi))
-        except (ValueError, FloatingPointError, OverflowError):
+        except (ValueError, FloatingPointError, OverflowError, ZeroDivisionError):
             return dry * rh / (1 - rh)
 
     def _tpd_minimize(self, mu_eq: np.ndarray, w0: np.ndarray):
-        """min_w sum w_i (ln a_i(w) - mu_i) over w > 0, sum w = 1, sum z w = 0 (barrier Newton, from w0)."""
+        """min_w sum w_i (ln a_i(w) - mu_i) over electroneutral w with sum of the bounded entries = 1 (barrier Newton
+        from w0; the proton excess of a carbonate system is a free entry)."""
         N = self.N
-        rows = [np.ones(N)]
+        free = self.lm.free
+        bnd = ~free
+        rows = [bnd.astype(float)]
         if np.any(self.z != 0):
             rows.append(self.z)
         A = np.array(rows)
         Z = null_space(A)
-        w = np.asarray(w0, dtype=float) / np.sum(w0)
+        w = np.asarray(w0, dtype=float) / float(np.sum(w0[bnd]))
         tpd = lambda w: float(np.dot(w, self.lm.ln_a(w, self.T) - mu_eq))
         mu = 1.0e-4
         for _ in range(9):
             for it in range(40):
                 la = self.lm.ln_a(w, self.T)
                 f = float(np.dot(w, la - mu_eq))
-                g = la - mu_eq - mu / w
+                g = la - mu_eq
+                g[bnd] -= mu / w[bnd]
                 H = self.lm.hessian(w, self.T)
-                H[np.diag_indices_from(H)] += mu / w ** 2
+                dgn = np.zeros(N); dgn[bnd] = mu / w[bnd] ** 2
+                H[np.diag_indices_from(H)] += dgn
                 Hr = Z.T @ H @ Z; gr = Z.T @ g
                 ev, Q = np.linalg.eigh(0.5 * (Hr + Hr.T))
                 big = max(1.0, float(np.max(np.abs(ev))))
@@ -433,14 +617,14 @@ class PhaseEquilibrium:
                 dec = float(-gr @ (Z.T @ d))
                 if dec < 1e-14:
                     break
-                neg = d < 0
+                neg = (d < 0) & bnd
                 amax = min(1.0, 0.995 * float(np.min(-w[neg] / d[neg]))) if np.any(neg) else 1.0
-                phi0 = f - mu * float(np.sum(np.log(w)))
+                phi0 = f - mu * float(np.sum(np.log(w[bnd])))
                 step, ok = amax, False
                 for _ in range(40):
                     wt = w + step * d
-                    if np.all(wt > 0):
-                        phit = tpd(wt) - mu * float(np.sum(np.log(wt)))
+                    if np.all(wt[bnd] > 0):
+                        phit = tpd(wt) - mu * float(np.sum(np.log(wt[bnd])))
                         if np.isfinite(phit) and phit <= phi0 - 1e-4 * step * dec:
                             ok = True
                             break
@@ -459,8 +643,8 @@ class PhaseEquilibrium:
         N, nn = self.N, self.lm.n_neutral
         eps = 1e-6
         ion_fr = np.zeros(N)
-        if b[nn:].sum() > 0:
-            ion_fr[nn:] = b[nn:] / b[nn:].sum()
+        if np.abs(b[nn:]).sum() > 0:
+            ion_fr[nn:] = np.abs(b[nn:]) / np.abs(b[nn:]).sum()
         org_fr = np.zeros(N)
         if b[1:nn].sum() > 0:
             org_fr[1:nn] = b[1:nn] / b[1:nn].sum()
@@ -486,10 +670,16 @@ class PhaseEquilibrium:
         trials.append(make(1.0, eps * org_fr, eps * ion_fr))      # dilute water
         rng = np.random.default_rng(12345)
         for L in liquids:                                           # perturbed copies of the current liquids
-            trials.append(np.maximum(L.amounts / L.total, 1e-9) * np.exp(0.3 * rng.standard_normal(N) * (self.z == 0)))
+            trials.append(np.maximum(np.abs(L.amounts) / L.total, 1e-9) * np.exp(0.3 * rng.standard_normal(N) * (self.z == 0)))
         out = []
         for w in trials:
             w = np.maximum(w, 1e-12)
+            if self.lm._carb:                                       # neutralize with the free proton excess
+                kh = self.lm._kh
+                w[kh] = 0.0
+                w[kh] = -float(np.dot(self.z, w))
+                out.append(w / float(np.sum(w[~self.lm.free])))
+                continue
             if np.any(self.z != 0):                                 # restore electroneutrality by scaling the anions
                 qp = float(np.sum(np.where(self.z > 0, self.z * w, 0.0)))
                 qn = float(-np.sum(np.where(self.z < 0, self.z * w, 0.0)))
@@ -499,11 +689,50 @@ class PhaseEquilibrium:
         return out
 
     # ---------------------------------------------------------------------------------------------------
-    def solve(self, feed: dict, rh: float, *, solids="all", max_liquids: int = 3, max_outer: int = 6,
+    def solve(self, feed: dict, rh: float, *, solids="all", p_gas: dict | None = None, gas_total: dict | None = None,
+              n_air: float | None = None, P_atm: float = 1.0, max_liquids: int = 3, max_outer: int = 6,
               verbose: bool = False) -> PhaseEquilibriumResult:
-        """Equilibrium for the non-water ``feed`` [mol] (organic names and ion keys) at relative humidity ``rh``."""
+        """Equilibrium for the non-water ``feed`` [mol] (organic names and ion keys) at relative humidity ``rh``.
+
+        Gases (keys of :data:`aiomfac_py.gases.GASES`: NH3, HNO3, HCl, CO2) are optional:
+          * ``p_gas={"HCl": 1e-9}``: open system, the particle exchanges with a reservoir of fixed partial pressure [atm];
+            ``result.gas`` is the net amount released (negative = uptake).
+          * ``gas_total={"HCl": 0.0}, n_air=...``: closed system with ``n_air`` mol of inert air at ``P_atm``; the
+            totals of the volatile species (particle + gas) are conserved and ``result.gas`` holds the gas amounts.
+        A carbonate system (``CO3--`` with ``H+`` as proton excess) can be given ``"CO2"`` in either mode."""
         if not 0.0 < rh < 1.0:
             raise ValueError("rh must be in (0, 1)")
+        # species that are absent from the feed and cannot be supplied by any of the given gases are removed from the
+        # problem (the barrier would otherwise need an artificial positive amount for them)
+        gas_keys = list((p_gas or gas_total or {}).keys())
+        reach = {i for g in gas_keys if g in GASES for i in GASES[g].ions}
+        present = {k for k, v in feed.items() if v != 0.0} | reach
+        if gas_total:
+            present |= {i for g, v in gas_total.items() if v > 0 for i in GASES[g].ions}
+        if "CO3--" in present and "H+" in self._ions:
+            present.add("H+")                                # proton excess of a carbonate system
+        orgs = [c for c in self._organics if c.name in present]
+        ions_kept = [i for i in self._ions if i in present]
+        if len(orgs) < len(self._organics) or len(ions_kept) < len(self._ions):
+            if not ions_kept and not orgs:
+                raise ValueError("empty feed")
+            key = (tuple(c.name for c in orgs), tuple(ions_kept))
+            if key not in self._children:
+                sk = None if self._solid_keys is None else [k for k in self._solid_keys
+                                                             if set(SOLIDS[k].ions) <= set(ions_kept)]
+                child = PhaseEquilibrium(orgs, ions_kept, self.T, k_mode=self.k_mode, solid_keys=sk)
+                child.tol_tpd = self.tol_tpd
+                self._children[key] = child
+            sub_feed = {k: v for k, v in feed.items() if k in present}
+            if isinstance(solids, (list, tuple)):
+                solids = [k for k in solids if set(SOLIDS[k].ions) <= set(ions_kept)] or "none"
+            res = self._children[key].solve(sub_feed, rh, solids=solids, p_gas=p_gas, gas_total=gas_total, n_air=n_air,
+                                            P_atm=P_atm, max_liquids=max_liquids, max_outer=max_outer, verbose=verbose)
+            dropped = [n for n in self.names[1:] if n not in res.names]
+            res.message = (res.message + "; " if res.message else "") + f"species absent from the problem: {dropped}"
+            return res
+        if p_gas and gas_total:
+            raise ValueError("give either p_gas (open system) or gas_total (closed system), not both")
         ln_rh = math.log(rh)
         N, nn = self.N, self.lm.n_neutral
         b = np.zeros(N)
@@ -511,10 +740,6 @@ class PhaseEquilibrium:
             if k not in self.names or k == "Water":
                 raise KeyError(f"feed species {k!r} not in {self.names[1:]}")
             b[self.names.index(k)] = float(v)
-        if abs(float(np.dot(self.z, b))) > 1e-9 * max(1.0, b.sum()):
-            raise ValueError("feed is not electroneutral")
-        scale = float(b[1:].sum())
-        b = b / scale
 
         if solids == "all":
             self._solids_now = list(self.all_solids)
@@ -522,43 +747,75 @@ class PhaseEquilibrium:
             self._solids_now = []
         else:
             self._solids_now = [SOLIDS[k] for k in solids]
-        V = self._solid_columns(self._solids_now)
-        S = V.shape[1]
+        gas_spec = p_gas or gas_total or {}
+        for k in gas_spec:
+            if k not in GASES:
+                raise KeyError(f"unknown gas {k!r} (available: {list(GASES)})")
+            if not set(GASES[k].ions) <= set(self.lm.ions):
+                raise ValueError(f"gas {k} needs the ions {sorted(GASES[k].ions)} in the system")
+        self._gases_now = [GASES[k] for k in gas_spec]
+        self._gas_mode = "open" if p_gas else ("closed" if gas_total else "none")
+        if self._gas_mode == "closed":
+            if n_air is None or n_air <= 0:
+                raise ValueError("a closed gas phase needs n_air > 0 (mol of inert air)")
+        G = self._columns(self._gases_now)
+        gt = np.array([float(gas_spec[g.key]) for g in self._gases_now]) if self._gas_mode == "closed" else np.zeros(len(self._gases_now))
+        b = b + G @ gt                                            # closed: volatile totals enter the mass balance
+        if abs(float(np.dot(self.z, b))) > 1e-9 * max(1.0, float(np.abs(b).sum())):
+            raise ValueError("feed is not electroneutral")
+        scale = float(np.abs(b[1:]).sum())
+        b = b / scale
+        V = self._columns(self._solids_now)
+        S, K = V.shape[1], G.shape[1]
+        self._W = np.hstack([V, G])
+        self._solid_cost_now = self._solid_cost(self._solids_now, ln_rh)
+        if self._gas_mode == "open":
+            self._gas_cost = np.array([g.ln_k(self.T) + math.log(p_gas[g.key]) - g.h * ln_rh for g in self._gases_now])
+        elif self._gas_mode == "closed":
+            self._gas_cost = np.array([g.ln_k(self.T) - g.h * ln_rh + math.log(P_atm) for g in self._gases_now])
+            self._n_air = float(n_air) / scale
+        else:
+            self._gas_cost = np.zeros(0)
+        free = self.lm.free
 
-        # strictly feasible start: one liquid with (almost) everything, solids at a tiny neutral amount
+        # strictly feasible start: one liquid with (almost) everything, solids at a tiny amount, closed-system gases
+        # mostly in the gas phase, open-system gases at zero net transfer
         u0 = np.full(S, 1e-6)
+        g0 = self._initial_gas(b, V @ u0, G, gt / scale) if K else np.zeros(0)
         n0 = b.copy()
-        n0[1:] = b[1:] - V[1:] @ u0
+        n0[1:] = b[1:] - V[1:] @ u0 - G[1:] @ g0
         floor = 1e-7
-        n0[1:] = np.maximum(n0[1:], floor)
-        if np.any(self.z != 0) and np.any(b[nn:] > 0):          # re-neutralize after flooring
-            qp = float(np.sum(np.where(self.z > 0, self.z * n0, 0.0)))
-            qn = float(-np.sum(np.where(self.z < 0, self.z * n0, 0.0)))
-            n0 = np.where(self.z < 0, n0 * qp / qn, n0)
-        # absorb the flooring change into the solids/feed consistency: recompute b' = n0 + V u0 for non-water
-        b_eff = n0.copy(); b_eff[1:] = n0[1:] + V[1:] @ u0
+        n0[1:] = np.where(free[1:], n0[1:], np.maximum(n0[1:], floor))
+        if np.any(self.z != 0) and np.any(b[nn:] != 0):           # re-neutralize after flooring
+            if self.lm._carb:
+                n0[self.lm._kh] -= float(np.dot(self.z, n0))
+            else:
+                qp = float(np.sum(np.where(self.z > 0, self.z * n0, 0.0)))
+                qn = float(-np.sum(np.where(self.z < 0, self.z * n0, 0.0)))
+                n0 = np.where(self.z < 0, n0 * qp / qn, n0)
         n0[0] = self._water_guess(n0, rh)
         phases = [n0]
-        x = np.concatenate(phases + [u0])
+        x = np.concatenate(phases + [u0, g0])
         n_outer = 0
         tpd_min = float("nan")
         inner_ok = True
         while True:
             n_outer += 1
             n_liq = len(phases)
-            x, conv = self._barrier_solve(x, n_liq, V, ln_rh, verbose=verbose)
+            x, conv = self._barrier_solve(x, n_liq, ln_rh, verbose=verbose)
             inner_ok = inner_ok and conv
             phases = [x[a * N:(a + 1) * N] for a in range(n_liq)]
             u = x[n_liq * N:]
             # remove vanished liquids, merge identical ones
-            keep = [a for a in range(n_liq) if phases[a].sum() > 1e-8]
+            size = lambda p: float(np.sum(p[~free]))
+            keep = [a for a in range(n_liq) if size(phases[a]) > 1e-8]
             if not keep:                                       # never drop the last liquid (see the "dry" status)
-                keep = [int(np.argmax([p.sum() for p in phases]))]
+                keep = [int(np.argmax([size(p) for p in phases]))]
             merged = []
             for a in keep:
-                xa = phases[a] / phases[a].sum()
+                xa = phases[a] / size(phases[a])
                 for m in merged:
-                    if np.max(np.abs(xa - phases[m] / phases[m].sum())) < 1e-4:
+                    if np.max(np.abs(xa - phases[m] / size(phases[m]))) < 1e-4:
                         phases[m] = phases[m] + phases[a]
                         break
                 else:
@@ -566,12 +823,12 @@ class PhaseEquilibrium:
             if len(merged) < n_liq:
                 phases = [phases[a] for a in merged]
                 x = np.concatenate(phases + [u])
-                x, conv = self._barrier_solve(x, len(phases), V, ln_rh, verbose=verbose)
+                x, conv = self._barrier_solve(x, len(phases), ln_rh, verbose=verbose)
                 n_liq = len(phases)
                 phases = [x[a * N:(a + 1) * N] for a in range(n_liq)]
                 u = x[n_liq * N:]
             liquids = [LiquidPhase(p.copy(), self.lm.ln_a(p, self.T), self.names) for p in phases]
-            dry = len(phases) == 1 and float(phases[0].sum()) < 1e-6
+            dry = len(phases) == 1 and size(phases[0]) < 1e-6
             if dry:                                            # everything crystallized: no liquid to test
                 tpd_min = 0.0
                 break
@@ -599,8 +856,9 @@ class PhaseEquilibrium:
             nonw = w.copy(); nonw[0] = 0.0
             cand = []
             for a, p in enumerate(phases):
-                mask = nonw[1:] > 0
-                theta = 0.5 * float(np.min(p[1:][mask] / nonw[1:][mask]))
+                mask = (nonw > 0) & ~free
+                mask[0] = False
+                theta = 0.5 * float(np.min(p[mask] / nonw[mask])) if np.any(mask) else 0.0
                 cand.append((theta, a))
             theta, a = max(cand)
             newp = theta * w.copy()
@@ -610,26 +868,36 @@ class PhaseEquilibrium:
             x = np.concatenate(phases + [u])
 
         liquids = [LiquidPhase(p * scale, self.lm.ln_a(p, self.T), self.names) for p in phases]
-        org_frac = lambda L: float(np.sum(L.mole_fractions[1:nn]))
+        org_frac = lambda L: float(np.sum(L.amounts[1:nn]) / np.sum(L.amounts[~free]))
         liquids.sort(key=org_frac, reverse=True)
-        u = x[len(phases) * N:] * scale
+        u = x[len(phases) * N:len(phases) * N + S] * scale
+        g_end = x[len(phases) * N + S:] * scale
+        gas = {gs.key: float(v) for gs, v in zip(self._gases_now, g_end)}
+        if self._gas_mode == "open":
+            p_out = {k: float(v) for k, v in p_gas.items()}
+        elif self._gas_mode == "closed":
+            ntot = float(n_air) + float(np.sum(g_end))
+            p_out = {gs.key: float(P_atm * v / ntot) for gs, v in zip(self._gases_now, g_end)}
+        else:
+            p_out = {}
         si = self.si_of(liquids[0].ln_a, ln_rh)
         self._enabled_keys = {s_.key for s_ in self._solids_now}
         thresh = 1e-7 * scale
         solid_amounts = {s.key: float(v) for s, v in zip(self._solids_now, u) if v > thresh}
-        F, _ = self._objective(x, len(phases), ln_rh, self._solid_cost(self._solids_now, ln_rh))
-        checks = self._checks(liquids, ln_rh, si, solid_amounts, b * scale, u)
+        F = self._objective(x, len(phases), ln_rh)[0]
+        checks = self._checks(liquids, ln_rh, si, solid_amounts, b * scale, u, g_end, p_out)
         if dry:
             # all non-water material is in solids; the remaining "liquid" is a numerical remnant of the barrier
             si = self.si_of(liquids[0].ln_a, ln_rh)
             return PhaseEquilibriumResult("dry", self.T, rh, [], solid_amounts, si, F * scale,
                                           {"max_mass_balance_residual": checks["max_mass_balance_residual"]},
                                           0.0, n_outer, message="no liquid phase (all solutes crystalline)",
-                                          names=self.names)
+                                          names=self.names, gas=gas, p_gas=p_out)
         # the status is decided by the equilibrium conditions of the final state, not by how the iteration ended
         status, msg = "converged", ""
         bad = [k for k, lim in (("max_abs_ln_aw_minus_ln_rh", 1e-5), ("max_neutral_mu_spread", 1e-4),
-                                ("max_ion_mu_residual", 1e-4), ("max_si", 1e-4), ("max_abs_si_present_solids", 1e-4))
+                                ("max_ion_mu_residual", 1e-4), ("max_si", 1e-4), ("max_abs_si_present_solids", 1e-4),
+                                ("max_abs_gas_residual", 1e-4))
                if checks[k] > lim]
         if bad:
             status = "not_converged"
@@ -640,7 +908,49 @@ class PhaseEquilibrium:
         if not inner_ok:
             msg += ("; " if msg else "") + "inner Newton iteration stopped early (line search)"
         return PhaseEquilibriumResult(status, self.T, rh, liquids, solid_amounts, si, F * scale, checks, tpd_min,
-                                      n_outer, message=msg, names=self.names)
+                                      n_outer, message=msg, names=self.names, gas=gas, p_gas=p_out)
+
+    def _initial_gas(self, b, vu, G, gt):
+        """Initial gas amounts that leave every bounded species of the liquid strictly positive, so that species absent
+        from the feed (e.g. NO3- and H+ that only enter by HNO3 uptake) need no artificial floor and the mass balance
+        stays exact.  Two linear programs: (1) the largest margin t* with  b_i - vu_i - (G g)_i >= t  (bounded i);
+        (2) among the g that keep a margin min(t*, 1e-6 |b|), the one closest (L1) to the reference state -- gases
+        mostly in the gas phase (closed system) or no net transfer (open system) -- so the start is not an extreme
+        composition."""
+        from scipy.optimize import linprog
+        K = G.shape[1]
+        rows = [i for i in range(1, self.N) if not self.lm.free[i]]
+        cap = float(np.abs(b).sum()) or 1.0
+        Gr = G[rows]
+        rhs = b[rows] - vu[rows]
+        if self._gas_mode == "closed":
+            bounds_g = [(1e-9 * cap, cap)] * K
+            g_ref = np.maximum(gt, 1e-9 * cap) * 0.999
+        else:
+            bounds_g = [(-cap, cap)] * K
+            g_ref = np.zeros(K)
+        try:
+            c = np.zeros(K + 1); c[-1] = -1.0
+            r1 = linprog(c, A_ub=np.hstack([Gr, np.ones((len(rows), 1))]), b_ub=rhs,
+                         bounds=bounds_g + [(None, 1e-3 * cap)], method="highs")
+            if r1.status != 0 or r1.x[-1] <= 0:
+                raise ValueError
+            t = min(float(r1.x[-1]), 1e-6 * cap)
+            # variables g (K) and e (K) with  e >= |g - g_ref| ; minimize sum e
+            A2 = [np.hstack([Gr, np.zeros((len(rows), K))])]
+            b2 = [rhs - t]
+            I = np.eye(K)
+            A2 += [np.hstack([I, -I]), np.hstack([-I, -I])]
+            b2 += [g_ref, -g_ref]
+            c2 = np.concatenate([np.zeros(K), np.ones(K)])
+            r2 = linprog(c2, A_ub=np.vstack(A2), b_ub=np.concatenate(b2), bounds=bounds_g + [(0, None)] * K,
+                         method="highs")
+            if r2.status == 0:
+                return r2.x[:K]
+            return r1.x[:K]
+        except ValueError:
+            # fallback (a species cannot be supplied by any gas): reference state; absent species get a floor
+            return g_ref
 
     def _reference_potentials(self, liquids, ln_rh):
         """Equilibrium potentials for the stability test: each neutral from the liquid that holds most of it (a
@@ -657,7 +967,7 @@ class PhaseEquilibrium:
         return mu
 
     # ---------------------------------------------------------------------------------------------------
-    def _checks(self, liquids, ln_rh, si, solid_amounts, b, u) -> dict:
+    def _checks(self, liquids, ln_rh, si, solid_amounts, b, u, g=None, p_out=None) -> dict:
         nn = self.lm.n_neutral
         c = {}
         c["max_abs_ln_aw_minus_ln_rh"] = max(abs(L.ln_a[0] - ln_rh) for L in liquids)
@@ -695,12 +1005,27 @@ class PhaseEquilibrium:
         tot = sum(L.amounts for L in liquids)
         V = self._solid_columns(self._solids_now)
         tot = tot + V @ (u if len(u) else np.zeros(0)) if V.shape[1] else tot
-        c["max_mass_balance_residual"] = float(np.max(np.abs(tot[1:] - b[1:]))) / max(float(b[1:].sum()), 1e-300)
+        G = self._columns(self._gases_now)
+        if G.shape[1] and g is not None:
+            tot = tot + G @ g if self._gas_mode == "closed" else tot
+        bref = b.copy()
+        if self._gas_mode == "open" and G.shape[1] and g is not None:
+            bref = b - G @ g                                       # open: released material leaves the system
+        c["max_mass_balance_residual"] = float(np.max(np.abs(tot[1:] - bref[1:]))) / max(float(np.abs(b[1:]).sum()), 1e-300)
+        # gas-liquid equilibrium: sum nu ln a + h ln RH = ln K + ln p
+        gr = 0.0
+        L0 = liquids[0]
+        for gs in self._gases_now:
+            lhs = sum(nu * L0.ln_a[self.names.index(ion)] for ion, nu in gs.ions.items()) + gs.h * ln_rh
+            p = (p_out or {}).get(gs.key, 0.0)
+            if p > 0:
+                gr = max(gr, abs(lhs - gs.ln_k(self.T) - math.log(p)))
+        c["max_abs_gas_residual"] = gr
         return c
 
     # ---------------------------------------------------------------------------------------------------
     def drying_path(self, feed: dict, rh_grid: Sequence[float], *, ln_s_crit: float | dict = 0.0,
-                    verbose: bool = False) -> list:
+                    verbose: bool = False, **gas_kw) -> list:
         """Decreasing-RH path with crystallization only after a critical supersaturation.
 
         Starting from the highest RH without solids, a solid becomes a candidate once its saturation index in the
@@ -710,11 +1035,11 @@ class PhaseEquilibrium:
         enabled: list[str] = []
         out = []
         for rh in sorted(rh_grid, reverse=True):
-            res = self.solve(feed, rh, solids=list(enabled) if enabled else "none", verbose=verbose)
+            res = self.solve(feed, rh, solids=list(enabled) if enabled else "none", verbose=verbose, **gas_kw)
             new = [k for k, v in res.si.items() if k not in enabled and v > crit(k)]
             if new:
                 enabled += new
-                res = self.solve(feed, rh, solids=list(enabled), verbose=verbose)
+                res = self.solve(feed, rh, solids=list(enabled), verbose=verbose, **gas_kw)
             res.message = f"enabled solids: {enabled}"
             out.append(res)
         return out
