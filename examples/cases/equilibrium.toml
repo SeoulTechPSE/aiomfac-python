@@ -1,0 +1,26 @@
+title = "pinic acid + ammonium sulfate + ammonium nitrate, liquid-liquid-solid equilibrium"
+
+[calculation]
+mode = "equilibrium"
+rh = [0.8, 0.6, 0.4, 0.2]          # one point per RH; warm-started along the list
+
+[system]
+T_K = 300.0
+
+[[system.organics]]
+name = "pinic_acid"
+subgroups = [[1, 2], [2, 2], [3, 2], [4, 1], [137, 2]]   # (subgroup, count); or smiles = "..."
+
+[feed_mass_g]                      # or [feed] in mol, [salts] in mol of formula units
+pinic_acid = 1.15
+
+[salts_mass_g]
+"(NH4)2SO4" = 0.778
+NH4NO3 = 0.222
+
+[solver]
+engine = "pe"                      # PhaseEquilibrium (combined liquid-liquid-solid solver)
+solids = "all"                     # "all", "none" or a list of solid keys
+max_liquids = 3
+inner_method = "newton"            # "newton" (default), "rand", "barrier"
+hess_scheme = "split"              # "split" (default), "ad" (needs jax), "central"

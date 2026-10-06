@@ -1,0 +1,140 @@
+{
+ "aiomfac_py_version": "1.0.1",
+ "title": "pinic acid + ammonium sulfate at RH 0.3: liquid-liquid phase separation (no crystallization)",
+ "mode": "lle",
+ "engine": "pe",
+ "T_K": 298.15,
+ "case": {
+  "title": "pinic acid + ammonium sulfate at RH 0.3: liquid-liquid phase separation (no crystallization)",
+  "calculation": {
+   "mode": "lle",
+   "rh": 0.3
+  },
+  "system": {
+   "T_K": 298.15,
+   "organics": [
+    {
+     "name": "pinic_acid",
+     "subgroups": [
+      [
+       1,
+       2
+      ],
+      [
+       2,
+       2
+      ],
+      [
+       3,
+       2
+      ],
+      [
+       4,
+       1
+      ],
+      [
+       137,
+       2
+      ]
+     ]
+    }
+   ]
+  },
+  "feed": {
+   "pinic_acid": 0.006243,
+   "NH4+": 0.015136,
+   "SO4--": 0.007568
+  },
+  "solver": {
+   "engine": "pe"
+  }
+ },
+ "points": [
+  {
+   "mode": "lle",
+   "engine": "pe",
+   "rh": 0.3,
+   "status": "converged",
+   "message": "",
+   "liquids": [
+    {
+     "total_mol": 0.010847812592632629,
+     "water_activity": 0.30000000031039087,
+     "amounts": {
+      "Water": 0.0027898201435868383,
+      "pinic_acid": 0.006243000000000003,
+      "NH4+": 0.001209994966030525,
+      "SO4--": 0.0006049974830152625
+     },
+     "mole_fractions": {
+      "Water": 0.257178128748423,
+      "pinic_acid": 0.5755077299399496,
+      "NH4+": 0.1115427608744183,
+      "SO4--": 0.05577138043720915
+     },
+     "ln_a": {
+      "Water": -1.2039728032912997,
+      "pinic_acid": -0.4663741028822421,
+      "NH4+": 1.5405079708350746,
+      "SO4--": 0.5753228039931104
+     },
+     "molality": {
+      "NH4+": 0.9979391538727227,
+      "SO4--": 0.49896957693636135
+     }
+    },
+    {
+     "total_mol": 0.030254004287669455,
+     "water_activity": 0.30000000009276595,
+     "amounts": {
+      "Water": 0.009364996736715241,
+      "pinic_acid": 0.0,
+      "NH4+": 0.013926005033969477,
+      "SO4--": 0.006963002516984739
+     },
+     "mole_fractions": {
+      "Water": 0.3095456934450197,
+      "pinic_acid": 0.0,
+      "NH4+": 0.4603028710366535,
+      "SO4--": 0.23015143551832679
+     },
+     "ln_a": {
+      "Water": -1.2039728040167161,
+      "pinic_acid": null,
+      "NH4+": 2.055361333128033,
+      "SO4--": -0.454383929465183
+     },
+     "molality": {
+      "NH4+": 82.54255370615488,
+      "SO4--": 41.271276853077445
+     }
+    }
+   ],
+   "solids": {},
+   "si": {
+    "ammonium_sulfate": 3.6187587456632597
+   },
+   "gas": {},
+   "p_gas": {},
+   "gibbs": 0.02475959804688963,
+   "tpd_min": 0.0,
+   "checks": {
+    "max_abs_ln_aw_minus_ln_rh": 1.0346363765734168e-09,
+    "max_neutral_mu_spread": 0.0,
+    "n_trace_entries": 1.0,
+    "max_ion_mu_residual": 1.7744756775073256e-09,
+    "max_si": null,
+    "max_si_all_candidates": 3.6187587456632597,
+    "max_abs_si_present_solids": 0.0,
+    "max_charge_residual": 1.734723475976807e-18,
+    "max_mass_balance_residual": 8.989136055429614e-17,
+    "max_abs_gas_residual": 0.0,
+    "n_absent_entries": 1.0,
+    "max_removed_trace": 1.8211098015345578e-10,
+    "n_line_search_failures": 0.0
+   },
+   "values": {},
+   "n_liquids": 2
+  }
+ ]
+}

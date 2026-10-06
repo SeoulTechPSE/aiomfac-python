@@ -1,0 +1,23 @@
+title = "Ansan-type drying path: AS crystallizes after its critical supersaturation"
+
+[calculation]
+mode = "drying_path"
+rh = [0.8, 0.6, 0.45, 0.35, 0.3, 0.25, 0.2, 0.1]
+
+[system]
+T_K = 300.0
+
+[[system.organics]]
+name = "pinic_acid"
+subgroups = [[1, 2], [2, 2], [3, 2], [4, 1], [137, 2]]
+
+[feed_mass_g]
+pinic_acid = 1.15
+
+[salts_mass_g]
+"(NH4)2SO4" = 0.778
+NH4NO3 = 0.222
+
+[drying]
+erh = {ammonium_sulfate = 0.35}    # ln S_crit implied by the efflorescence RH of the binary salt
+never = ["ammonium_nitrate"]       # solids that never crystallize on this path

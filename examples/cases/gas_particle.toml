@@ -1,0 +1,25 @@
+title = "glycerol partitioning over ammonium sulfate seed (Zuend et al., 2010, method)"
+
+[calculation]
+mode = "gas_particle"
+rh = [0.3, 0.6, 0.9]
+
+[system]
+T_K = 298.15
+
+[gas_particle]
+salt = "(NH4)2SO4"
+n_salt_mol = 1.0e-8
+V_gas_m3 = 1.0
+
+[[gas_particle.species]]
+name = "glycerol"
+subgroups = [[150, 2], [151, 1], [153, 3]]
+M_kg_mol = 0.092094                # optional; computed from the subgroups if omitted
+p0_Pa = 2.284e-2
+n_total_mol = 3.0e-8
+
+[solver]
+engine = "gp"
+gp_method = "lm"                   # "lm" (default), "pseudo_transient", "successive_substitution"
+gp_tol = 1.0e-4

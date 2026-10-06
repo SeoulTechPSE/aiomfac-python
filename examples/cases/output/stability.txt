@@ -1,0 +1,25 @@
+stability of the one-liquid state of pinic acid + ammonium sulfate: mode=stability, engine=pe, T=298.15 K
+[stability/pe] RH=0.9950: converged
+  stable=True, tpd_min=0
+  liquid 0: n=4.86142 mol, a_w=0.99500; x: Water=0.994, pinic_acid=0.001284, NH4+=0.003113, SO4--=0.001557
+  TPD_min=0, F=-0.08146678166
+[stability/pe] RH=0.9900: converged
+  stable=True, tpd_min=0
+  liquid 0: n=2.34012 mol, a_w=0.99000; x: Water=0.9876, pinic_acid=0.002668, NH4+=0.006468, SO4--=0.003234
+  TPD_min=0, F=-0.06495768126
+[stability/pe] RH=0.9800: converged (one-liquid state unstable: it splits into several liquids (run mode 'lle' or 'equilibrium'))
+  stable=False, tpd_min=-0.00145613
+  liquid 0: n=1.12837 mol, a_w=0.98000; x: Water=0.9743, pinic_acid=0.005533, NH4+=0.01341, SO4--=0.006707
+  TPD_min=-0.00146, F=-0.0490983476
+[stability/pe] RH=0.9500: converged (one-liquid state unstable: it splits into several liquids (run mode 'lle' or 'equilibrium'))
+  stable=False, tpd_min=-0.236079
+  liquid 0: n=0.445469 mol, a_w=0.95000; x: Water=0.935, pinic_acid=0.01401, NH4+=0.03398, SO4--=0.01699
+  TPD_min=-0.236, F=-0.02888233604
+[stability/pe] RH=0.9000: converged (one-liquid state unstable: it splits into several liquids (run mode 'lle' or 'equilibrium'))
+  stable=False, tpd_min=-0.38966
+  liquid 0: n=0.235195 mol, a_w=0.90000; x: Water=0.8769, pinic_acid=0.02654, NH4+=0.06436, SO4--=0.03218
+  TPD_min=-0.39, F=-0.01343190692
+[stability/pe] RH=0.6000: converged (one-liquid state unstable: it splits into several liquids (run mode 'lle' or 'equilibrium'))
+  stable=False, tpd_min=-0.23072
+  liquid 0: n=0.0735972 mol, a_w=0.60000; x: Water=0.6067, pinic_acid=0.08483, NH4+=0.2057, SO4--=0.1028
+  TPD_min=-0.231, F=0.02233835823

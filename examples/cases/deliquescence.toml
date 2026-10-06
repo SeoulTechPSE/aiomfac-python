@@ -1,0 +1,10 @@
+title = "deliquescence of ammonium sulfate"
+
+[calculation]
+mode = "deliquescence"
+
+[system]
+T_K = 298.15
+
+[salts]
+"(NH4)2SO4" = 1.0

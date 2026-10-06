@@ -1,0 +1,7 @@
+NH4NO3 particle in a closed volume of air with HNO3 and NH3: mode=sle, engine=sle, T=298.15 K
+[sle/sle] RH=0.8000: converged (closed gas phase (ideal gas + air))
+  gas [mol]: HNO3=1.69598e-07, NH3=1.70225e-07; p [atm]: HNO3=4.137e-09, NH3=4.152e-09
+  liquid 0: n=6.95618e-06 mol, a_w=0.80000; x: Water=0.7325, NH4+=0.1337, NO3-=0.1338, H+=9.023e-05
+[sle/sle] RH=0.5000: dry (closed dry state (solids + gas); no aqueous phase stable at this RH)
+  solids [mol]: ammonium_nitrate=8.33544e-07
+  gas [mol]: HNO3=2.66456e-07, NH3=2.66456e-07; p [atm]: HNO3=6.499e-09, NH3=6.499e-09

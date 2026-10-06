@@ -1,0 +1,15 @@
+title = "NaCl + (NH4)2SO4: solid-liquid equilibrium along RH"
+
+[calculation]
+mode = "sle"
+rh = [0.9, 0.8, 0.7, 0.6, 0.5]
+
+[system]
+T_K = 298.15
+
+[salts]
+NaCl = 1.0
+"(NH4)2SO4" = 1.0
+
+[solver]
+engine = "sle"                     # SLESolver (inorganic active-set solver); "pe" also works

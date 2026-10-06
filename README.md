@@ -34,6 +34,28 @@ paper, and `tests/test_lle.py` for how the solver itself, independent of AIOMFAC
   (and, for `aiomfac_py.s2as`, Amaladhasan et al., 2026, <https://doi.org/10.5194/gmd-19-4601-2026>), and (as
   requested by the authors) let them know about your use.
 
+## Main tool (`aiomfac-tool`)
+
+`aiomfac_py.tool` is one entry point to the equilibrium solvers (combined liquid–liquid–solid `PhaseEquilibrium`,
+inorganic `SLESolver`, fixed-composition `lle.solve_pep`, `gp_partition`) and to plain activity evaluations. A case
+file (TOML or JSON) gives the system, feed, RH, gases, the calculation mode (`activity`, `equilibrium`, `lle`, `sle`,
+`gas_particle`, `drying_path`, `deliquescence`, `efflorescence`, `stability`) and the solver options; results come
+back in one format (text, JSON, CSV):
+
+```
+aiomfac-tool template equilibrium > case.toml     # example cases: examples/cases/*.toml
+aiomfac-tool run case.toml -o result.json
+```
+
+```python
+from aiomfac_py.tool import run
+res = run("case.toml")
+print(res.summary())
+```
+
+See [`docs/user_manual.md`](docs/user_manual.md) for the case format, the modes, the solver options and the result
+fields.
+
 ## Layout
 
 | Path | Purpose |
@@ -52,6 +74,7 @@ paper, and `tests/test_lle.py` for how the solver itself, independent of AIOMFAC
 | `src/aiomfac_py/lle.py` | liquid-liquid equilibrium (`solve_pep`/`solve_pep_gfe`) — primal-dual interior-point/active-set Gibbs-energy minimization on top of `ActivityModel`, port of Amundson et al. (2006, JOTA 130); **not** part of AIOMFAC-web, not Fortran-validated (see the module docstring and `tests/test_lle.py`) |
 | `src/aiomfac_py/solids.py`, `src/aiomfac_py/sle.py` | solid–liquid equilibrium (`SLESolver`) at fixed T and RH on top of `ActivityModel` — primal-dual active-set Gibbs minimization after Amundson et al. (2006, JOTA 128, 469–498), with a 23-solid database of K_sp(T) and hydrates for atmospheric salts; neutral/alkali–alkaline-earth systems only (no H+/HSO4-, no gas phase). **Not** part of AIOMFAC-web, not Fortran-validated — see the "Solid–liquid equilibrium" section and `docs/SLE_design_ko.md` |
 | `src/aiomfac_py/phase_equilibrium.py` | combined liquid–liquid–solid equilibrium (`PhaseEquilibrium`) of water + organics + ions at fixed T and RH: one transformed-Gibbs minimization over all liquid phases (ion basis, per-phase electroneutrality, water open at a_w = RH) and all candidate solids, with an outer tangent-plane stability test that adds liquid phases; equilibrium, metastable (`solids="none"`) and drying-path modes. Acid sulfate and carbonate systems (speciated in every liquid, as in SLESolver) and volatile NH3/HNO3/HCl/CO2 (open fixed-p or closed ideal-gas phase) supported. **Not** part of AIOMFAC-web, not Fortran-validated — see the "Combined liquid–liquid–solid equilibrium" section and `tests/test_phase_equilibrium.py` |
+| `src/aiomfac_py/tool.py`, `examples/cases/` | main tool (`aiomfac-tool`): case files, calculation modes, solver selection, unified results; manual in `docs/user_manual.md`, tests in `tests/test_tool.py` |
 | `src/aiomfac_py/gp_partition.py` | gas/particle partitioning at fixed RH (`gp_partition`) — joint Levenberg-Marquardt solver (default), a pseudo-transient RH-continuation fallback (inspired by Amundson et al., 2007, C. R. Acad. Sci.), and the original successive-substitution method, all on top of `ActivityModel`; **not** part of AIOMFAC-web (see the module docstring and `tests/test_gp_partition.py`) |
 | `src/aiomfac_py/viscosity.py` | AIOMFAC-VISC (`electrolyte_viscosity`, `water_viscosity_pas`) — predictive dynamic-viscosity model for **aqueous electrolyte** solutions, port of Lilek and Zuend (2022, *Atmos. Chem. Phys.* 22, 3203–3233); built on top of `ActivityModel`'s ion molal activities/activity coefficients. Covers the 17 ions and all cation–anion pairs the paper fits. Also covers the paper's organic-inorganic mixing extension (Sect. 3): `organic_mixture_viscosity`/`pure_organic_viscosity_vtf` port the group-contribution organic-viscosity engine of Gervasi, Topping and Zuend (2020, *Atmos. Chem. Phys.* 20, 2987–3008); `aquelec_viscosity`/`aquorg_viscosity` implement two of Lilek and Zuend's three mixing rules (Sect. 3.4.1–3.4.2); and `predict_tg_derieux2018` implements the closed-form glass-transition-temperature estimate of DeRieux et al. (2018, *Atmos. Chem. Phys.* 18, 6331–6351) that the organic-viscosity model's Tg-dependent pure-component estimate relies on. Does **not** implement the ZSR mixing rule (Sect. 3.4.3, needs an iterative nonlinear solve) — see the module docstring and `tests/test_viscosity.py` |
 | `src/aiomfac_py/tgml_armeli/` | `predict_tg_ml_fg`/`predict_tg_ml_smiles` — the newer, more accurate machine-learning Tg predictor of Armeli, Peters and Koop (2023, *ACS Omega* 8, 12298–12309; optional `tgml`/`tgml-smiles` dependencies). Not a reimplementation — loads the authors' own trained `scikit-learn` model files (`data/*.pkl`, from the paper's own Zenodo deposit, see `PROVENANCE.md`) directly, with no SMILES-featurization dependency on `deepchem`/`tensorflow` (confirmed unnecessary by reading `deepchem`'s own source, see `PROVENANCE.md`). Incidentally the same "TgML_Armeli" module the Fortran reference itself only ships as a separately-licensed, optional add-on (see the `smiles-based pure-component method?` note further down). Installs normally alongside the rest of this package (no separate environment needed) — the vendored pickle files were migrated (`tools/migrate_tgml_pickles.py`) so any reasonably current `scikit-learn` can load them directly, and SMILES-mode descriptors are looked up by name so any reasonably current `rdkit` works too (see `PROVENANCE.md` and the module docstring for the full story, including one small known accuracy caveat vs. the exact RDKit version A2023 trained on) |

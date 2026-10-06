@@ -1,0 +1,5 @@
+water + pinic acid + ammonium sulfate at fixed total composition (UHAERO-type interior point): mode=lle, engine=pep, T=298.15 K
+[lle/pep]: converged (fixed total composition (water closed))
+  n_outer_iter=24
+  liquid 0: n=0.413325 mol, a_w=0.54885; x: Water=0.7901, pinic_acid=8.893e-08, (NH4)2SO4=0.2099
+  liquid 1: n=0.586675 mol, a_w=0.54885; x: Water=0.466, pinic_acid=0.5114, (NH4)2SO4=0.02261

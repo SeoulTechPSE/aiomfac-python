@@ -11,6 +11,9 @@ requires-python = ">=3.9"
 license = { text = "GPL-3.0-or-later" }
 dependencies = ["numpy>=1.22"]
 
+[project.scripts]
+aiomfac-tool = "aiomfac_py.tool:main"
+
 [project.optional-dependencies]
 test = ["pytest>=7"]
 # needed only for aiomfac_py.carbonate (bicarbonate/bisulfate dissociation equilibria, uses scipy.optimize.root)
