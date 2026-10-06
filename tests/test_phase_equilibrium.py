@@ -391,3 +391,46 @@ def test_organic_carbonate_two_liquids_with_co2():
     assert r.n_liquids == 2
     assert r.checks["max_abs_gas_residual"] < 1e-4
     assert r.gas["CO2"] < 0                                                       # CO2 taken up by the basic liquid
+
+
+@pytest.mark.parametrize("case", ["pinic_as", "dlt_hcl"])
+def test_stability_test_methods_give_the_same_equilibrium(case):
+    """Successive-substitution and barrier-Newton stability tests lead to the same equilibrium (same number of
+    liquids, F equal within the trace entries removed along either path)."""
+    if case == "pinic_as":
+        make = lambda: PhaseEquilibrium([PINIC], ["NH4+", "SO4--"], T_K=300.0)
+        args = (_ansan_feed(False), 0.30)
+        kw = dict(solids="none")
+    else:
+        pe0, feed = _dlt_nacl_acid(0.75)
+        make = lambda: PhaseEquilibrium(pe0._organics, ["Na+", "H+", "Cl-", "SO4--"], T_K=298.15)
+        args = (feed, 0.2)
+        kw = dict(solids="none", p_gas={"HCl": 1e-9})
+    out = {}
+    for method in ("ss", "newton"):
+        pe = make()
+        pe.tpd_method = method
+        out[method] = pe.solve(*args, **kw)
+        _assert_equilibrium(out[method])
+    assert out["ss"].n_liquids == out["newton"].n_liquids
+    assert out["ss"].gibbs == pytest.approx(out["newton"].gibbs, abs=1e-7)
+
+
+def test_successive_substitution_finds_the_unstable_direction():
+    """From the one-liquid state of pinic acid + AS at RH 0.30 (unstable, TPD < -0.1 with the Newton method), the
+    substitution reaches a composition with the same negative TPD within 1e-6."""
+    pe = PhaseEquilibrium([PINIC], ["NH4+", "SO4--"], T_K=300.0)
+    single = pe.solve(_ansan_feed(False), 0.30, solids="none", max_liquids=1)
+    L = single.liquids[0]
+    mu = pe._reference_potentials(single.liquids, math.log(0.30))
+    best = {}
+    for method in ("ss", "newton"):
+        pe.tpd_method = method
+        ts = []
+        for w0 in pe._trial_points(L.amounts / L.total, 0.30, single.liquids):
+            w, t = pe._tpd_minimize(mu, w0, refs=[L.mole_fractions])
+            if np.all(np.isfinite(w)) and np.isfinite(t):
+                ts.append(t)
+        best[method] = min(ts)
+    assert best["ss"] < -0.1
+    assert best["ss"] == pytest.approx(best["newton"], abs=1e-6)

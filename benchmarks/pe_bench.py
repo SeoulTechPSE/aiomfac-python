@@ -48,10 +48,12 @@ def case_dlt_hcl():
 
 
 def case_dlt_3liq():
-    """DLT + NaCl + H2SO4 (r 1.5), RH 0.5 (three liquids after a smaller seed)"""
+    """DLT + NaCl + H2SO4 (r 1.5), open to 1e-9 atm HCl, RH 0.5 (three liquids after a smaller seed; as in
+    test_new_liquid_close_to_its_appearance_is_found_with_a_smaller_seed)"""
     m, r = 1 / 58.44, 1.5
     return PhaseEquilibrium([_dlt()], ["Na+", "H+", "Cl-", "SO4--"], T_K=298.15).solve(
-        {"DLT": 3 / 206.19, "Na+": m, "Cl-": m, "H+": 2 * r * m, "SO4--": r * m}, 0.5, solids="none")
+        {"DLT": 3 / 206.19, "Na+": m, "Cl-": m, "H+": 2 * r * m, "SO4--": r * m}, 0.5, solids="none",
+        p_gas={"HCl": 1e-9})
 
 
 def case_carbonate_closed():
@@ -68,13 +70,26 @@ def case_org_carbonate():
         p_gas={"CO2": 4.2e-4})
 
 
+_tpd = PhaseEquilibrium._tpd_minimize
+
+
+def _tpd_counted(self, *a, **k):
+    n0 = COUNT["n"]
+    try:
+        return _tpd(self, *a, **k)
+    finally:
+        COUNT["tpd"] = COUNT.get("tpd", 0) + COUNT["n"] - n0
+
+
+PhaseEquilibrium._tpd_minimize = _tpd_counted
+
 CASES = {k[5:]: v for k, v in list(globals().items()) if k.startswith("case_")}
 
 if __name__ == "__main__":
     for name in sys.argv[1:] or list(CASES):
-        COUNT["n"] = 0
+        COUNT["n"] = 0; COUNT["tpd"] = 0
         t0 = time.perf_counter()
         r = CASES[name]()
         dt = time.perf_counter() - t0
         print(f"{name:18s} {r.status:14s} liq={r.n_liquids} solids={sorted(r.solids)} F={r.gibbs:.12e} "
-              f"tpd={r.tpd_min:.2e} evals={COUNT['n']:7d} time={dt:7.1f}s", flush=True)
+              f"tpd={r.tpd_min:.2e} evals={COUNT['n']:7d} (stability test {COUNT['tpd']:6d}) time={dt:7.1f}s", flush=True)

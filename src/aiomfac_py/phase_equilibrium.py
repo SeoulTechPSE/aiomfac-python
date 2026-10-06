@@ -568,8 +568,12 @@ class PhaseEquilibrium:
         self.hess_reuse_tol = 0.02
         # the stability test starts far from its minima: its excess Hessian is refreshed after much smaller changes
         self.tpd_hess_reuse_tol = 0.002
+        # stability test: "ss" = successive substitution (one activity evaluation per iteration; Newton polish only if
+        # it does not converge), "newton" = barrier Newton from every start (the original method)
+        self.tpd_method = "ss"
         self.trace_tol = 1.0e-9                     # scaled amount below which a liquid entry is removed
         self._trunc_max = 0.0
+        self._ls_failures = 0
 
     # ---------------------------------------------------------------------------------------------------
     def _solid_columns(self, solids: list[Solid]) -> np.ndarray:
@@ -839,6 +843,9 @@ class PhaseEquilibrium:
                     if np.all(xt[bnd] > 0):
                         rvt = raw(xt)
                         phit, gt = barrier(xt, rvt, mu)
+                        # Armijo, or a decrease of the reduced-gradient norm: the second criterion is needed close to
+                        # convergence, where the decrease of F falls below its numerical resolution (the speciation is
+                        # solved iteratively), and in carbonate systems (potentials only approximately a gradient)
                         if np.isfinite(phit) and np.all(np.isfinite(gt)) and (phit <= phi0 - 1.0e-4 * step * dec
                                                   or float(np.linalg.norm(Z.T @ gt)) <= (1.0 - 1.0e-4 * step) * r0):
                             ok = True
@@ -850,6 +857,7 @@ class PhaseEquilibrium:
                     if dec < 1.0e-14:
                         break
                     converged = False
+                    self._ls_failures += 1
                     break
                 x, rv = xt, rvt
             else:
@@ -859,7 +867,9 @@ class PhaseEquilibrium:
             if n_liq > 1 and self._truncate(x, n_liq, act, A):
                 Z, bnd = setup()
                 rv = raw(x)
-                converged = True                                  # repeat this stage without the trace entries
+                # repeat this stage without the trace entries; failures before the removal stay counted in
+                # self._ls_failures (reported in checks), the returned flag describes the stages after it
+                converged = True
                 continue
             if mu <= mu_min:
                 break
@@ -888,7 +898,116 @@ class PhaseEquilibrium:
         except (ValueError, FloatingPointError, OverflowError, ZeroDivisionError):
             return dry * rh / (1 - rh)
 
-    def _tpd_minimize(self, mu_eq: np.ndarray, w0: np.ndarray):
+    def _tpd_minimize(self, mu_eq: np.ndarray, w0: np.ndarray, refs=None):
+        """Stationary point of the tangent-plane distance from the start w0: successive substitution
+        (:meth:`_tpd_ss`), polished with the barrier Newton method (:meth:`_tpd_newton`) if it does not converge.
+        Carbonate systems (sign-free proton excess) use the Newton method only."""
+        if self.tpd_method == "ss" and not self.lm._carb:
+            w, t, ok = self._tpd_ss(mu_eq, w0, refs=refs)
+            if ok:
+                return w, t
+            w0 = w
+        return self._tpd_newton(mu_eq, w0)
+
+    def _tpd_ss(self, mu_eq: np.ndarray, w0: np.ndarray, max_iter: int = 100, tol: float = 1.0e-10, refs=None):
+        """Successive substitution for the stationary points of TPD(w) = sum w_i (ln a_i(w) - mu_i) (Michelsen, 1982),
+        generalized to the ion basis.  With ln a = ln_ideal + r (r: activity coefficients and speciation correction,
+        a smooth function of the intensive composition), the unnormalized amounts W are updated from r at the current
+        composition:
+
+            neutrals:  W_i = exp(mu_i - r_i)
+            ions:      W_i = M exp(mu_i - r_i + z_i psi) / T,   M = sum_neutral W_j M_j (solvent mass),
+
+        where T = sum W is closed-form (a quadratic) and psi makes W electroneutral (a monotonic 1-D equation).  At a
+        fixed point ln a_i - mu_i = -ln T + z_i psi for every species, i.e. w = W/T is a stationary point of TPD under
+        sum w = 1 and electroneutrality, with TPD = -ln T: the liquid is unstable if T > 1.  One activity evaluation
+        per iteration.
+
+        In electrolyte mixtures the plain substitution can oscillate (period two, e.g. Na+ and H+ exchanging their
+        roles), so r is relaxed: r_used <- r_used + beta (r(w) - r_used), with beta halved whenever the change of ln W
+        does not decrease (down to 0.05) and increased again after contracting steps.  Relaxing r keeps every iterate
+        electroneutral.
+
+        Early termination: an iterate within 1e-3 (max norm) of one of the current liquids (``refs``) with TPD above
+        -tol_tpd is the trivial solution (returned as converged, it is discarded by the caller); a clearly negative TPD
+        (< -1e-2) needs only a seed, so the iteration stops once ln W changes by less than 1e-4 or after 60 iterations.
+        Descent guard: in strongly non-ideal electrolyte mixtures a TPD minimum can be a repelling fixed point of the
+        substitution (an eigenvalue of its Jacobian above one, which relaxation cannot cure), and the iterates then
+        drift uphill to the trivial solution.  The TPD of every iterate is therefore monitored; once it exceeds the
+        lowest value reached (including the start) by more than max(1e-8, 1e-3 |lowest|), the substitution stops and
+        returns the lowest iterate as not converged, so the Newton method continues from there.
+        Returns (w, TPD(w), converged)."""
+        lm, N, nn = self.lm, self.N, self.lm.n_neutral
+        z = self.z
+        ions = np.arange(nn, N)
+        cat, an = ions[z[ions] > 0], ions[z[ions] < 0]
+        mm = lm._mm
+        w = np.asarray(w0, dtype=float); w = w / w.sum()
+        tpd_of = lambda w_, la_: float(np.dot(w_, la_ - mu_eq))
+        la = lm.ln_a(w, self.T)
+        best_t, best_w = tpd_of(w, la), w.copy()
+        lnW_old = None
+        ok = False
+        r_used = None
+        beta, step_old = 1.0, math.inf
+        for it in range(max_iter):
+            r_new = la - lm.ln_ideal(w)
+            r = r_new if r_used is None else r_used + beta * (r_new - r_used)
+            r_used = r
+            W = np.empty(N)
+            W[:nn] = np.exp(np.clip(mu_eq[:nn] - r[:nn], -700.0, 700.0))
+            Tn = float(W[:nn].sum())
+            if len(ions):
+                M = float(np.dot(W[:nn], mm))
+                le = math.log(M) + mu_eq[nn:] - r[nn:]                       # ln e_i at psi = 0
+                zi = z[nn:]
+                def g(psi):                                                     # ln(cation charge) - ln(anion charge)
+                    lc = le[zi > 0] + zi[zi > 0] * psi + np.log(zi[zi > 0])
+                    la_ = le[zi < 0] + zi[zi < 0] * psi + np.log(-zi[zi < 0])
+                    mc, ma = lc.max(), la_.max()
+                    return (mc + math.log(np.exp(lc - mc).sum())) - (ma + math.log(np.exp(la_ - ma).sum()))
+                lo, hi = -5.0, 5.0
+                while g(lo) > 0: lo -= 10.0
+                while g(hi) < 0: hi += 10.0
+                from scipy.optimize import brentq
+                psi = brentq(g, lo, hi, xtol=1e-14)
+                le = le + zi * psi
+                cmax = le.max()
+                E = math.exp(cmax) * float(np.exp(le - cmax).sum())
+                T = 0.5 * (Tn + math.sqrt(Tn * Tn + 4.0 * E))
+                W[nn:] = np.exp(le) / T
+            else:
+                T = Tn
+            lnW = np.log(W)
+            w = W / W.sum()
+            la = lm.ln_a(w, self.T)
+            if not np.all(np.isfinite(la)):
+                return w, float("nan"), False
+            t_now = tpd_of(w, la)
+            if t_now > best_t + max(1.0e-8, 1.0e-3 * abs(best_t)):
+                return best_w, best_t, False                             # uphill: hand over to Newton
+            if t_now < best_t:
+                best_t, best_w = t_now, w.copy()
+            if refs is not None and t_now > -self.tol_tpd and \
+                    min(float(np.max(np.abs(w - x))) for x in refs) < 1.0e-3:
+                return w, t_now, True                                    # trivial solution
+            if lnW_old is not None:
+                step = float(np.max(np.abs(lnW - lnW_old)))
+                if step >= step_old:
+                    beta = max(0.5 * beta, 0.05)
+                elif step < 0.5 * step_old:
+                    beta = min(1.0, 1.5 * beta)
+                step_old = step
+                if step < tol:
+                    ok = True
+                    break
+                if t_now < -1.0e-2 and (step < 1.0e-4 or it >= 60):    # clearly unstable: accurate enough to seed
+                    ok = True
+                    break
+            lnW_old = lnW
+        return w, tpd_of(w, la), ok
+
+    def _tpd_newton(self, mu_eq: np.ndarray, w0: np.ndarray):
         """min_w sum w_i (ln a_i(w) - mu_i) over electroneutral w with sum of the bounded entries = 1 (barrier Newton
         from w0; the proton excess of a carbonate system is a free entry)."""
         N = self.N
@@ -1033,7 +1152,7 @@ class PhaseEquilibrium:
                 child = PhaseEquilibrium(orgs, ions_kept, self.T, k_mode=self.k_mode, solid_keys=sk)
                 child.tol_tpd, child.trace_tol, child.seed_fractions = self.tol_tpd, self.trace_tol, self.seed_fractions
                 child.hess_scheme, child.hess_reuse_tol = self.hess_scheme, self.hess_reuse_tol
-                child.tpd_hess_reuse_tol = self.tpd_hess_reuse_tol
+                child.tpd_hess_reuse_tol, child.tpd_method = self.tpd_hess_reuse_tol, self.tpd_method
                 self._children[key] = child
             sub_feed = {k: v for k, v in feed.items() if k in present}
             if isinstance(solids, (list, tuple)):
@@ -1114,6 +1233,7 @@ class PhaseEquilibrium:
         history = []
         act = np.ones(len(x), dtype=bool)                     # entries taking part (False: species absent from a liquid)
         self._trunc_max = 0.0
+        self._ls_failures = 0
         while True:
             n_outer += 1
             n_liq = len(phases)
@@ -1158,7 +1278,7 @@ class PhaseEquilibrium:
             for w0 in self._trial_points(b, rh, liquids):
                 try:
                     with np.errstate(all="ignore"):
-                        w, t = self._tpd_minimize(mu_eq, w0)
+                        w, t = self._tpd_minimize(mu_eq, w0, refs=[L.mole_fractions for L in liquids])
                 except (ValueError, FloatingPointError, np.linalg.LinAlgError, ZeroDivisionError):
                     continue
                 if not (np.all(np.isfinite(w)) and np.isfinite(t) and np.all(w > 0)):
@@ -1244,7 +1364,8 @@ class PhaseEquilibrium:
         F = self._objective(x, len(phases), ln_rh, act)[0]
         checks = self._checks(liquids, ln_rh, si, solid_amounts, b * scale, u, g_end, p_out)
         checks["n_absent_entries"] = float(sum(int(np.sum(~np.isfinite(L.ln_a))) for L in liquids))
-        checks["max_removed_trace"] = self._trunc_max          # largest removed amount, relative to sum |feed|
+        checks["max_removed_trace"] = self._trunc_max
+        checks["n_line_search_failures"] = float(self._ls_failures)          # largest removed amount, relative to sum |feed|
         if dry:
             # all non-water material is in solids; the remaining "liquid" is a numerical remnant of the barrier
             si = self._si_liquids(liquids, ln_rh)

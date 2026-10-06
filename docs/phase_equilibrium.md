@@ -1,7 +1,7 @@
 # Combined liquid–liquid–solid equilibrium solver (`aiomfac_py.phase_equilibrium`)
 
 Implementation: `src/aiomfac_py/phase_equilibrium.py` (`LiquidModel`, `PhaseEquilibrium`, `PhaseEquilibriumResult`),
-tests: `tests/test_phase_equilibrium.py` (28 tests). Branch `feature/phase-equilibrium` (commits 3f1f230 onward).
+tests: `tests/test_phase_equilibrium.py` (31 tests). Branch `feature/phase-equilibrium` (commits 3f1f230 onward).
 
 Like `aiomfac_py.lle` and `aiomfac_py.sle`, this module is **not** part of the Fortran AIOMFAC code, which provides
 activities only. It is therefore not Fortran-validated. It is checked against the other solvers of this package and
@@ -253,7 +253,11 @@ closed-mode gas amounts.
   the Newton step in the convex directions.
 * **Step length.** A fraction-to-the-boundary rule (0.995 of the largest feasible step) is followed by backtracking.
   A step is accepted if it satisfies the Armijo condition on Φ_μ, **or** if it reduces the norm of the reduced gradient
-  `‖Zᵀ ∇Φ_μ‖` by the same factor. The second criterion is needed for carbonate with organics (Sect. 3.3). Evaluations
+  `‖Zᵀ ∇Φ_μ‖` by the same factor. The second criterion is needed close to convergence, where the decrease of Φ_μ falls
+  below its numerical resolution (the speciation is solved iteratively), and in carbonate systems (Sect. 3.3). A guard
+  that rejected steps increasing Φ_μ beyond 1e-10–1e-7 |Φ_μ| outside carbonate systems was tried. It caused line-search
+  failures and spurious three-liquid attempts in DLT + NaCl + H2SO4, and it saved evaluations only in another case, so
+  it was not adopted. Evaluations
   that raise floating-point errors (over/underflow in the speciation) count as rejected trial points.
 * **Convergence at each μ.** Both conditions must hold:
   1. the Newton decrement `−∇Φᵀ dx < 1e-14 + 1e-10 μ len(x)`;
@@ -331,8 +335,44 @@ The tangent-plane distance of a trial composition w (electroneutral, bounded ent
 TPD(w) = Σ_i w_i ( ln a_i(w) − μ_i ) .
 ```
 
-`_tpd_minimize` minimizes it with the same barrier-Newton scheme in the null space of {Σ w = 1, z·w = 0}. It uses 9
-μ stages from 1e-4 and an eigenvalue shift for non-convex regions. The starts (`_trial_points`) are fixed
+`_tpd_minimize` finds a stationary point of TPD from each start by **successive substitution** (`_tpd_ss`,
+`tpd_method = "ss"`; Michelsen, 1982, generalized to the ion basis). With `ln a = ln_ideal + r` (Sect. 3.1), the
+unnormalized amounts W are updated from r at the current composition:
+
+* neutrals: `W_i = exp(μ_i − r_i)`;
+* ions: `W_i = M exp(μ_i − r_i + z_i ψ) / T`, with M = Σ_neutral W_j M_j (the solvent mass), T = Σ W in closed form
+  (a quadratic), and ψ from electroneutrality (a monotonic one-dimensional equation).
+
+At a fixed point `ln a_i − μ_i = −ln T + z_i ψ` for every species. w = W/T is then a stationary point of TPD under
+Σ w = 1 and electroneutrality, with **TPD = −ln T**; the liquid set is unstable if T > 1. Each iteration costs one
+activity evaluation and needs no Hessian.
+
+In electrolyte mixtures the plain substitution can oscillate with period two. An example is DLT + NaCl + H2SO4, where
+Na+ and H+ exchange roles at every iteration. r is therefore relaxed (`r ← r + β (r(w) − r)`). β is halved whenever the
+change of ln W does not decrease (down to 0.05) and is raised again after contracting steps. Relaxing r, not W, keeps
+every iterate electroneutral.
+
+The iteration stops in three ways:
+* when ln W changes by less than 1e-10;
+* at the trivial solution: an iterate within 1e-3 of an existing liquid with TPD > −tol_tpd;
+* for a clearly negative TPD (< −1e-2), once ln W changes by less than 1e-4 or after 60 iterations, since only a seed
+  is needed.
+
+**Descent guard.** In strongly non-ideal electrolyte mixtures a TPD minimum can be a repelling fixed point of the
+substitution: an eigenvalue of its Jacobian is above one, which relaxation cannot cure. The iterates then drift uphill to
+the trivial solution. An example is DLT + NaCl + H2SO4 (r = 0.1, RH 0.4): from every start the substitution returned the
+one-liquid composition, whereas the Newton method finds a salt-rich composition with TPD −0.41. A sweep then reported
+one liquid where there are two. The TPD of every iterate is therefore monitored. Once it exceeds the lowest value
+reached (including the start) by more than max(1e-8, 1e-3 |lowest|), the substitution stops, and the Newton method
+continues from the lowest iterate.
+
+After 100 iterations without convergence, the barrier Newton method (`_tpd_newton`: 9 μ stages from 1e-4,
+eigenvalue shift for non-convex regions) finishes from the last iterate. Carbonate systems, whose proton excess is
+sign-free, use the Newton method only. `tpd_method = "newton"` restores the original method; the tests
+`test_stability_test_methods_give_the_same_equilibrium` and `test_successive_substitution_finds_the_unstable_direction`
+compare the two.
+
+The starts (`_trial_points`) are fixed
 mole-fraction patterns. They do not depend on RH, so close to saturation an "organic-rich" trial stays organic-rich:
 
 * each organic at x = 0.3, 0.7 and 0.95 in water, with traces of the ions;
@@ -418,6 +458,7 @@ The status is decided by the **equilibrium conditions of the final state**, not 
 | `tpd_min` | > −1e-7 | stability |
 | `max_charge_residual`, `max_mass_balance_residual` | reported | exact by construction (≈ 1e-15) |
 | `n_absent_entries`, `max_removed_trace` | reported | entries removed from single liquids (Sect. 5.1) |
+| `n_line_search_failures` | reported | inner line searches that failed, including those before a trace removal |
 
 * `"converged"`: all limits hold.
 * `"not_converged"`: at least one fails, and `message` names it. A one-liquid solve (`max_liquids=1`) of an unstable
@@ -489,6 +530,8 @@ in its limits against independent implementations, and every result against its 
 | `test_fast_bisulfate_speciation_matches_bracketing_solver` | warm-started speciation = `dissociation.solve_bisulfate` (1e-10) on random compositions |
 | `test_hessian_schemes_give_the_same_equilibrium` | split and central Hessians converge to the same two-liquid state |
 | `test_organic_carbonate_two_liquids_with_co2` | pinic acid + NaCl + base open to CO2: two liquids with carbonate traces in the organic liquid |
+| `test_stability_test_methods_give_the_same_equilibrium` (2 cases) | successive-substitution and Newton stability tests give the same number of liquids and F (1e-7) |
+| `test_successive_substitution_finds_the_unstable_direction` | one-liquid pinic acid + AS at RH 0.30: the most negative TPD of both methods agrees (1e-6) |
 
 ---
 
@@ -516,25 +559,25 @@ separation RH may lie between the two.
 
 ---
 
----
-
 ## 12. Limitations and open points
 
-* **Run time.** `benchmarks/pe_bench.py` reports the wall time and the number of activity evaluations of five
-  representative cases. With the split Hessian (Sect. 3.1) and the warm-started bisulfate speciation (Sect. 3.2), a
-  full solve (stability test, two liquids) with one organic and 4–5 ions takes 0.5–3 s (one CPU core):
+* **Run time.** `benchmarks/pe_bench.py` reports the wall time and the number of activity evaluations (in total and in
+  the stability test) of six representative cases. Measured one after another on one machine (one CPU core each):
 
-  | case | activity evaluations (before → now) | time (before → now) |
-  |---|---|---|
-  | pinic acid + AS, RH 0.30, two liquids | 9765 → 1297 | 2.6 s → 0.5 s |
-  | pinic acid + AS + AN, RH 0.6, two liquids + AS(s) | 11204 → 1570 | 3.1 s → 0.6 s |
-  | DLT + NaCl + H2SO4, open HCl, RH 0.2 | 30842 → 4327 | 296 s → 2.9 s |
-  | DLT + NaCl + H2SO4 (r = 1.5), RH 0.5 | 9716 → 1474 | 60 s → 1.6 s |
-  | NaCl + base, closed CO2 | 7612 → 2039 | 5.3 s → 1.6 s |
-  | pinic acid + NaCl + base, open CO2, RH 0.5, two liquids | 24526 → 13644 | 18 s → 10.5 s |
+  | case | 1c693be | split Hessian (3b1dc3d) | + successive substitution |
+  |---|---|---|---|
+  | pinic acid + AS, RH 0.30, two liquids | 9765 evals, 1.4 s | 1297, 0.3 s | 825, 0.2 s |
+  | pinic acid + AS + AN, RH 0.6, two liquids + AS(s) | 11204, 1.7 s | 1570, 0.3 s | 713, 0.2 s |
+  | DLT + NaCl + H2SO4 (r = 0.75), open HCl, RH 0.2 | 62624, 338 s | 4276, 1.5 s | 4484, 1.3 s |
+  | DLT + NaCl + H2SO4 (r = 1.5), open HCl, RH 0.5, three liquids | 42776, 136 s | 10811, 5.4 s | 8746, 4.6 s |
+  | NaCl + base, closed CO2 | 7662, 2.6 s | 2132, 0.8 s | 2132, 0.8 s |
+  | pinic acid + NaCl + base, open CO2, RH 0.5, two liquids | 25021, 9.5 s | 17189, 6.5 s | 17189, 6.6 s |
 
-  All results are unchanged (F to 12 digits). Most of the remaining cost is in the stability test (its starts refresh
-  the excess Hessian often). An analytic or automatic-differentiation Jacobian of AIOMFAC would remove most of it.
+  The equilibrium states are the same (F within 1e-12, except for 1e-12–1e-11 differences from removed traces). The
+  stability test still takes most of the evaluations in electrolyte-rich cases: there the substitution often stops on
+  the descent guard and the Newton method finishes (Sect. 6.2). Carbonate systems use the Newton method throughout.
+  On the acid sweeps of `research/paper_2` (DLT + AS/NaCl + H2SO4, 240 states), the successive-substitution version
+  gives the same number of liquids as 3b1dc3d at every state and is 3–5 times faster.
 * **Phase appearance.** If none of the seed sizes reaches the new liquid, the loop stops on the repeat rule and reports
   a small negative TPD (status `not_converged`).
 * **Extreme supersaturation.** With crystallization suppressed (`solids="none"`) at low RH, a liquid can be required
