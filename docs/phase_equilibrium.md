@@ -154,26 +154,42 @@ satisfies Gibbs–Duhem (`H n ≈ 0`).
 
 ### 3.1 Hessian
 
-AIOMFAC provides no analytic Jacobian. `LiquidModel.hessian` computes `∂ ln a_i / ∂ n_j` by central differences and
-symmetrizes it:
+AIOMFAC provides no analytic Jacobian. The Hessian `∂ ln a_i / ∂ n_j` of a liquid is assembled from two parts
+(`LiquidModel.hessian_split`, the default `hess_scheme = "split"`):
 
-* the step for each bounded species is `h_j = 1e-5 · n_j`. A step proportional to the amount keeps the perturbed
-  state positive for trace species and resolves their 1/n curvature;
-* only a sign-free species (the carbonate proton excess) uses an absolute floor, `1e-10 Σ|n|`.
+* **ideal part, exact** (`ln_ideal`, `ideal_jacobian`): `ln n_i − ln Σ n` for the neutrals and `ln n_i − ln(solvent
+  mass)` for the ions. All 1/n curvature of trace species is in this part, and it is recomputed at every Newton step;
+* **excess part, by forward differences** (`hessian_excess`): the remainder `ln a − ln_ideal` (activity coefficients
+  plus the speciation correction of acid and carbonate systems) is a smooth function of the composition. It is
+  differenced with a step of 1e-6 of the phase size for every bounded species, trace species included (N activity
+  evaluations instead of 2N). Only the sign-free carbonate proton excess keeps a central difference.
 
-The cost is 2N activity evaluations per liquid and Newton iteration. It dominates the run time.
+The excess part is **reused** while the liquid changes little: in the inner iteration it is refreshed when an amount
+has changed by more than `hess_reuse_tol` = 0.02 of the liquid's size since it was computed (or when entries are
+removed, Sect. 5.1); in the stability test, which starts far from its minima, after `tpd_hess_reuse_tol` = 0.002. The
+gradient is always exact, so a reused Hessian changes the convergence rate, not the solution. The sum is
+symmetrized. `hess_scheme = "central"` restores the previous scheme (central differences of ln a at every step, step
+`1e-5 · n_j`); the test `test_hessian_schemes_give_the_same_equilibrium` checks that both give the same state.
 
 ### 3.2 Acid sulfate
 
 H+ and SO4-- are **stoichiometric** (total) components; passing HSO4- is an error. In every activity evaluation of a
-phase that contains both, the bisulfate equilibrium HSO4- ⇌ H+ + SO4-- is solved with `dissociation.solve_bisulfate`
-(Knopf et al., 2003 constant, as in `aiomfac_py.sle`). The free-ion molalities replace the totals before the activity
-coefficients are computed. The potential of each stoichiometric component equals that of its free ion at the
-speciation equilibrium (`μ_H,total = μ_H+`, `μ_SO4,total = μ_SO4--`). Because of this, the formulation of Sect. 2
-needs no change: the speciation is part of the phase's Gibbs function.
+phase that contains both, the bisulfate equilibrium HSO4- ⇌ H+ + SO4-- is solved (Knopf et al., 2003 constant, as in
+`aiomfac_py.sle`). The free-ion molalities replace the totals before the activity coefficients are computed. The
+potential of each stoichiometric component equals that of its free ion at the speciation equilibrium
+(`μ_H,total = μ_H+`, `μ_SO4,total = μ_SO4--`). Because of this, the formulation of Sect. 2 needs no change: the
+speciation is part of the phase's Gibbs function.
 
-Test: `test_acid_activities_match_activity_model_with_bisulfate_speciation` compares with `ActivityModel.evaluate`
-including its own dissociation step (agreement 1e-10).
+The speciation (`LiquidModel._speciate_hso4`) uses the method of `SLESolver`: at a fixed ratio
+`q = K / (γ_H γ_SO4 / γ_HSO4)` the HSO4- molality is the smaller root of a quadratic; q is updated by fixed-point
+iteration with secant acceleration, warm-started from the last solution (as a fraction of the largest possible HSO4-).
+It needs about 2 AIOMFAC evaluations per call, against about 20 for the bracketing Brent solver of
+`dissociation.solve_bisulfate`, which remains the fallback if the iteration does not converge. The terms of the last
+evaluation are reused for the activities.
+
+Tests: `test_acid_activities_match_activity_model_with_bisulfate_speciation` compares with `ActivityModel.evaluate`
+including its own dissociation step (agreement 1e-10); `test_fast_bisulfate_speciation_matches_bracketing_solver`
+compares the two speciation solvers on random compositions (1e-10).
 
 ### 3.3 Carbonate
 
@@ -222,8 +238,9 @@ closed-mode gas amounts.
 
 * **Null space.** `Z = null_space(A)` is computed once. Every step is `dx = Z d`, so the linear constraints hold exactly
   at every iterate, and electroneutrality and mass balance are satisfied to round-off (≈ 1e-15).
-* **Newton system.** `H` is block-diagonal: one finite-difference Hessian per liquid, the closed-mode gas block, and the
-  barrier term `μ / x_j²`. The reduced Hessian `Zᵀ H Z` is diagonalized. If its smallest eigenvalue is not positive
+* **Newton system.** `H` is block-diagonal: one Hessian per liquid (Sect. 3.1), the closed-mode gas block, and the
+  barrier term `μ / x_j²`. The objective, the activities and the gas terms of an accepted trial point are reused for
+  the next Newton step and across barrier stages. The reduced Hessian `Zᵀ H Z` is diagonalized. If its smallest eigenvalue is not positive
   (a non-convex region of AIOMFAC), the spectrum is shifted to `1e-8 · max|λ|`. The result is a descent direction with
   the Newton step in the convex directions.
 * **Step length.** A fraction-to-the-boundary rule (0.995 of the largest feasible step) is followed by backtracking.
@@ -491,10 +508,20 @@ separation RH may lie between the two.
 
 ## 12. Limitations and open points
 
-* **Run time.** About 10–25 s for a one-liquid solve and 1–1.5 min for a full solve (stability test, two liquids)
-  with one organic and 4–5 ions on a laptop, dominated by finite-difference Hessians
-  (2N activity evaluations per liquid and Newton step) and the TPD starts. An analytic or automatic-differentiation
-  Jacobian of AIOMFAC would remove most of it.
+* **Run time.** `benchmarks/pe_bench.py` reports the wall time and the number of activity evaluations of five
+  representative cases. With the split Hessian (Sect. 3.1) and the warm-started bisulfate speciation (Sect. 3.2), a
+  full solve (stability test, two liquids) with one organic and 4–5 ions takes 0.5–3 s (one CPU core):
+
+  | case | activity evaluations (before → now) | time (before → now) |
+  |---|---|---|
+  | pinic acid + AS, RH 0.30, two liquids | 9765 → 1297 | 2.6 s → 0.5 s |
+  | pinic acid + AS + AN, RH 0.6, two liquids + AS(s) | 11204 → 1570 | 3.1 s → 0.6 s |
+  | DLT + NaCl + H2SO4, open HCl, RH 0.2 | 30842 → 5052 | 296 s → 3.1 s |
+  | DLT + NaCl + H2SO4 (r = 1.5), RH 0.5 | 9716 → 1475 | 60 s → 1.7 s |
+  | NaCl + base, closed CO2 | 7612 → 3743 | 5.3 s → 2.2 s |
+
+  All results are unchanged (F to 12 digits). Most of the remaining cost is in the stability test (its starts refresh
+  the excess Hessian often). An analytic or automatic-differentiation Jacobian of AIOMFAC would remove most of it.
 * **Phase appearance.** If none of the seed sizes reaches the new liquid, the loop stops on the repeat rule and reports
   a small negative TPD (status `not_converged`).
 * **Extreme supersaturation.** With crystallization suppressed (`solids="none"`) at low RH, a liquid can be required

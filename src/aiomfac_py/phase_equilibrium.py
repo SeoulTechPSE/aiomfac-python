@@ -148,6 +148,7 @@ class LiquidModel:
             self._ih = mx.cat_index[ION_REGISTRY["H+"][0]]
             self._iso = mx.an_index[ION_REGISTRY["SO4--"][0]]
             self._ihs = mx.an_index[ION_REGISTRY["HSO4-"][0]]
+        self._hso4_frac = None                       # warm start of the bisulfate speciation (HSO4- / its maximum)
         # species whose amount may take either sign (barrier-free): the proton excess of a carbonate system
         self.free = np.zeros(self.N, dtype=bool)
         if self._carb:
@@ -181,12 +182,18 @@ class LiquidModel:
         mod = self.model
         if self._carb:
             return self._ln_a_carb(n, T, xn, smc, sma, solv)
+        terms = None
         if self._acid and smc[self._ih] > 0.0 and sma[self._iso] > 0.0:
             # stoichiometric H+ and SO4-- -> free H+, HSO4-, SO4-- at the bisulfate equilibrium of this phase
-            r = solve_bisulfate(mod, T, xn, smc, sma, self._ih, self._ihs, self._iso)
-            smc[self._ih], sma[self._ihs], sma[self._iso] = r.m_h, r.m_hso4, r.m_so4
-        x = mod._x_from_molalities(xn, smc, sma)
-        lr, mr, sr = mod.lr_mr_sr(T, smc, sma, xn, x)
+            terms = self._speciate_hso4(xn, smc, sma, T)
+            if terms is None:                                    # fallback: the bracketing solver of dissociation.py
+                r = solve_bisulfate(mod, T, xn, smc, sma, self._ih, self._ihs, self._iso)
+                smc[self._ih], sma[self._ihs], sma[self._iso] = r.m_h, r.m_hso4, r.m_so4
+        if terms is None:
+            x = mod._x_from_molalities(xn, smc, sma)
+            lr, mr, sr = mod.lr_mr_sr(T, smc, sma, xn, x)
+        else:
+            x, lr, mr, sr = terms
         out = np.empty(self.N)
         with np.errstate(divide="ignore"):                       # a species absent from the phase has ln a = -inf
             out[:nn] = lr.ln_gamma_neutral[:nn] + mr.ln_gamma_neutral[:nn] + sr.ln_gamma_sr[:nn] + np.log(x[:nn])
@@ -200,6 +207,56 @@ class LiquidModel:
                 lg = mr.ln_gamma_anion[idx] + sr.ln_gamma_sr[nn + nc + idx] + lr.ln_gamma_anion[idx] - mr.tmolal
                 out[nn + k] = lg + lg_(sma[idx])
         return out
+
+    def _speciate_hso4(self, xn, smc, sma, T):
+        """Bisulfate equilibrium HSO4- <=> H+ + SO4-- for the total H+ and SO4-- molalities in ``smc``/``sma``.
+
+        Same condition as :func:`aiomfac_py.dissociation.solve_bisulfate` (ln g_H + ln g_SO4 - ln g_HSO4 +
+        ln(m_H m_SO4/m_HSO4) = ln K), solved as in :meth:`aiomfac_py.sle.AqueousIons._speciate`: at a fixed activity-
+        coefficient ratio q the HSO4- molality is the root of a quadratic; q is updated by fixed-point iteration,
+        accelerated by secant steps and warm-started from the last solution (as a fraction of the maximum HSO4-).
+        Typically 2-5 activity evaluations instead of ~20 for the bracketing solver.  Fills ``smc``/``sma`` with the
+        speciated molalities and returns (x, lr, mr, sr) at that state, or None (caller falls back) if the iteration
+        does not converge."""
+        mod, nn, nc = self.model, self.n_neutral, self._nc
+        ih, ihs, iso = self._ih, self._ihs, self._iso
+        mh, ms = float(smc[ih]), float(sma[iso])
+        K = math.exp(ln_k_hso4_at_t(T))
+        xmax = min(mh, ms)
+        lo_b, hi_b = 1.0e-14 * xmax, xmax * (1.0 - 1.0e-14)
+        frac = self._hso4_frac if self._hso4_frac is not None else 0.5
+        xh = min(max(frac * xmax, lo_b), hi_b)
+        x_prev = f_prev = None
+        for it in range(60):
+            smc[ih] = mh - xh
+            sma[ihs] = xh
+            sma[iso] = ms - xh
+            x = mod._x_from_molalities(xn, smc, sma)
+            lr, mr, sr = mod.lr_mr_sr(T, smc, sma, xn, x)
+            lg_h = mr.ln_gamma_cation[ih] + sr.ln_gamma_sr[nn + ih] + lr.ln_gamma_cation[ih]
+            lg_hs = mr.ln_gamma_anion[ihs] + sr.ln_gamma_sr[nn + nc + ihs] + lr.ln_gamma_anion[ihs]
+            lg_so = mr.ln_gamma_anion[iso] + sr.ln_gamma_sr[nn + nc + iso] + lr.ln_gamma_anion[iso]
+            e = lg_h + lg_so - lg_hs - mr.tmolal                 # net molal conversion: one -tmolal
+            if not math.isfinite(e):
+                break
+            q = K / math.exp(max(min(e, 50.0), -50.0))
+            s_ = mh + ms + q
+            g = 2.0 * mh * ms / (s_ + math.sqrt(max(s_ * s_ - 4.0 * mh * ms, 0.0)))   # smaller root, cancellation-free
+            g = min(max(g, lo_b), hi_b)
+            f = g - xh
+            if abs(f) <= 1.0e-13 * xmax:
+                self._hso4_frac = xh / xmax
+                return x, lr, mr, sr                             # terms evaluated at the converged state xh
+            if x_prev is not None and it >= 2 and abs(f - f_prev) > 0.0:
+                xs = xh - f * (xh - x_prev) / (f - f_prev)
+                xn_ = xs if lo_b < xs < hi_b else g
+            else:
+                xn_ = g
+            x_prev, f_prev = xh, f
+            xh = xn_
+        self._hso4_frac = None
+        smc[ih], sma[ihs], sma[iso] = mh, 0.0, ms                # restore the totals for the fallback solver
+        return None
 
     def _gp(self, mr, sr, lr, is_cat: bool, idx: int) -> float:
         nn, nc = self.n_neutral, self._nc
@@ -295,6 +352,84 @@ class LiquidModel:
                 m = (smc if is_cat else sma)[idx]
             out[i] = self._gp(mr, sr, lr, is_cat, idx) + math.log(max(m, 1.0e-300))
         return out
+
+    # ---------------------------------------------------------------------------------------------------
+    # ideal part of ln a and its exact Jacobian (used by the split Hessian)
+    # ---------------------------------------------------------------------------------------------------
+    def ln_ideal(self, n: np.ndarray, act: np.ndarray | None = None) -> np.ndarray:
+        """Ideal part of ln a: ln n_i - ln(sum of the bounded amounts) for the neutrals, ln n_i - ln(solvent mass) for the
+        ions, 0 for the sign-free proton excess and for absent entries.  ``ln a - ln_ideal`` is a smooth function of
+        the composition (the activity coefficients, plus the speciation correction of acid and carbonate systems):
+        all 1/n curvature of trace species is in the ideal part."""
+        n = np.asarray(n, dtype=float)
+        act = np.ones(self.N, dtype=bool) if act is None else act
+        nn = self.n_neutral
+        bnd = act & ~self.free
+        tot = float(np.sum(n[bnd]))
+        solv = float(np.dot(n[:nn], self._mm))
+        out = np.zeros(self.N)
+        k = bnd.copy()
+        with np.errstate(divide="ignore"):
+            out[k] = np.log(n[k])
+        out[:nn][k[:nn]] -= math.log(tot)
+        out[nn:][k[nn:]] -= math.log(solv)
+        return out
+
+    def ideal_jacobian(self, n: np.ndarray, act: np.ndarray | None = None) -> np.ndarray:
+        """Exact d ln_ideal_i / d n_j (see :meth:`ln_ideal`)."""
+        n = np.asarray(n, dtype=float)
+        act = np.ones(self.N, dtype=bool) if act is None else act
+        nn = self.n_neutral
+        bnd = act & ~self.free
+        tot = float(np.sum(n[bnd]))
+        solv = float(np.dot(n[:nn], self._mm))
+        J = np.zeros((self.N, self.N))
+        idx = np.flatnonzero(bnd)
+        J[idx, idx] = 1.0 / n[idx]
+        rn = idx[idx < nn]
+        ri = idx[idx >= nn]
+        J[np.ix_(rn, idx)] -= 1.0 / tot
+        cn = np.flatnonzero(act[:nn])
+        J[np.ix_(ri, cn)] -= self._mm[cn] / solv
+        return J
+
+    def hessian_excess(self, n: np.ndarray, T: float, active: np.ndarray | None = None, la0: np.ndarray | None = None,
+                       rel: float = 1.0e-6) -> np.ndarray:
+        """d(ln a - ln_ideal)/dn by forward differences (N activity evaluations; ``la0`` = ln a(n) if already known).
+        The function differenced is smooth, so the step is a fraction ``rel`` of the phase size for every bounded
+        species (trace species included); the sign-free proton excess keeps the central difference of :meth:`hessian`
+        (its ln a varies steeply around neutrality)."""
+        n = np.asarray(n, dtype=float)
+        act = np.ones(self.N, dtype=bool) if active is None else np.asarray(active, dtype=bool)
+        S = float(np.sum(np.abs(n[act])))
+        la0 = self.ln_a(n, T) if la0 is None else la0
+        r0 = la0 - self.ln_ideal(n, act)
+        R = np.zeros((self.N, self.N))
+        for j in range(self.N):
+            if not act[j]:
+                continue
+            with np.errstate(invalid="ignore", divide="ignore"):
+                if self.free[j]:
+                    h = 1.0e-5 * max(abs(n[j]), 1.0e-10 * S)
+                    p = n.copy(); p[j] += h
+                    m = n.copy(); m[j] -= h
+                    col = ((self.ln_a(p, T) - self.ln_ideal(p, act)) - (self.ln_a(m, T) - self.ln_ideal(m, act))) / (2 * h)
+                else:
+                    h = rel * S
+                    p = n.copy(); p[j] += h
+                    col = ((self.ln_a(p, T) - self.ln_ideal(p, act)) - r0) / h
+            R[act, j] = col[act]
+        return R
+
+    def hessian_split(self, n: np.ndarray, T: float, active: np.ndarray | None = None, la0: np.ndarray | None = None,
+                      R: np.ndarray | None = None) -> np.ndarray:
+        """Hessian d ln a_i/d n_j = exact ideal Jacobian + excess part (``R``: a previously computed
+        :meth:`hessian_excess`, reused as long as the composition has not changed much), symmetrized."""
+        act = np.ones(self.N, dtype=bool) if active is None else np.asarray(active, dtype=bool)
+        if R is None:
+            R = self.hessian_excess(n, T, act, la0)
+        H = self.ideal_jacobian(n, act) + R
+        return 0.5 * (H + H.T)
 
     def hessian(self, n: np.ndarray, T: float, rel: float = 1.0e-5, active: np.ndarray | None = None) -> np.ndarray:
         """d ln a_i / d n_j by central differences, symmetrized.  Rows and columns of species that are absent from the
@@ -411,6 +546,13 @@ class PhaseEquilibrium:
         self._lnk = {s.key: s.ln_k(self.T, k_mode) for s in self.all_solids}
         self.tol_tpd = 1.0e-7
         self.seed_fractions = (0.5, 0.2, 0.05)              # size of a new liquid's seed (fraction of the most possible)
+        # Hessian of the inner Newton iteration: "split" = exact ideal Jacobian + forward-difference excess part, the
+        # latter reused while no liquid amount has changed by more than hess_reuse_tol of the liquid's size;
+        # "central" = central differences of ln a at every step (the original scheme)
+        self.hess_scheme = "split"
+        self.hess_reuse_tol = 0.02
+        # the stability test starts far from its minima: its excess Hessian is refreshed after much smaller changes
+        self.tpd_hess_reuse_tol = 0.002
         self.trace_tol = 1.0e-9                     # scaled amount below which a liquid entry is removed
         self._trunc_max = 0.0
 
@@ -608,25 +750,50 @@ class PhaseEquilibrium:
         mu = mu0
         converged = True
 
-        def evaluate(xx, mu_):
+        def raw(xx):
+            """F, ln a of every liquid, gas gradient and Hessian at xx (independent of mu, so reusable across stages)."""
             try:
                 with np.errstate(all="ignore"):
-                    F, lna, gg, Hg = self._objective(xx, n_liq, ln_rh, act)
+                    return self._objective(xx, n_liq, ln_rh, act)
             except (ValueError, OverflowError, FloatingPointError, ZeroDivisionError):
-                return float("inf"), np.full(len(xx), np.nan), None
+                return None
+
+        def barrier(xx, rv, mu_):
+            if rv is None:
+                return float("inf"), np.full(len(xx), np.nan)
+            F, lna, gg, _ = rv
             gfull = self._grad(lna, ln_rh, gg)
             gfull[~act] = 0.0
             gfull[bnd] -= mu_ / xx[bnd]
-            phi = F - mu_ * float(np.sum(np.log(xx[bnd])))
-            return phi, gfull, Hg
+            return F - mu_ * float(np.sum(np.log(xx[bnd]))), gfull
 
+        # excess part of each liquid's Hessian, reused while the liquid's composition changes little
+        # (the exact ideal part, which carries the 1/n curvature, is recomputed at every step)
+        hcache: list = [None] * n_liq
+        reuse_tol = self.hess_reuse_tol
+
+        def liquid_hessian(a, rv):
+            sl = slice(a * N, (a + 1) * N)
+            n, ma = x[sl], act[sl]
+            if self.hess_scheme == "central":
+                return self.lm.hessian(n, self.T, active=ma)
+            c = hcache[a]
+            S = float(np.sum(np.abs(n[ma])))
+            stale = (c is None or not np.array_equal(c[1], ma)
+                     or float(np.max(np.abs(n - c[0]))) > reuse_tol * S)
+            if stale:
+                R = self.lm.hessian_excess(n, self.T, ma, la0=None if rv is None else rv[1][a])
+                hcache[a] = (n.copy(), ma.copy(), R)
+            return self.lm.hessian_split(n, self.T, ma, R=hcache[a][2])
+
+        rv = raw(x)
         while True:
             for it in range(max_newton):
-                phi0, gvec, Hg = evaluate(x, mu)
+                phi0, gvec = barrier(x, rv, mu)
+                Hg = rv[3] if rv is not None else np.zeros((0, 0))
                 H = np.zeros((len(x), len(x)))
                 for a in range(n_liq):
-                    H[a * N:(a + 1) * N, a * N:(a + 1) * N] = self.lm.hessian(x[a * N:(a + 1) * N], self.T,
-                                                                              active=act[a * N:(a + 1) * N])
+                    H[a * N:(a + 1) * N, a * N:(a + 1) * N] = liquid_hessian(a, rv)
                 o = n_liq * N + S
                 H[o:, o:] += Hg
                 dg = np.zeros(len(x)); dg[bnd] = mu / x[bnd] ** 2
@@ -653,7 +820,8 @@ class PhaseEquilibrium:
                 for _ in range(40):
                     xt = x + step * dx
                     if np.all(xt[bnd] > 0):
-                        phit, gt, _ = evaluate(xt, mu)
+                        rvt = raw(xt)
+                        phit, gt = barrier(xt, rvt, mu)
                         if np.isfinite(phit) and np.all(np.isfinite(gt)) and (phit <= phi0 - 1.0e-4 * step * dec
                                                   or float(np.linalg.norm(Z.T @ gt)) <= (1.0 - 1.0e-4 * step) * r0):
                             ok = True
@@ -666,13 +834,14 @@ class PhaseEquilibrium:
                         break
                     converged = False
                     break
-                x = xt
+                x, rv = xt, rvt
             else:
                 converged = False
             if verbose:
                 print(f"    mu={mu:.1e} it={it} dec={dec:.2e}")
             if n_liq > 1 and self._truncate(x, n_liq, act, A):
                 Z, bnd = setup()
+                rv = raw(x)
                 converged = True                                  # repeat this stage without the trace entries
                 continue
             if mu <= mu_min:
@@ -714,15 +883,21 @@ class PhaseEquilibrium:
         A = np.array(rows)
         Z = null_space(A)
         w = np.asarray(w0, dtype=float) / float(np.sum(w0[bnd]))
-        tpd = lambda w: float(np.dot(w, self.lm.ln_a(w, self.T) - mu_eq))
+        lm = self.lm
+        la = lm.ln_a(w, self.T)
+        cache = None                                         # (w, excess Hessian), reused while w changes little
         mu = 1.0e-4
         for _ in range(9):
             for it in range(40):
-                la = self.lm.ln_a(w, self.T)
                 f = float(np.dot(w, la - mu_eq))
                 g = la - mu_eq
                 g[bnd] -= mu / w[bnd]
-                H = self.lm.hessian(w, self.T)
+                if self.hess_scheme == "central":
+                    H = lm.hessian(w, self.T)
+                else:
+                    if cache is None or float(np.max(np.abs(w - cache[0]))) > self.tpd_hess_reuse_tol * float(np.sum(np.abs(w))):
+                        cache = (w.copy(), lm.hessian_excess(w, self.T, la0=la))
+                    H = lm.hessian_split(w, self.T, R=cache[1])
                 dgn = np.zeros(N); dgn[bnd] = mu / w[bnd] ** 2
                 H[np.diag_indices_from(H)] += dgn
                 Hr = Z.T @ H @ Z; gr = Z.T @ g
@@ -740,16 +915,17 @@ class PhaseEquilibrium:
                 for _ in range(40):
                     wt = w + step * d
                     if np.all(wt[bnd] > 0):
-                        phit = tpd(wt) - mu * float(np.sum(np.log(wt[bnd])))
+                        lat = lm.ln_a(wt, self.T)
+                        phit = float(np.dot(wt, lat - mu_eq)) - mu * float(np.sum(np.log(wt[bnd])))
                         if np.isfinite(phit) and phit <= phi0 - 1e-4 * step * dec:
                             ok = True
                             break
                     step *= 0.5
                 if not ok:
                     break
-                w = wt
+                w, la = wt, lat
             mu *= 0.1
-        return w, tpd(w)
+        return w, float(np.dot(w, la - mu_eq))
 
     def _trial_points(self, b: np.ndarray, rh: float, liquids: list) -> list:
         """Electroneutral trial compositions (sum 1) for the stability test.  Compositions are fixed mole-fraction
@@ -838,6 +1014,8 @@ class PhaseEquilibrium:
                                                              if set(SOLIDS[k].ions) <= set(ions_kept)]
                 child = PhaseEquilibrium(orgs, ions_kept, self.T, k_mode=self.k_mode, solid_keys=sk)
                 child.tol_tpd, child.trace_tol, child.seed_fractions = self.tol_tpd, self.trace_tol, self.seed_fractions
+                child.hess_scheme, child.hess_reuse_tol = self.hess_scheme, self.hess_reuse_tol
+                child.tpd_hess_reuse_tol = self.tpd_hess_reuse_tol
                 self._children[key] = child
             sub_feed = {k: v for k, v in feed.items() if k in present}
             if isinstance(solids, (list, tuple)):

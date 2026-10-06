@@ -326,3 +326,56 @@ def test_new_liquid_close_to_its_appearance_is_found_with_a_smaller_seed():
     res = pe.solve(feed, 0.5, solids="none", p_gas={"HCl": 1e-9})
     _assert_equilibrium(res)
     assert res.n_liquids == 3
+
+
+# ---------------------------------------------------------------------------------------------------------
+# inner-iteration cost reductions: split Hessian and the warm-started bisulfate speciation
+# ---------------------------------------------------------------------------------------------------------
+@pytest.mark.parametrize("ions,n", [
+    (["NH4+", "SO4--"], [5.0, 0.3, 0.2, 0.1]),
+    (["NH4+", "SO4--"], [5.0, 1e-9, 0.2, 0.1]),                                  # trace organic
+    (["Na+", "H+", "Cl-", "SO4--"], [3.0, 0.4, 0.2, 0.3, 1e-10, 0.25]),          # acid, trace chloride
+])
+def test_split_hessian_matches_central_differences(ions, n):
+    """exact ideal Jacobian + forward-difference excess part = the central-difference Hessian (to the FD error)."""
+    lm = LiquidModel([PINIC], ions)
+    n = np.array(n, dtype=float)
+    Hc, Hs = lm.hessian(n, 298.15), lm.hessian_split(n, 298.15)
+    d = np.sqrt(np.abs(np.diag(Hc)))
+    assert np.max(np.abs(Hs - Hc) / np.outer(d, d)) < 1e-4
+    assert np.max(np.abs(Hs @ n)) < 1e-5 * np.max(np.abs(Hs))                       # Gibbs-Duhem
+
+
+def test_fast_bisulfate_speciation_matches_bracketing_solver():
+    """the warm-started fixed-point/secant speciation of LiquidModel equals dissociation.solve_bisulfate (1e-10)."""
+    fast = LiquidModel([PINIC], ["Na+", "NH4+", "H+", "Cl-", "SO4--"])
+    slow = LiquidModel([PINIC], ["Na+", "NH4+", "H+", "Cl-", "SO4--"])
+    slow._speciate_hso4 = lambda *a: None                                        # forces the fallback solver
+    rng = np.random.default_rng(1)
+    n_cases = 0
+    while n_cases < 40:
+        na, nh4, h = rng.uniform(0, 1, 3)
+        h *= 10 ** rng.uniform(-6, 0.5)
+        cl = rng.uniform(0, 1) * (na + nh4)
+        so4 = (na + nh4 + h - cl) / 2
+        if so4 <= 0:
+            continue
+        n = np.array([rng.uniform(0.5, 10), rng.uniform(1e-6, 3), na, nh4, h, cl, so4])
+        assert np.max(np.abs(fast.ln_a(n, 298.15) - slow.ln_a(n, 298.15))) < 1e-10
+        n_cases += 1
+
+
+def test_hessian_schemes_give_the_same_equilibrium():
+    """the split (default) and the original central-difference Hessian converge to the same state."""
+    feed = _ansan_feed(False)
+    out = []
+    for scheme in ("central", "split"):
+        pe = PhaseEquilibrium([PINIC], ["NH4+", "SO4--"], T_K=298.15)
+        pe.hess_scheme = scheme
+        r = pe.solve(feed, 0.30, solids="none")
+        _assert_equilibrium(r)
+        out.append(r)
+    assert out[0].n_liquids == out[1].n_liquids == 2
+    assert out[1].gibbs == pytest.approx(out[0].gibbs, rel=1e-9)
+    for La, Lb in zip(out[0].liquids, out[1].liquids):
+        np.testing.assert_allclose(Lb.amounts, La.amounts, rtol=1e-6, atol=1e-12)
