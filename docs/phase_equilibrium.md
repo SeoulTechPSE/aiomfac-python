@@ -476,8 +476,11 @@ separation RH may lie between the two.
 
 * Amundson, N. R., Caboussat, A., He, J. W., Martynenko, A. V., Savarin, V. B., Seinfeld, J. H., and Yoo, K. Y.: A new
   inorganic atmospheric aerosol phase equilibrium model (UHAERO), Atmos. Chem. Phys., 6, 975–992, 2006.
-* Amundson, N. R., et al.: combined organic–inorganic UHAERO solver, Atmos. Chem. Phys., 7, 4675, 2007
-  (as cited in the module docstring; [verify full reference]).
+* Amundson, N. R., Caboussat, A., He, J. W., Martynenko, A. V., Landry, C., Tong, C., and Seinfeld, J. H.: A new
+  atmospheric aerosol phase equilibrium model (UHAERO): organic systems, Atmos. Chem. Phys., 7, 4675–4698, 2007.
+* Amundson, N. R., Caboussat, A., He, J. W., and Seinfeld, J. H.: Primal-dual interior-point method for an optimization
+  problem related to the modeling of atmospheric organic aerosols, J. Optim. Theory Appl., 130, 375–407,
+  doi:10.1007/s10957-006-9110-z, 2006.
 * Amundson, N. R., Caboussat, A., He, J. W., Seinfeld, J. H., and Yoo, K. Y.: Primal-dual active-set algorithm for
   chemical equilibrium problems related to the modeling of atmospheric inorganic aerosols, J. Optim. Theory Appl.,
   128, 469–498, 2006.
