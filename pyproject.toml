@@ -29,6 +29,9 @@ tgml = ["scikit-learn>=1.1"]
 # tgml_armeli/__init__.py docstring); pin rdkit-pypi==2022.3.2.1 yourself instead if you need byte-exact
 # reproduction of A2023's own reported numbers (see that docstring for the one known small discrepancy).
 tgml-smiles = ["rdkit"]
+# needed only for hess_scheme="ad" of aiomfac_py.phase_equilibrium (exact Hessian by automatic differentiation,
+# aiomfac_py.ad_activity)
+ad = ["jax>=0.4"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

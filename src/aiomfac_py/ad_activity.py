@@ -31,6 +31,18 @@ from .sr import _residual_reference, psi_t
 _MWATER = 0.01801528
 
 
+_CACHE: dict = {}
+
+
+def jacobian_for(lm, T: float):
+    """:func:`build_jacobian` cached by system (organic subgroups, ions) and temperature, so that the solver's child
+    systems and repeated solves of the same system reuse one compiled function."""
+    key = (tuple((c.name, tuple(map(tuple, c.subgroups))) for c in lm.organics), tuple(lm.ions), float(T))
+    if key not in _CACHE:
+        _CACHE[key] = build_jacobian(lm, T)[0]
+    return _CACHE[key]
+
+
 def build_jacobian(lm, T: float):
     """Return the jit-compiled ``jac(n) -> d ln a/dn`` (N x N) of the explicit liquid model ``lm`` at temperature
     ``T`` and the function ``ln_a(n)`` itself (``lm.ln_a`` without the reaction constants c, which do not depend on

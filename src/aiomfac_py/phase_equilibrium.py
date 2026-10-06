@@ -554,6 +554,8 @@ class ExplicitLiquidModel(LiquidModel):
         self.speciated = np.zeros(self.N, dtype=bool)
         self.free = np.zeros(self.N, dtype=bool)
         self.n_eval = 0
+        self.n_jac = 0                                           # AD Jacobian evaluations (hess_scheme "ad")
+        self._ad = None
         self._T = None
         self.set_conditions(298.15, 0.0)
 
@@ -595,6 +597,20 @@ class ExplicitLiquidModel(LiquidModel):
         if self.carbonate:
             out[self._kco2] = gamma_co2_mr(self._mx, smc, sma) + lg_(n[self._kco2] / solv)
         return out + self._c
+
+    def hessian_ad(self, n: np.ndarray, T: float, active: np.ndarray | None = None) -> np.ndarray:
+        """Exact d ln a_i/d n_j by automatic differentiation (:mod:`aiomfac_py.ad_activity`, needs jax), symmetrized;
+        rows and columns of absent species are zero.  The jit-compiled Jacobian is built once per system and temperature."""
+        n = np.asarray(n, dtype=float)
+        act = np.ones(self.N, dtype=bool) if active is None else np.asarray(active, dtype=bool)
+        if self._ad is None or self._ad[0] != float(T):
+            from .ad_activity import jacobian_for
+            self._ad = (float(T), jacobian_for(self, T))
+        self.n_jac += 1
+        J = np.zeros((self.N, self.N))
+        idx = np.flatnonzero(act)
+        J[np.ix_(idx, idx)] = np.asarray(self._ad[1](n))[np.ix_(idx, idx)]
+        return 0.5 * (J + J.T)
 
     def initial_species(self, nc: np.ndarray, T: float, floor: float = 1.0e-20) -> np.ndarray:
         """Species amounts for component amounts ``nc`` (water included) from the internal speciation of
@@ -743,7 +759,8 @@ class PhaseEquilibrium:
         self.seed_method = "linesearch"
         # Hessian of the inner Newton iteration: "split" = exact ideal Jacobian + forward-difference excess part, the
         # latter reused while no liquid amount has changed by more than hess_reuse_tol of the liquid's size;
-        # "central" = central differences of ln a at every step (the original scheme)
+        # "central" = central differences of ln a at every step (the original scheme); "ad" = exact Jacobian by
+        # automatic differentiation at every step (explicit speciation with jax installed; "split" otherwise)
         self.hess_scheme = "split"
         self.hess_reuse_tol = 0.02
         # the stability test starts far from its minima: its excess Hessian is refreshed after much smaller changes
@@ -763,6 +780,13 @@ class PhaseEquilibrium:
         self._ls_failures = 0
 
     # ---------------------------------------------------------------------------------------------------
+    def _use_ad(self) -> bool:
+        """Exact AD Hessians requested and possible (explicit liquid model, jax installed)."""
+        if self.hess_scheme != "ad" or not isinstance(self.lm, ExplicitLiquidModel):
+            return False
+        from . import ad_activity
+        return ad_activity.AVAILABLE
+
     def _solid_columns(self, solids: list[Solid]) -> np.ndarray:
         return self._columns(solids)
 
@@ -1083,6 +1107,8 @@ class PhaseEquilibrium:
             n, ma = x[sl], act[sl]
             if self.hess_scheme == "central":
                 return self.lm.hessian(n, self.T, active=ma)
+            if self._use_ad():
+                return self.lm.hessian_ad(n, self.T, ma)
             c = hcache[a]
             S = float(np.sum(np.abs(n[ma])))
             stale = (c is None or not np.array_equal(c[1], ma)
@@ -1223,6 +1249,8 @@ class PhaseEquilibrium:
             n, ma = x[sl], act[sl]
             if self.hess_scheme == "central":
                 return self.lm.hessian(n, self.T, active=ma)
+            if self._use_ad():
+                return self.lm.hessian_ad(n, self.T, ma)
             c = hcache[a]
             Ssz = float(np.sum(np.abs(n[ma])))
             if (c is None or not np.array_equal(c[1], ma) or float(np.max(np.abs(n - c[0]))) > reuse_tol * Ssz):
@@ -1504,6 +1532,8 @@ class PhaseEquilibrium:
                 g[bnd] -= mu / w[bnd]
                 if self.hess_scheme == "central":
                     H = lm.hessian(w, self.T)
+                elif self._use_ad():
+                    H = lm.hessian_ad(w, self.T, w != 0.0)
                 else:
                     tol_ = 0.0 if lm._carb else self.tpd_hess_reuse_tol
                     if cache is None or float(np.max(np.abs(w - cache[0]))) > tol_ * float(np.sum(np.abs(w))):

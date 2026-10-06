@@ -384,6 +384,56 @@ def test_hessian_schemes_give_the_same_equilibrium():
         np.testing.assert_allclose(Lb.amounts, La.amounts, rtol=1e-6, atol=1e-12)
 
 
+@pytest.mark.parametrize("ions", [["NH4+", "H+", "SO4--"], ["Na+", "Cl-", "CO3--", "H+"]])
+def test_ad_activities_and_jacobian_match_numpy(ions):
+    """The JAX transcription (aiomfac_py.ad_activity) reproduces ExplicitLiquidModel.ln_a to round-off and its
+    Jacobian matches 4th-order central differences (NH4+/H+ includes the Qcca and Rcc terms, the carbonate system
+    the CO2(aq) salting-out term)."""
+    pytest.importorskip("jax")
+    from aiomfac_py.ad_activity import build_jacobian
+    from aiomfac_py.phase_equilibrium import ExplicitLiquidModel
+    T = 298.15
+    lm = ExplicitLiquidModel([PINIC], ions)
+    jac, ln_a = build_jacobian(lm, T)
+    rng = np.random.default_rng(3)
+    for _ in range(3):
+        n = np.exp(rng.uniform(np.log(1e-3), 0.0, lm.N)); n[0] = rng.uniform(1, 10)
+        q = lm.z @ n
+        k = int(np.flatnonzero(lm.z < 0 if q > 0 else lm.z > 0)[0]); n[k] += abs(q / lm.z[k])
+        assert np.max(np.abs(np.asarray(ln_a(n)) - (lm.ln_a(n, T) - lm._c))) < 1e-12
+        J = np.asarray(jac(n))
+        F = np.zeros_like(J)
+        for j in range(lm.N):
+            h = 1e-3 * n[j]
+            e = np.zeros(lm.N); e[j] = h
+            F[:, j] = (-lm.ln_a(n + 2 * e, T) + 8 * lm.ln_a(n + e, T) - 8 * lm.ln_a(n - e, T)
+                       + lm.ln_a(n - 2 * e, T)) / (12 * h)
+        assert np.max(np.abs(J - F)) < 1e-9 * np.max(np.abs(J))
+
+
+@pytest.mark.parametrize("case", ["dlt_3liq", "org_carbonate"])
+def test_ad_hessian_gives_the_same_equilibrium(case):
+    """hess_scheme "ad" (exact Jacobian by automatic differentiation) converges to the state of the default scheme."""
+    pytest.importorskip("jax")
+    if case == "dlt_3liq":
+        pe0, feed = _dlt_nacl_acid(1.5)
+        make = lambda: PhaseEquilibrium(pe0._organics, ["Na+", "H+", "Cl-", "SO4--"], T_K=298.15)
+        args, kw = (feed, 0.5), dict(solids="none", p_gas={"HCl": 1e-9})
+    else:
+        make = lambda: PhaseEquilibrium([PINIC], ["Na+", "Cl-", "CO3--", "H+"], T_K=298.15)
+        feed = {"pinic_acid": 3 / 184.19, "Na+": 1 / 58.44 + 2e-3, "Cl-": 1 / 58.44, "H+": -2e-3}
+        args, kw = (feed, 0.5), dict(solids="none", p_gas={"CO2": 4.2e-4})
+    out = {}
+    for scheme in ("split", "ad"):
+        pe = make()
+        pe.hess_scheme = scheme
+        out[scheme] = pe.solve(*args, **kw)
+        _assert_equilibrium(out[scheme])
+    assert pe.lm.n_jac > 0
+    assert out["ad"].n_liquids == out["split"].n_liquids
+    assert out["ad"].gibbs == pytest.approx(out["split"].gibbs, abs=1e-9)
+
+
 def test_organic_carbonate_two_liquids_with_co2():
     """pinic acid + NaCl + base open to 420 ppm CO2 at RH 0.5: two liquids, carbonate and proton excess are traces in
     the organic-rich liquid (their Hessian columns need steps relative to their own amounts)."""

@@ -177,6 +177,27 @@ often accepted on the reduced-gradient norm, and that needs a current Jacobian. 
 symmetrized. `hess_scheme = "central"` restores the previous scheme (central differences of ln a at every step, step
 `1e-5 · n_j`); the test `test_hessian_schemes_give_the_same_equilibrium` checks that both give the same state.
 
+**Exact Hessian by automatic differentiation** (`hess_scheme = "ad"`, optional, needs `jax`). The module
+`aiomfac_py.ad_activity` is a JAX transcription of `ExplicitLiquidModel.ln_a`: the LR, MR and SR terms, the conversion
+from molalities to AIOMFAC's mole fractions and the CO2(aq) salting-out term, written with the same branches as the
+NumPy code (`jnp.where` for the exponential cut-offs of the MR coefficients; the Qcca and Rcc sums as `einsum`). The
+residual SR reference values, which do not depend on the composition, are precomputed with the NumPy code. Logarithms
+of amounts are written as differences (ln n_i − ln(solvent mass), ...), so a species with zero amount only gives
+non-finite entries in its own row, which is discarded. `jax.jacfwd` gives the full Jacobian ∂ ln a/∂n in one
+forward-mode pass, which is jit-compiled once per system and temperature (cached at module level, so child problems
+and repeated solves reuse it). The values used by the solver are still those of the NumPy code (the version validated
+against the Fortran model); only the Hessian comes from JAX. With `"ad"` the Hessian is exact at every Newton step of
+the inner problem and of the stability test, so nothing is reused. The scheme applies to the explicit liquid model
+only; with `speciation="internal"` or without `jax`, `"ad"` falls back to `"split"`.
+
+Checks (`test_ad_activities_and_jacobian_match_numpy`, and on six systems including the Qcca/Rcc terms of NH4+ + H+
+and the carbonate species): ln a agrees with `ExplicitLiquidModel.ln_a` to 4e-14, and the Jacobian agrees with
+fourth-order central differences to 1e-12 relative. That difference grows with smaller steps, as round-off in the
+differences does; it is the error of the differences, not of the Jacobian. One Jacobian costs 0.04–0.09 ms, less than
+one NumPy activity evaluation (0.14 ms), against N evaluations for the forward-difference excess part. Compilation
+takes about 0.5–0.9 s per system and temperature, so `"ad"` pays off in sweeps (many solves of one system), not in a
+single solve; `"split"` remains the default, which also keeps `jax` an optional dependency.
+
 ### 3.2 Acid sulfate
 
 H+ and SO4-- are **stoichiometric** (total) components; passing HSO4- is an error. In every activity evaluation of a
@@ -689,6 +710,8 @@ in its limits against independent implementations, and every result against its 
 | `test_split_hessian_matches_central_differences` (3 cases) | split Hessian = central differences (1e-4), including trace organic and trace chloride in an acid liquid |
 | `test_fast_bisulfate_speciation_matches_bracketing_solver` | warm-started speciation = `dissociation.solve_bisulfate` (1e-10) on random compositions |
 | `test_hessian_schemes_give_the_same_equilibrium` | split and central Hessians converge to the same two-liquid state |
+| `test_ad_activities_and_jacobian_match_numpy` (2 cases) | JAX ln a = NumPy ln a (1e-12); AD Jacobian = 4th-order central differences (1e-9 relative); NH4+ + H+ + SO4-- (Qcca, Rcc terms) and the carbonate system (CO2(aq) term) |
+| `test_ad_hessian_gives_the_same_equilibrium` (2 cases) | three-liquid DLT + NaCl + H2SO4 + HCl and pinic acid + NaCl + base + CO2: `"ad"` and `"split"` give the same phases and F (1e-9) |
 | `test_organic_carbonate_two_liquids_with_co2` | pinic acid + NaCl + base open to CO2: two liquids with carbonate traces in the organic liquid |
 | `test_stability_test_methods_give_the_same_equilibrium` (2 cases) | successive-substitution and Newton stability tests give the same number of liquids and F (1e-7) |
 | `test_successive_substitution_finds_the_unstable_direction` | one-liquid pinic acid + AS at RH 0.30: the most negative TPD of both methods agrees (1e-6) |
@@ -730,14 +753,19 @@ separation RH may lie between the two.
 * **Run time.** `benchmarks/pe_bench.py` reports the wall time and the number of activity evaluations (in total and in
   the stability test) of six representative cases. Measured one after another on one machine (one CPU core each):
 
-  | case | 1c693be | split Hessian (3b1dc3d) | + successive substitution (4be0487) | + active-set solids, 6 barrier stages | + line-search seed | + explicit speciation, single-salt trials | + early stop in the stability test |
-  |---|---|---|---|---|---|---|---|
-  | pinic acid + AS, RH 0.30, two liquids | 9765 evals, 1.4 s | 1297, 0.3 s | 825, 0.2 s | 663, 0.2 s | 730, 0.2 s | 746, 0.2 s | 501, 0.1 s |
-  | pinic acid + AS + AN, RH 0.6, two liquids + AS(s) | 11204, 1.7 s | 1570, 0.3 s | 713, 0.2 s | 438, 0.1 s | 461, 0.1 s | 755, 0.2 s | 526, 0.1 s |
-  | DLT + NaCl + H2SO4 (r = 0.75), open HCl, RH 0.2 | 62624, 338 s | 4276, 1.5 s | 4484, 1.3 s | 4544, 1.3 s | 4049, 1.4 s | 2456, 0.6 s | 984, 0.3 s |
-  | DLT + NaCl + H2SO4 (r = 1.5), open HCl, RH 0.5, three liquids | 42776, 136 s | 10811, 5.4 s | 8746, 4.6 s | 4038, 2.0 s | 3673, 1.8 s | 6170, 1.2 s | 2524, 0.5 s |
-  | NaCl + base, closed CO2 | 7662, 2.6 s | 2132, 0.8 s | 2132, 0.8 s | 1231, 0.5 s | 1231, 0.5 s | 299, 0.1 s | 531, 0.1 s |
-  | pinic acid + NaCl + base, open CO2, RH 0.5, two liquids | 25021, 9.5 s | 17189, 6.5 s | 17189, 6.6 s | 17189, 6.6 s | 17159, 6.9 s | 6396, 1.2 s | 1761, 0.4 s |
+  | case | 1c693be | split Hessian (3b1dc3d) | + successive substitution (4be0487) | + active-set solids, 6 barrier stages | + line-search seed | + explicit speciation, single-salt trials | + early stop in the stability test | 738f416, split | `hess_scheme = "ad"` |
+  |---|---|---|---|---|---|---|---|---|---|
+  | pinic acid + AS, RH 0.30, two liquids | 9765 evals, 1.4 s | 1297, 0.3 s | 825, 0.2 s | 663, 0.2 s | 730, 0.2 s | 746, 0.2 s | 501, 0.10 s | 372 + 73 Jacobians, 0.08 s |
+  | pinic acid + AS + AN, RH 0.6, two liquids + AS(s) | 11204, 1.7 s | 1570, 0.3 s | 713, 0.2 s | 438, 0.1 s | 461, 0.1 s | 755, 0.2 s | 526, 0.12 s | 392 + 80, 0.10 s |
+  | DLT + NaCl + H2SO4 (r = 0.75), open HCl, RH 0.2 | 62624, 338 s | 4276, 1.5 s | 4484, 1.3 s | 4544, 1.3 s | 4049, 1.4 s | 2456, 0.6 s | 945, 0.22 s | 543 + 273, 0.19 s |
+  | DLT + NaCl + H2SO4 (r = 1.5), open HCl, RH 0.5, three liquids | 42776, 136 s | 10811, 5.4 s | 8746, 4.6 s | 4038, 2.0 s | 3673, 1.8 s | 6170, 1.2 s | 2147, 0.44 s | 897 + 658, 0.29 s |
+  | NaCl + base, closed CO2 | 7662, 2.6 s | 2132, 0.8 s | 2132, 0.8 s | 1231, 0.5 s | 1231, 0.5 s | 299, 0.1 s | 531, 0.11 s | 235 + 112, 0.08 s |
+  | pinic acid + NaCl + base, open CO2, RH 0.5, two liquids | 25021, 9.5 s | 17189, 6.5 s | 17189, 6.6 s | 17189, 6.6 s | 17159, 6.9 s | 6396, 1.2 s | 1744, 0.35 s | 534 + 396, 0.18 s |
+
+  The last two columns are times after compilation (median of five repeated solves in one process; the first solve
+  with `"ad"` adds 0.5–1.5 s for importing jax and compiling the Jacobians of the system and its child problems). With `"ad"` the activity evaluations fall by 26–69 % and the
+  time by 15–49 %; F is the same as with `"split"` to 1e-12. On the paper_2 acid sweeps (240 states), the paper_1
+  solid states (52) and notebook 06 of paper_1, `"ad"` gives the same phases, solids and results as `"split"`.
 
   The equilibrium states are the same, and with trace re-entry (Sect. 5.1) F agrees with 1c693be within 1e-11 in
   every case. The single-salt trials make the stability test more expensive in electrolyte-rich cases, but each

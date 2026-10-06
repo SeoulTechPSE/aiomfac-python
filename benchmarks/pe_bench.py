@@ -78,6 +78,25 @@ def case_org_carbonate():
         p_gas={"CO2": 4.2e-4})
 
 
+# PE_HESS=ad|split|central selects the Hessian scheme of every PhaseEquilibrium created by the cases
+import os  # noqa: E402
+if os.environ.get("PE_HESS"):
+    _init = PhaseEquilibrium.__init__
+
+    def _init_h(self, *a, **k):
+        _init(self, *a, **k)
+        self.hess_scheme = os.environ["PE_HESS"]
+
+    PhaseEquilibrium.__init__ = _init_h
+if hasattr(pe_mod.ExplicitLiquidModel, "hessian_ad"):
+    _orig_j = pe_mod.ExplicitLiquidModel.hessian_ad
+
+    def _counted_j(self, *a, **k):
+        COUNT["jac"] = COUNT.get("jac", 0) + 1
+        return _orig_j(self, *a, **k)
+
+    pe_mod.ExplicitLiquidModel.hessian_ad = _counted_j
+
 _tpd = PhaseEquilibrium._tpd_minimize
 
 
@@ -95,9 +114,9 @@ CASES = {k[5:]: v for k, v in list(globals().items()) if k.startswith("case_")}
 
 if __name__ == "__main__":
     for name in sys.argv[1:] or list(CASES):
-        COUNT["n"] = 0; COUNT["tpd"] = 0
+        COUNT["n"] = 0; COUNT["tpd"] = 0; COUNT["jac"] = 0
         t0 = time.perf_counter()
         r = CASES[name]()
         dt = time.perf_counter() - t0
         print(f"{name:18s} {r.status:14s} liq={r.n_liquids} solids={sorted(r.solids)} F={r.gibbs:.12e} "
-              f"tpd={r.tpd_min:.2e} evals={COUNT['n']:7d} (stability test {COUNT['tpd']:6d}) time={dt:7.1f}s", flush=True)
+              f"tpd={r.tpd_min:.2e} evals={COUNT['n']:7d} (stability test {COUNT['tpd']:6d}) jac={COUNT['jac']:5d} time={dt:7.1f}s", flush=True)
