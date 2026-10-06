@@ -747,7 +747,7 @@ class PhaseEquilibrium:
         self.hess_scheme = "split"
         self.hess_reuse_tol = 0.02
         # the stability test starts far from its minima: its excess Hessian is refreshed after much smaller changes
-        self.tpd_hess_reuse_tol = 0.002
+        self.tpd_hess_reuse_tol = 0.02
         # stability test: "ss" = successive substitution (one activity evaluation per iteration; Newton polish only if
         # it does not converge), "newton" = barrier Newton from every start (the original method)
         self.tpd_method = "ss"

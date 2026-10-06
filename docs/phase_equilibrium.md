@@ -170,7 +170,7 @@ AIOMFAC provides no analytic Jacobian. The Hessian `∂ ln a_i / ∂ n_j` of a l
 
 The excess part is **reused** while the liquid changes little: in the inner iteration it is refreshed when an amount
 has changed by more than `hess_reuse_tol` = 0.02 of the liquid's size since it was computed (or when entries are
-removed, Sect. 5.1); in the stability test, which starts far from its minima, after `tpd_hess_reuse_tol` = 0.002. The
+removed, Sect. 5.1); in the stability test, which starts far from its minima, after `tpd_hess_reuse_tol` = 0.02. The
 gradient is always exact, so a reused Hessian changes the convergence rate, not the solution. In carbonate systems the
 excess part is recomputed at every step: there the potentials are only approximately a gradient (Sect. 3.3), steps are
 often accepted on the reduced-gradient norm, and that needs a current Jacobian. The sum is
@@ -470,6 +470,13 @@ continues from the lowest iterate.
   * The number of liquids is unchanged in the paper_2 acid sweeps (240 states) and in the 52 paper_1 phase-state
     cases.
   * paper_1 notebook 06 is unchanged (viscosities within 1e-8).
+
+* *Excess Hessian of the Newton method* reused while the trial composition changes by less than
+  `tpd_hess_reuse_tol` = 0.02 (was 0.002): 6 % fewer evaluations over the benchmark cases, same results.
+* *Tried and rejected.* A backtracking line search along the substitution step, used before handing over to Newton,
+  removed another 7 %. It also let the substitution reach the trivial solution where the Newton method finds the
+  Na2SO4-rich third liquid of DLT + NaCl + H2SO4 (4 of the 240 acid-sweep states then had two liquids instead of
+  three). Stopping the substitution at the first uphill step is part of what makes the test reliable.
 
 After 100 iterations without convergence, the barrier Newton method (`_tpd_newton`: 9 μ stages from 1e-4,
 eigenvalue shift for non-convex regions) finishes from the last iterate. Carbonate systems, whose proton excess is
