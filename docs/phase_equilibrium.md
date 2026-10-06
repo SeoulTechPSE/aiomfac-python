@@ -473,6 +473,14 @@ continues from the lowest iterate.
 
 * *Excess Hessian of the Newton method* reused while the trial composition changes by less than
   `tpd_hess_reuse_tol` = 0.02 (was 0.002): 6 % fewer evaluations over the benchmark cases, same results.
+* *Tried and rejected: trust region (plan item 7).* A Moré–Sorensen trust region in the metric diag(1/w) replaced the
+  eigenvalue shift and line search of the Newton method. It saved 6 % of the evaluations of the acid scans. In the
+  internal-speciation formulation, however, it missed the salt-rich liquid of DLT + NaCl + H2SO4 (r = 0.75, RH 0.2):
+  from the start where the shifted Newton step jumps into that basin (TPD −1.17), the restricted steps stay with the
+  nearest minimum, the trivial solution. In the stability test the Newton method also has to find distant minima, and
+  the large shifted steps help with that. Non-convex steps were frequent (20–42 % of the Newton steps of the stability
+  test), so this is a real effect. The inner iteration keeps its shift as well: there the barrier curvature
+  regularizes the step, and near convergence a ratio test on F would be dominated by round-off.
 * *Tried and rejected.* A backtracking line search along the substitution step, used before handing over to Newton,
   removed another 7 %. It also let the substitution reach the trivial solution where the Newton method finds the
   Na2SO4-rich third liquid of DLT + NaCl + H2SO4 (4 of the 240 acid-sweep states then had two liquids instead of
