@@ -1445,6 +1445,20 @@ class PhaseEquilibrium:
             except (ValueError, OverflowError, FloatingPointError, ZeroDivisionError):
                 return None
 
+        nn = self.lm.n_neutral
+        mm = self.lm._mm
+
+        def in_range(xx):
+            """Without a barrier, the water (solvent) of a liquid can be driven towards zero; AIOMFAC then returns
+            arbitrarily negative values far outside its range (an anhydrous NH4NO3 "liquid" with F = -6e7 was accepted
+            as a decrease).  Trial points with a total ion molality above 1e4 mol/kg are rejected (metastable salt
+            liquids reach about 200 mol/kg)."""
+            for a in range(n_liq):
+                n = xx[a * N:(a + 1) * N]
+                if np.sum(n[nn:]) > 1.0e4 * float(np.dot(n[:nn], mm)):
+                    return False
+            return True
+
         def grad(rv):
             g = self._grad(rv[1], ln_rh, rv[2])
             g[~act] = 0.0
@@ -1495,6 +1509,7 @@ class PhaseEquilibrium:
         changes = 0
         dec_prev = math.inf
         short = 0
+        grad_ok = bool(getattr(self.lm, "carbonate", False))
         while True:
             for it in range(max_newton):
                 F0 = rv[0]
@@ -1564,7 +1579,7 @@ class PhaseEquilibrium:
                         xt[hit] = 0.0
                     xt[sol] = np.maximum(xt[sol], 0.0)
                     xt = restore(xt)
-                    if xt is not None and np.all(xt[is_log] > 0.0):
+                    if xt is not None and np.all(xt[is_log] > 0.0) and in_range(xt):
                         rvt = raw(xt)
                         if rvt is not None and np.isfinite(rvt[0]):
                             gt = grad(rvt)
@@ -1574,8 +1589,13 @@ class PhaseEquilibrium:
                                 Pt = gt[act] * st[act]
                                 if At.size:
                                     Pt = Pt - At.T @ np.linalg.lstsq(At.T, Pt, rcond=None)[0]
+                                # the reduced-gradient criterion only close to convergence, where F reaches its
+                                # round-off, and in carbonate systems, whose potentials are only approximately a
+                                # gradient (CO2(aq), Sect. 3.4): elsewhere it accepts uphill steps, which can empty a
+                                # freshly seeded liquid (water + pinonaldehyde just below the LLPS onset)
                                 if (rvt[0] <= F0 - 1.0e-4 * step * dec
-                                        or float(np.linalg.norm(Pt)) <= (1.0 - 1.0e-4 * step) * r0):
+                                        or ((dec < 1.0e-10 or grad_ok)
+                                            and float(np.linalg.norm(Pt)) <= (1.0 - 1.0e-4 * step) * r0)):
                                     ok = True
                                     break
                     step *= 0.5

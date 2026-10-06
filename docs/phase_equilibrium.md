@@ -430,8 +430,16 @@ the internal speciation model falls back to `"newton"`.
   objective is evaluated, they are restored by x ← x exp(Aᵀ y) on the logarithmic entries (and an additive Aᵀ y on
   open-gas transfers). This is a Newton iteration on the element potentials y with the matrix A diag(x) Aᵀ, and it
   needs no activity evaluations.
-* **Acceptance and convergence.** The step is accepted on the Armijo condition or on a decrease of the norm of the
-  reduced gradient (as in Sect. 5). The iteration ends when the decrement is below 1e-15 and the largest relative
+* **Acceptance and convergence.** The step is accepted on the Armijo condition. The alternative criterion of Sect. 5,
+  a decrease of the norm of the reduced gradient, is used only close to convergence (decrement below 1e-10, where F
+  reaches its round-off) and in carbonate systems (CO2(aq), Sect. 3.4). Elsewhere it accepted uphill steps that
+  emptied a freshly seeded liquid: in water + pinonaldehyde at a_w 0.0005 below the LLPS onset (paper_2), the
+  organic-rich liquid was emptied again at every retry, and the result was not converged.
+* **Range of AIOMFAC.** Without a barrier, the water of a liquid can be driven towards zero. AIOMFAC then returns
+  arbitrarily negative values far outside its range: an anhydrous NH4NO3 "liquid" with F = −6e7 was accepted as a
+  decrease in pinic acid + AS + AN at RH 0.35. Trial points at which a liquid has a total ion molality above 1e4 mol/kg
+  are rejected; metastable salt liquids reach about 200 mol/kg.
+* **Convergence.** The iteration ends when the decrement is below 1e-15 and the largest relative
   change of a liquid amount is below 1e-8. Because relative steps of trace entries carry the round-off of the major
   entries (an absolute 1e-16), a decrement below 1e-24 also ends it.
 * **Draining liquids.** In a non-convex region the Newton step can be dominated by a nearly singular direction, and a
@@ -442,11 +450,21 @@ the internal speciation model falls back to `"newton"`.
 
 Every species stays in every liquid: in the DLT + NaCl + H2SO4 state of
 `test_trace_entries_are_removed_from_single_liquids`, DLT is resolved at a mole fraction of 1e-54 in the salt-rich
-liquid. Results agree with `"newton"`: same phases, solids and number of liquids on the paper_2 acid sweeps (240
-states, all converged), the 52 paper_1 solid states (104 equilibrium and drying-path comparisons, F within 2.3e-10),
-warm and cold RH scans (2e-15) and paper_1 notebook 06 (all results within 1e-6). F can be lower by the trace entries
-that the primal solver removes (2e-11 for the three-liquid DLT state). `"newton"` remains the default until the RAND
-solver has been used more widely.
+liquid. Results agree with `"newton"`:
+* the paper_1 solid states (104 equilibrium and drying-path comparisons): same phases and solids, F within 2.3e-10;
+* warm and cold RH scans and drying paths: agreement within 2e-15, with the same phases;
+* paper_1 notebook 06: all results within 1e-6;
+* the paper_2 recalculation: the acid sweeps (240 states, all converged; HCl loss within 1e-7), the binary and
+  surrogate LLPS checks and the Tong and Ye (2023) comparison give the same output as `"newton"` and the archived
+  run. In the spinodal notebook, the binodal and spinodal RH are the same; only the Gibbs–Duhem residuals and the
+  smallest eigenvalues of the finite-difference Hessians (internal speciation) differ, by as much as between two
+  `"newton"` runs;
+* a stress test of 344 cold-started states, compared one by one: pinic acid + AS(+AN) at four compositions, RH
+  0.8–0.05, without and with solids; DLT + AS/NaCl with r = 0, 0.5 and 2, RH 0.99–0.05, without and with solids. It
+  gave no difference in phases, solids, status or F (relative 1e-8), and every state converged with both solvers.
+
+F can be lower by the trace entries that the primal solver removes (2e-11 for the three-liquid DLT state). `"newton"`
+remains the default until the RAND solver has been used more widely.
 
 ### 5.4 Starting point
 
@@ -757,6 +775,7 @@ in its limits against independent implementations, and every result against its 
 | `test_ad_activities_and_jacobian_match_numpy` (2 cases) | JAX ln a = NumPy ln a (1e-12); AD Jacobian = 4th-order central differences (1e-9 relative); NH4+ + H+ + SO4-- (Qcca, Rcc terms) and the carbonate system (CO2(aq) term) |
 | `test_rand_inner_solver_matches_newton` (4 cases) | pinic acid + AS, + AN with AS(s), three-liquid DLT + NaCl + H2SO4 + HCl, pinic acid + NaCl + base + CO2: `"rand"` and `"newton"` give the same phases, solids and F (1e-10); no entry is removed |
 | `test_rand_resolves_traces_without_removal` | the RH 0.1 state of the trace-removal test: all checks pass with DLT at a mole fraction below 1e-30 in the salt-rich liquid |
+| `test_rand_binary_below_llps_onset_finds_the_organic_rich_liquid` | water + pinonaldehyde 0.0005 below the LLPS onset: the organic-rich liquid (x_org 0.68), as with `"newton"` (F 1e-10) |
 | `test_rand_small_draining_liquid_is_merged_and_reseeded` | three-liquid DLT state with the fixed seed 0.5: the draining liquid is merged and the smaller seed finds three liquids |
 | `test_ad_hessian_gives_the_same_equilibrium` (2 cases) | three-liquid DLT + NaCl + H2SO4 + HCl and pinic acid + NaCl + base + CO2: `"ad"` and `"split"` give the same phases and F (1e-9) |
 | `test_organic_carbonate_two_liquids_with_co2` | pinic acid + NaCl + base open to CO2: two liquids with carbonate traces in the organic liquid |
@@ -802,12 +821,12 @@ separation RH may lie between the two.
 
   | case | 1c693be | split Hessian (3b1dc3d) | + successive substitution (4be0487) | + active-set solids, 6 barrier stages | + line-search seed | + explicit speciation, single-salt trials | + early stop in the stability test | 738f416, split | `hess_scheme = "ad"` | `inner_method = "rand"` | `"rand"` + `"ad"` |
   |---|---|---|---|---|---|---|---|---|---|---|---|
-  | pinic acid + AS, RH 0.30, two liquids | 9765 evals, 1.4 s | 1297, 0.3 s | 825, 0.2 s | 663, 0.2 s | 730, 0.2 s | 746, 0.2 s | 501, 0.10 s | 372 + 73 Jacobians, 0.08 s | 449, 0.10 s | 369 + 17, 0.09 s |
+  | pinic acid + AS, RH 0.30, two liquids | 9765 evals, 1.4 s | 1297, 0.3 s | 825, 0.2 s | 663, 0.2 s | 730, 0.2 s | 746, 0.2 s | 501, 0.10 s | 372 + 73 Jacobians, 0.08 s | 449, 0.10 s | 393 + 17, 0.09 s |
   | pinic acid + AS + AN, RH 0.6, two liquids + AS(s) | 11204, 1.7 s | 1570, 0.3 s | 713, 0.2 s | 438, 0.1 s | 461, 0.1 s | 755, 0.2 s | 526, 0.12 s | 392 + 80, 0.10 s | 433, 0.13 s | 362 + 34, 0.12 s |
-  | DLT + NaCl + H2SO4 (r = 0.75), open HCl, RH 0.2 | 62624, 338 s | 4276, 1.5 s | 4484, 1.3 s | 4544, 1.3 s | 4049, 1.4 s | 2456, 0.6 s | 945, 0.22 s | 543 + 273, 0.19 s | 635, 0.17 s | 435 + 154, 0.16 s |
-  | DLT + NaCl + H2SO4 (r = 1.5), open HCl, RH 0.5, three liquids | 42776, 136 s | 10811, 5.4 s | 8746, 4.6 s | 4038, 2.0 s | 3673, 1.8 s | 6170, 1.2 s | 2147, 0.44 s | 897 + 658, 0.29 s | 1537, 0.34 s | 697 + 402, 0.24 s |
-  | NaCl + base, closed CO2 | 7662, 2.6 s | 2132, 0.8 s | 2132, 0.8 s | 1231, 0.5 s | 1231, 0.5 s | 299, 0.1 s | 531, 0.11 s | 235 + 112, 0.08 s | 188, 0.06 s | 151 + 12, 0.05 s |
-  | pinic acid + NaCl + base, open CO2, RH 0.5, two liquids | 25021, 9.5 s | 17189, 6.5 s | 17189, 6.6 s | 17189, 6.6 s | 17159, 6.9 s | 6396, 1.2 s | 1744, 0.35 s | 534 + 396, 0.18 s | 448, 0.11 s | 254 + 86, 0.08 s |
+  | DLT + NaCl + H2SO4 (r = 0.75), open HCl, RH 0.2 | 62624, 338 s | 4276, 1.5 s | 4484, 1.3 s | 4544, 1.3 s | 4049, 1.4 s | 2456, 0.6 s | 945, 0.22 s | 543 + 273, 0.19 s | 635, 0.17 s | 434 + 153, 0.16 s |
+  | DLT + NaCl + H2SO4 (r = 1.5), open HCl, RH 0.5, three liquids | 42776, 136 s | 10811, 5.4 s | 8746, 4.6 s | 4038, 2.0 s | 3673, 1.8 s | 6170, 1.2 s | 2147, 0.44 s | 897 + 658, 0.29 s | 1537, 0.34 s | 694 + 399, 0.24 s |
+  | NaCl + base, closed CO2 | 7662, 2.6 s | 2132, 0.8 s | 2132, 0.8 s | 1231, 0.5 s | 1231, 0.5 s | 299, 0.1 s | 531, 0.11 s | 235 + 112, 0.08 s | 188, 0.06 s | 150 + 11, 0.05 s |
+  | pinic acid + NaCl + base, open CO2, RH 0.5, two liquids | 25021, 9.5 s | 17189, 6.5 s | 17189, 6.6 s | 17189, 6.6 s | 17159, 6.9 s | 6396, 1.2 s | 1744, 0.35 s | 534 + 396, 0.18 s | 448, 0.11 s | 250 + 82, 0.08 s |
 
   The last four columns are times after compilation (where it applies) (median of five repeated solves in one process; the first solve
   with `"ad"` adds 0.5–1.5 s for importing jax and compiling the Jacobians of the system and its child problems). With `"ad"` the activity evaluations fall by 26–69 % and the

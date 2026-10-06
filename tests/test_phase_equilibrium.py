@@ -484,6 +484,25 @@ def test_rand_resolves_traces_without_removal():
     assert 0.0 < salt.mole_fractions[1] < 1e-30
 
 
+def test_rand_binary_below_llps_onset_finds_the_organic_rich_liquid():
+    """Water + pinonaldehyde (S2AS) at 289 K, a_w 0.0005 below the LLPS onset (a_w* = 0.99825, paper_2): the stable
+    state is one organic-rich liquid (x_org 0.68).  Accepting uphill steps on the reduced-gradient criterion emptied
+    the freshly seeded organic-rich liquid; RAND (like Newton) must find it."""
+    from aiomfac_py.s2as import smiles_to_components
+    try:
+        c = smiles_to_components(["CC(=O)C1CC(C=O)C1(C)C"], names=["pinonaldehyde"]).components[1]
+    except ImportError:
+        pytest.skip("S2AS (epam.indigo) not installed")
+    out = {}
+    for method in ("newton", "rand"):
+        pe = PhaseEquilibrium([c], [], T_K=289.0)
+        pe.inner_method = method
+        out[method] = pe.solve({"pinonaldehyde": 1.0}, 0.99825 - 0.0005, solids="none")
+        _assert_equilibrium(out[method])
+    assert out["rand"].liquids[0].mole_fractions[1] == pytest.approx(0.6755, abs=1e-3)
+    assert out["rand"].gibbs == pytest.approx(out["newton"].gibbs, abs=1e-10)
+
+
 def test_rand_small_draining_liquid_is_merged_and_reseeded():
     """Three-liquid DLT + NaCl + H2SO4 state with the fixed seed 0.5: the seeded liquid drains slowly in a non-convex
     region; the RAND solver merges it, and the smaller seed then finds the third liquid."""
