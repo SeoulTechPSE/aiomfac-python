@@ -1,7 +1,7 @@
 # Combined liquid–liquid–solid equilibrium solver (`aiomfac_py.phase_equilibrium`)
 
 Implementation: `src/aiomfac_py/phase_equilibrium.py` (`LiquidModel`, `PhaseEquilibrium`, `PhaseEquilibriumResult`),
-tests: `tests/test_phase_equilibrium.py` (22 tests). Branch `feature/phase-equilibrium` (commits 3f1f230 onward).
+tests: `tests/test_phase_equilibrium.py` (28 tests). Branch `feature/phase-equilibrium` (commits 3f1f230 onward).
 
 Like `aiomfac_py.lle` and `aiomfac_py.sle`, this module is **not** part of the Fortran AIOMFAC code, which provides
 activities only. It is therefore not Fortran-validated. It is checked against the other solvers of this package and
@@ -162,12 +162,18 @@ AIOMFAC provides no analytic Jacobian. The Hessian `∂ ln a_i / ∂ n_j` of a l
 * **excess part, by forward differences** (`hessian_excess`): the remainder `ln a − ln_ideal` (activity coefficients
   plus the speciation correction of acid and carbonate systems) is a smooth function of the composition. It is
   differenced with a step of 1e-6 of the phase size for every bounded species, trace species included (N activity
-  evaluations instead of 2N). Only the sign-free carbonate proton excess keeps a central difference.
+  evaluations instead of 2N). Two exceptions: the **speciated components** (H+ and SO4-- of an acid system, CO3-- and
+  SO4-- of a carbonate system) use a step of 1e-6 of their own amount, because their speciation depends on the ratios
+  of their amounts, which may all be traces in an organic-rich liquid (a phase-size step was larger than the trace
+  amounts and gave errors of 50 % in those columns); the sign-free carbonate proton excess keeps a central
+  difference.
 
 The excess part is **reused** while the liquid changes little: in the inner iteration it is refreshed when an amount
 has changed by more than `hess_reuse_tol` = 0.02 of the liquid's size since it was computed (or when entries are
 removed, Sect. 5.1); in the stability test, which starts far from its minima, after `tpd_hess_reuse_tol` = 0.002. The
-gradient is always exact, so a reused Hessian changes the convergence rate, not the solution. The sum is
+gradient is always exact, so a reused Hessian changes the convergence rate, not the solution. In carbonate systems the
+excess part is recomputed at every step: there the potentials are only approximately a gradient (Sect. 3.3), steps are
+often accepted on the reduced-gradient norm, and that needs a current Jacobian. The sum is
 symmetrized. `hess_scheme = "central"` restores the previous scheme (central differences of ln a at every step, step
 `1e-5 · n_j`); the test `test_hessian_schemes_give_the_same_equilibrium` checks that both give the same state.
 
@@ -202,7 +208,9 @@ to phases that contain organics:
   present (constants from `aiomfac_py.carbonate` and `dissociation`);
 * γ(CO2) from AIOMFAC's salting-out relation (`carbonate.gamma_co2_mr`);
 * solution: a fixed-point iteration on the apparent constants. For given apparent constants, the proton balance is
-  monotonic in ln m_H and is solved with Brent's method; the bracket is widened as needed. The apparent constants are
+  monotonic in ln m_H and is solved with Brent's method; the bracket is widened as needed. The carbonate fractions are
+  evaluated with a log-sum-exp and [OH-] is capped, so the proton balance stays finite at extreme pH (the bracket can
+  reach m_H = 1e-300). About 2 AIOMFAC evaluations per call (warm start). The apparent constants are
   updated from the new activity coefficients, until their ln changes by less than 1e-11. The last solution warm-starts
   the next call, and failed evaluations are never reused.
 
@@ -477,6 +485,10 @@ in its limits against independent implementations, and every result against its 
 | `test_near_complete_hcl_evaporation_converges` | DLT + NaCl + H2SO4 at RH 0.2: near-complete evaporation passes all checks |
 | `test_trace_entries_are_removed_from_single_liquids` | DLT + NaCl + H2SO4 (r = 1.5), RH 0.1: trace DLT/Cl- removed from the salt liquid; all checks pass |
 | `test_new_liquid_close_to_its_appearance_is_found_with_a_smaller_seed` | same system, RH 0.5: three liquids found after a smaller seed |
+| `test_split_hessian_matches_central_differences` (3 cases) | split Hessian = central differences (1e-4), including trace organic and trace chloride in an acid liquid |
+| `test_fast_bisulfate_speciation_matches_bracketing_solver` | warm-started speciation = `dissociation.solve_bisulfate` (1e-10) on random compositions |
+| `test_hessian_schemes_give_the_same_equilibrium` | split and central Hessians converge to the same two-liquid state |
+| `test_organic_carbonate_two_liquids_with_co2` | pinic acid + NaCl + base open to CO2: two liquids with carbonate traces in the organic liquid |
 
 ---
 
@@ -516,9 +528,10 @@ separation RH may lie between the two.
   |---|---|---|
   | pinic acid + AS, RH 0.30, two liquids | 9765 → 1297 | 2.6 s → 0.5 s |
   | pinic acid + AS + AN, RH 0.6, two liquids + AS(s) | 11204 → 1570 | 3.1 s → 0.6 s |
-  | DLT + NaCl + H2SO4, open HCl, RH 0.2 | 30842 → 5052 | 296 s → 3.1 s |
-  | DLT + NaCl + H2SO4 (r = 1.5), RH 0.5 | 9716 → 1475 | 60 s → 1.7 s |
-  | NaCl + base, closed CO2 | 7612 → 3743 | 5.3 s → 2.2 s |
+  | DLT + NaCl + H2SO4, open HCl, RH 0.2 | 30842 → 4327 | 296 s → 2.9 s |
+  | DLT + NaCl + H2SO4 (r = 1.5), RH 0.5 | 9716 → 1474 | 60 s → 1.6 s |
+  | NaCl + base, closed CO2 | 7612 → 2039 | 5.3 s → 1.6 s |
+  | pinic acid + NaCl + base, open CO2, RH 0.5, two liquids | 24526 → 13644 | 18 s → 10.5 s |
 
   All results are unchanged (F to 12 digits). Most of the remaining cost is in the stability test (its starts refresh
   the excess Hessian often). An analytic or automatic-differentiation Jacobian of AIOMFAC would remove most of it.

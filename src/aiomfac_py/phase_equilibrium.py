@@ -149,6 +149,11 @@ class LiquidModel:
             self._iso = mx.an_index[ION_REGISTRY["SO4--"][0]]
             self._ihs = mx.an_index[ION_REGISTRY["HSO4-"][0]]
         self._hso4_frac = None                       # warm start of the bisulfate speciation (HSO4- / its maximum)
+        # components whose free-species fractions follow from the ratios of their amounts (internal speciation)
+        self.speciated = np.zeros(self.N, dtype=bool)
+        for ion in (("H+", "SO4--") if self._acid else ()) + (("CO3--", "SO4--") if self._carb else ()):
+            if ion in self.ions:
+                self.speciated[self.n_neutral + self.ions.index(ion)] = True
         # species whose amount may take either sign (barrier-free): the proton excess of a carbonate system
         self.free = np.zeros(self.N, dtype=bool)
         if self._carb:
@@ -284,11 +289,20 @@ class LiquidModel:
             q = K3
         lnh0 = None if cache is None else cache[1]
         from scipy.optimize import brentq
+        def fractions(lnh):
+            """CO2(aq), HCO3-, CO3-- fractions of C_T at ln m_H (log-sum-exp: no overflow or underflow at extreme pH)."""
+            l1 = math.log(A1) - lnh
+            l2 = l1 + math.log(A2) - lnh
+            m_ = max(0.0, l1, l2)
+            lse = m_ + math.log(math.exp(-m_) + math.exp(l1 - m_) + math.exp(l2 - m_))
+            return math.exp(-lse), math.exp(l1 - lse), math.exp(l2 - lse)
+
         for _ in range(60):
             def f(lnh):
                 h = math.exp(lnh)
-                den = 1.0 + A1 / h + A1 * A2 / (h * h)
-                val = h - Aw / h + CT * (A1 / h + 2.0) / den - P
+                a0, a1, _a2 = fractions(lnh)
+                # [OH-] capped at exp(700): far beyond any physical value, f is then hugely negative but finite
+                val = h - math.exp(min(math.log(Aw) - lnh, 700.0)) + CT * (a1 + 2.0 * a0) - P
                 if ST > 0.0:
                     val += ST * h / (h + q)
                 return val
@@ -302,11 +316,9 @@ class LiquidModel:
                     lo = max(lo - math.log(1.0e10), math.log(1.0e-300))
             lnh = brentq(f, lo, hi, xtol=1.0e-14, rtol=1.0e-13)
             h = math.exp(lnh)
-            den = 1.0 + A1 / h + A1 * A2 / (h * h)
-            co2 = CT / den
-            hco3 = co2 * A1 / h
-            co3 = co2 * A1 * A2 / (h * h)
-            oh = Aw / h
+            a0, a1, a2 = fractions(lnh)
+            co2, hco3, co3 = CT * a0, CT * a1, CT * a2
+            oh = math.exp(min(math.log(Aw) - lnh, 700.0))
             hso4 = ST * h / (h + q) if ST > 0.0 else 0.0
             smc[self._ih] = h
             sma[self._ico3], sma[self._ihco3], sma[self._ioh] = co3, hco3, oh
@@ -396,9 +408,12 @@ class LiquidModel:
     def hessian_excess(self, n: np.ndarray, T: float, active: np.ndarray | None = None, la0: np.ndarray | None = None,
                        rel: float = 1.0e-6) -> np.ndarray:
         """d(ln a - ln_ideal)/dn by forward differences (N activity evaluations; ``la0`` = ln a(n) if already known).
-        The function differenced is smooth, so the step is a fraction ``rel`` of the phase size for every bounded
-        species (trace species included); the sign-free proton excess keeps the central difference of :meth:`hessian`
-        (its ln a varies steeply around neutrality)."""
+        For a species that is not speciated the function differenced is smooth on the scale of the phase, so the step
+        is a fraction ``rel`` of the phase size (trace species included).  The speciated components (H+, SO4-- of an
+        acid system; CO3--, SO4-- of a carbonate system) are different: their speciation depends on the RATIOS of
+        their amounts, which may all be traces in an organic-rich liquid, so their step is ``rel`` times their own
+        amount.  The sign-free proton excess keeps the central difference of :meth:`hessian` (its ln a varies steeply
+        around neutrality)."""
         n = np.asarray(n, dtype=float)
         act = np.ones(self.N, dtype=bool) if active is None else np.asarray(active, dtype=bool)
         S = float(np.sum(np.abs(n[act])))
@@ -415,7 +430,7 @@ class LiquidModel:
                     m = n.copy(); m[j] -= h
                     col = ((self.ln_a(p, T) - self.ln_ideal(p, act)) - (self.ln_a(m, T) - self.ln_ideal(m, act))) / (2 * h)
                 else:
-                    h = rel * S
+                    h = rel * (abs(n[j]) if self.speciated[j] else S)
                     p = n.copy(); p[j] += h
                     col = ((self.ln_a(p, T) - self.ln_ideal(p, act)) - r0) / h
             R[act, j] = col[act]
@@ -770,7 +785,9 @@ class PhaseEquilibrium:
         # excess part of each liquid's Hessian, reused while the liquid's composition changes little
         # (the exact ideal part, which carries the 1/n curvature, is recomputed at every step)
         hcache: list = [None] * n_liq
-        reuse_tol = self.hess_reuse_tol
+        # carbonate systems: the stoichiometric potentials are only approximately a gradient (Sect. 3.3 of the design
+        # notes), steps are often accepted on the reduced-gradient norm, and that needs a current Jacobian
+        reuse_tol = 0.0 if self.lm._carb else self.hess_reuse_tol
 
         def liquid_hessian(a, rv):
             sl = slice(a * N, (a + 1) * N)
@@ -895,7 +912,8 @@ class PhaseEquilibrium:
                 if self.hess_scheme == "central":
                     H = lm.hessian(w, self.T)
                 else:
-                    if cache is None or float(np.max(np.abs(w - cache[0]))) > self.tpd_hess_reuse_tol * float(np.sum(np.abs(w))):
+                    tol_ = 0.0 if lm._carb else self.tpd_hess_reuse_tol
+                    if cache is None or float(np.max(np.abs(w - cache[0]))) > tol_ * float(np.sum(np.abs(w))):
                         cache = (w.copy(), lm.hessian_excess(w, self.T, la0=la))
                     H = lm.hessian_split(w, self.T, R=cache[1])
                 dgn = np.zeros(N); dgn[bnd] = mu / w[bnd] ** 2

@@ -61,6 +61,13 @@ def case_carbonate_closed():
         {"Na+": 1.1e-5, "Cl-": 1e-5, "H+": -1e-6}, 0.8, gas_total={"CO2": y * n_air / (1 - y)}, n_air=n_air)
 
 
+def case_org_carbonate():
+    """pinic acid + NaCl + base, open to 420 ppm CO2, RH 0.5 (two liquids; carbonate traces in the organic liquid)"""
+    return PhaseEquilibrium([PINIC], ["Na+", "Cl-", "CO3--", "H+"], T_K=298.15).solve(
+        {"pinic_acid": 3 / 184.19, "Na+": 1 / 58.44 + 2e-3, "Cl-": 1 / 58.44, "H+": -2e-3}, 0.5, solids="none",
+        p_gas={"CO2": 4.2e-4})
+
+
 CASES = {k[5:]: v for k, v in list(globals().items()) if k.startswith("case_")}
 
 if __name__ == "__main__":

@@ -379,3 +379,15 @@ def test_hessian_schemes_give_the_same_equilibrium():
     assert out[1].gibbs == pytest.approx(out[0].gibbs, rel=1e-9)
     for La, Lb in zip(out[0].liquids, out[1].liquids):
         np.testing.assert_allclose(Lb.amounts, La.amounts, rtol=1e-6, atol=1e-12)
+
+
+def test_organic_carbonate_two_liquids_with_co2():
+    """pinic acid + NaCl + base open to 420 ppm CO2 at RH 0.5: two liquids, carbonate and proton excess are traces in
+    the organic-rich liquid (their Hessian columns need steps relative to their own amounts)."""
+    pe = PhaseEquilibrium([PINIC], ["Na+", "Cl-", "CO3--", "H+"], T_K=298.15)
+    feed = {"pinic_acid": 3 / 184.19, "Na+": 1 / 58.44 + 2e-3, "Cl-": 1 / 58.44, "H+": -2e-3}
+    r = pe.solve(feed, 0.5, solids="none", p_gas={"CO2": 4.2e-4})
+    _assert_equilibrium(r)
+    assert r.n_liquids == 2
+    assert r.checks["max_abs_gas_residual"] < 1e-4
+    assert r.gas["CO2"] < 0                                                       # CO2 taken up by the basic liquid
