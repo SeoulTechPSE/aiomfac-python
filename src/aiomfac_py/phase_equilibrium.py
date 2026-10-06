@@ -1615,7 +1615,7 @@ class PhaseEquilibrium:
 
     def solve(self, feed: dict, rh: float, *, solids="all", p_gas: dict | None = None, gas_total: dict | None = None,
               n_air: float | None = None, P_atm: float = 1.0, max_liquids: int = 3, max_outer: int = 8,
-              verbose: bool = False) -> PhaseEquilibriumResult:
+              verbose: bool = False, init: "PhaseEquilibriumResult | None" = None) -> PhaseEquilibriumResult:
         """Equilibrium for the non-water ``feed`` [mol] (organic names and ion keys) at relative humidity ``rh``.
 
         Gases (keys of :data:`aiomfac_py.gases.GASES`: NH3, HNO3, HCl, CO2) are optional:
@@ -1623,7 +1623,12 @@ class PhaseEquilibrium:
             ``result.gas`` is the net amount released (negative = uptake).
           * ``gas_total={"HCl": 0.0}, n_air=...``: closed system with ``n_air`` mol of inert air at ``P_atm``; the
             totals of the volatile species (particle + gas) are conserved and ``result.gas`` holds the gas amounts.
-        A carbonate system (``CO3--`` with ``H+`` as proton excess) can be given ``"CO2"`` in either mode."""
+        A carbonate system (``CO3--`` with ``H+`` as proton excess) can be given ``"CO2"`` in either mode.
+
+        ``init``: a previous result for the same system and feed (e.g. at a neighbouring RH).  Its liquids, active
+        solids and gas amounts are the starting point (warm start; the water of every liquid is first adjusted to
+        a_w = RH); the stability test runs as usual, so the result does not depend on the start.  An incompatible
+        ``init`` (other components, other feed) is ignored."""
         if not 0.0 < rh < 1.0:
             raise ValueError("rh must be in (0, 1)")
         # species that are absent from the feed and cannot be supplied by any of the given gases are removed from the
@@ -1658,7 +1663,8 @@ class PhaseEquilibrium:
             if isinstance(solids, (list, tuple)):
                 solids = [k for k in solids if set(SOLIDS[k].ions) <= set(ions_kept)] or "none"
             res = self._children[key].solve(sub_feed, rh, solids=solids, p_gas=p_gas, gas_total=gas_total, n_air=n_air,
-                                            P_atm=P_atm, max_liquids=max_liquids, max_outer=max_outer, verbose=verbose)
+                                            P_atm=P_atm, max_liquids=max_liquids, max_outer=max_outer, verbose=verbose,
+                                            init=init)
             dropped = [n for n in self.names[1:] if n not in res.names]
             res.message = (res.message + "; " if res.message else "") + f"species absent from the problem: {dropped}"
             return res
@@ -1736,6 +1742,9 @@ class PhaseEquilibrium:
         if self.speciation == "explicit":                        # species from the internal speciation
             n0 = self.lm.initial_species(n0, self.T)
         phases = [n0]
+        warm = self._warm_start(init, b, scale, rh, V, G, S, K, use_barrier)
+        if warm is not None:
+            phases, u0, g0, solid_act = warm
         x = np.concatenate(phases + [u0, g0])
         n_outer = 0
         tpd_min = float("nan")
@@ -1743,7 +1752,9 @@ class PhaseEquilibrium:
         history = []
         act = np.ones(len(x), dtype=bool)                     # entries taking part (False: species absent from a liquid)
         if not use_barrier:
-            act[N:N + S] = False                              # solids enter through the active set
+            act[len(phases) * N:len(phases) * N + S] = False   # solids enter through the active set
+            if warm is not None:
+                act[len(phases) * N:len(phases) * N + S] = solid_act   # warm start: the previous active solids
         inner = self._barrier_solve if use_barrier else self._newton_solve
         self._trunc_max = 0.0
         self._ls_failures = 0
@@ -1990,6 +2001,64 @@ class PhaseEquilibrium:
                 return sub
         return res
 
+    def _warm_start(self, init, b, scale, rh, V, G, S, K, use_barrier):
+        """Starting liquids, solid and gas amounts (scaled) from a previous result, or None if it does not fit."""
+        if use_barrier:                                          # the barrier solver needs every solid > 0
+            return None
+        if init is None or not getattr(init, "liquids", None) or list(init.names) != list(self.names):
+            return None
+        if abs(init.T_K - self.T) > 1e-9:
+            return None
+        phases = []
+        for L in init.liquids:
+            n = np.array(L.species_amounts if L.species_amounts is not None else L.amounts, dtype=float)
+            if len(n) != self.N:
+                return None
+            phases.append(n / scale)
+        u0 = np.zeros(S)
+        solid_act = np.zeros(S, dtype=bool)
+        for j, sld in enumerate(self._solids_now):
+            v = init.solids.get(sld.key, 0.0) / scale
+            if v > 0:
+                u0[j], solid_act[j] = v, True
+        g0 = np.array([init.gas.get(gs.key, 0.0) / scale for gs in self._gases_now]) if K else np.zeros(0)
+        if self._gas_mode == "closed" and K and np.any(g0 <= 0):
+            return None
+        # the start must carry the feed: component totals of liquids + solids (+ closed gas; open gas is released)
+        tot = self.E @ sum(phases) + (V @ u0 if S else 0.0)
+        if K:
+            tot = tot + (G @ g0)                                 # open: released amount, closed: gas amount
+        if float(np.max(np.abs(tot[1:] - b[1:]))) > 1e-8:
+            return None
+        free = self.lm.free
+        out = []
+        for n in phases:
+            n = n.copy()
+            size = float(np.sum(np.abs(n[~free])))
+            n[~free] = np.maximum(n[~free], 1e-20 * size)       # removed traces start again as traces
+            n[0] = self._water_guess_species(n, rh)
+            out.append(n)
+        return out, u0, g0, solid_act
+
+    def _water_guess_species(self, n: np.ndarray, rh: float) -> float:
+        """Water amount of a liquid (species amounts n) at roughly a_w = RH: bisection on ln n_w."""
+        lw0 = math.log(max(n[0], 1e-300))
+        f = lambda lw: self.lm.ln_a(np.r_[math.exp(lw), n[1:]], self.T)[0] - math.log(rh)
+        try:
+            lo, hi = lw0 - 5.0, lw0 + 5.0
+            flo, fhi = f(lo), f(hi)
+            if flo > 0 or fhi < 0:
+                return n[0]
+            for _ in range(30):
+                mid = 0.5 * (lo + hi)
+                if f(mid) > 0:
+                    hi = mid
+                else:
+                    lo = mid
+            return math.exp(0.5 * (lo + hi))
+        except (ValueError, FloatingPointError, OverflowError, ZeroDivisionError):
+            return n[0]
+
     def _to_components(self, L: LiquidPhase) -> LiquidPhase:
         """Liquid in the component basis (the species, if explicit, are kept as extra fields)."""
         if self.speciation != "explicit":
@@ -2141,7 +2210,7 @@ class PhaseEquilibrium:
 
     # ---------------------------------------------------------------------------------------------------
     def drying_path(self, feed: dict, rh_grid: Sequence[float], *, ln_s_crit: float | dict = 0.0,
-                    verbose: bool = False, **gas_kw) -> list:
+                    verbose: bool = False, warm: bool = True, **gas_kw) -> list:
         """Decreasing-RH path with crystallization only after a critical supersaturation.
 
         Starting from the highest RH without solids, a solid becomes a candidate once its saturation index in the
@@ -2150,12 +2219,26 @@ class PhaseEquilibrium:
         crit = (lambda k: ln_s_crit.get(k, 0.0)) if isinstance(ln_s_crit, dict) else (lambda k: float(ln_s_crit))
         enabled: list[str] = []
         out = []
+        prev = None
         for rh in sorted(rh_grid, reverse=True):
-            res = self.solve(feed, rh, solids=list(enabled) if enabled else "none", verbose=verbose, **gas_kw)
+            res = self.solve(feed, rh, solids=list(enabled) if enabled else "none", verbose=verbose,
+                             init=prev if warm else None, **gas_kw)
             new = [k for k, v in res.si.items() if k not in enabled and v > crit(k)]
             if new:
                 enabled += new
-                res = self.solve(feed, rh, solids=list(enabled), verbose=verbose, **gas_kw)
+                res = self.solve(feed, rh, solids=list(enabled), verbose=verbose, init=res if warm else None, **gas_kw)
             res.message = f"enabled solids: {enabled}"
             out.append(res)
+            prev = res if res.status in ("converged", "not_converged") else None
+        return out
+
+    def rh_scan(self, feed: dict, rh_grid: Sequence[float], *, warm: bool = True, verbose: bool = False,
+                **kw) -> list:
+        """Results along ``rh_grid`` (in the given order), each solve warm-started from the previous result
+        (``warm=False``: every solve from scratch).  Other keywords are passed to :meth:`solve`."""
+        out, prev = [], None
+        for rh in rh_grid:
+            res = self.solve(feed, rh, verbose=verbose, init=prev if warm else None, **kw)
+            out.append(res)
+            prev = res if res.liquids else None
         return out

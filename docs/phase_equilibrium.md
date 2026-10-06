@@ -1,7 +1,7 @@
 # Combined liquid–liquid–solid equilibrium solver (`aiomfac_py.phase_equilibrium`)
 
 Implementation: `src/aiomfac_py/phase_equilibrium.py` (`LiquidModel`, `PhaseEquilibrium`, `PhaseEquilibriumResult`),
-tests: `tests/test_phase_equilibrium.py` (37 tests). Branch `feature/phase-equilibrium` (commits 3f1f230 onward).
+tests: `tests/test_phase_equilibrium.py` (39 tests). Branch `feature/phase-equilibrium` (commits 3f1f230 onward).
 
 Like `aiomfac_py.lle` and `aiomfac_py.sle`, this module is **not** part of the Fortran AIOMFAC code, which provides
 activities only. It is therefore not Fortran-validated. It is checked against the other solvers of this package and
@@ -595,9 +595,28 @@ print(res.summary())
   max_liquids=3, max_outer=8, verbose=False)`.
   * `feed` maps organic names and ion keys to mol (water excluded) and must be electroneutral.
   * Give either `p_gas` or `gas_total` (with `n_air`), not both.
-* `drying_path(feed, rh_grid, *, ln_s_crit=0.0, **gas_kw)` follows decreasing RH. A solid becomes a candidate once its
+* `solve(..., init=previous_result)` starts from a previous result of the same system and feed (warm start, plan
+  item 9).
+  * The start is its liquids (species amounts, with removed traces back at 1e-20 of the phase size), its active solids
+    and its gas amounts. The water of every liquid is first adjusted to a_w ≈ RH by bisection.
+  * The start must carry the feed: its component totals must equal the feed within 1e-8.
+  * The stability test runs as usual, so the result does not depend on the start. An incompatible `init` (other
+    components, other feed or T) is ignored.
+  * Not used with the barrier inner solver, which needs every solid strictly positive.
+* `rh_scan(feed, rh_grid, *, warm=True, **kw)` solves along `rh_grid` in the given order, each solve warm-started from
+  the previous result.
+* `drying_path(feed, rh_grid, *, ln_s_crit=0.0, warm=True, **gas_kw)` follows decreasing RH, with warm starts. A solid becomes a candidate once its
   SI in the metastable liquid exceeds `ln_s_crit` (a float, or a dict by solid key), and it stays a candidate at all
   lower RH. `ln_s_crit = 0` reproduces the equilibrium path; a large value gives the fully metastable path.
+* Warm starts give the same states (F within 1e-14) at about half the cost:
+
+  | scan | from scratch | warm start |
+  |---|---|---|
+  | DLT + NaCl + H2SO4 (r = 0.75, open HCl), 16 RH from 0.98 to 0.10 | 22751 evaluations, 5.8 s | 9317, 2.4 s |
+  | DLT + NaCl + H2SO4 (r = 3.0), 16 RH (1 → 2 → 3 liquids) | 40414, 8.5 s | 19379, 4.2 s |
+  | pinic acid + AS + AN, drying path, 13 RH from 0.80 to 0.05 | 11216, 2.9 s | 7531, 1.7 s |
+
+  The stability test, which is repeated from its fixed starts at every RH, takes most of the remaining cost.
 * `si_of(ln_a, ln_rh)` gives the saturation indices for one liquid's activities.
 * Constructor options: `k_mode` (K(T) mode of `aiomfac_py.solids`), `solid_keys` (restrict the candidate solids) and
   `speciation` (`"explicit"`, default, or `"internal"`; Sect. 3.4).
@@ -639,6 +658,8 @@ in its limits against independent implementations, and every result against its 
 | `test_active_set_solids_match_barrier_solids` (3 cases) | pinic acid + AS + AN at RH 0.8, 0.6, 0.3: active-set and barrier treatments of solids give the same phases, solids (rel 1e-6) and F (1e-8) |
 | `test_explicit_and_internal_speciation_give_the_same_equilibrium` (2 cases) | DLT + NaCl + H2SO4 + HCl and pinic acid + NaCl + base + CO2: same phases, component amounts (1e-5), F (5e-8) |
 | `test_explicit_species_are_at_reaction_equilibrium` | carbonate and bisulfate equilibria hold among the species potentials (1e-6); species add up to the components |
+| `test_warm_started_rh_scan_matches_cold_solves` | DLT + NaCl + H2SO4 (r = 3.0), RH 0.98 → 0.3 through 1, 2 and 3 liquids: warm and cold scans agree (1e-10) |
+| `test_incompatible_warm_start_is_ignored` | a result of another feed is not used as the start |
 
 ---
 

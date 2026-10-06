@@ -501,3 +501,29 @@ def test_explicit_species_are_at_reaction_equilibrium():
         mu = dict(zip(L.species_names, L.species_ln_a))
         if np.isfinite(mu["HSO4-"]):
             assert mu["HSO4-"] - mu["H+"] - mu["SO4--"] == pytest.approx(0.0, abs=1e-6)
+
+
+def test_warm_started_rh_scan_matches_cold_solves():
+    """rh_scan with warm starts (previous liquids, solids and gas as the start) gives the same states as solving every
+    RH from scratch, through a change of the number of liquids."""
+    pe0, feed = _dlt_nacl_acid(3.0)
+    grid = [0.98, 0.95, 0.6, 0.3]
+    res = {}
+    for warm in (True, False):
+        pe = PhaseEquilibrium(pe0._organics, ["Na+", "H+", "Cl-", "SO4--"], T_K=298.15)
+        res[warm] = pe.rh_scan(feed, grid, warm=warm, solids="none")
+    assert [r.n_liquids for r in res[True]] == [r.n_liquids for r in res[False]]
+    assert len({r.n_liquids for r in res[True]}) > 1
+    for a, b in zip(res[True], res[False]):
+        _assert_equilibrium(a)
+        assert a.gibbs == pytest.approx(b.gibbs, abs=1e-10)
+
+
+def test_incompatible_warm_start_is_ignored():
+    """A previous result of another feed is not used as the start (the solve proceeds from scratch)."""
+    pe = PhaseEquilibrium([PINIC], ["NH4+", "SO4--"], T_K=300.0)
+    other = pe.solve({"pinic_acid": 0.01, "NH4+": 0.02, "SO4--": 0.01}, 0.4, solids="none")
+    a = pe.solve(_ansan_feed(False), 0.30, solids="none", init=other)
+    b = pe.solve(_ansan_feed(False), 0.30, solids="none")
+    _assert_equilibrium(a)
+    assert a.gibbs == pytest.approx(b.gibbs, abs=1e-12)
