@@ -1249,6 +1249,7 @@ class PhaseEquilibrium:
         mu = self.newton_mu0
         changes = 0
         reentries = 0
+        dec_prev = math.inf
         while True:
             for it in range(max_newton):
                 F0, gvec = merit(x, rv, mu)
@@ -1275,6 +1276,11 @@ class PhaseEquilibrium:
                 rel = float(np.max(np.abs(dx[pos]) / x[pos])) if np.any(pos) else 0.0
                 if dec < 1.0e-14 + 1.0e-10 * mu * len(x) and rel < 1.0e-8:
                     break
+                # a reused excess Hessian can stall the iteration (its refresh test is absolute, so large relative
+                # changes of trace ions do not trigger it): refresh it whenever the decrement stops falling
+                if dec > 0.9 * dec_prev:
+                    hcache[:] = [None] * n_liq
+                dec_prev = dec
                 amax, hit = 1.0, None
                 neg = (dx < 0) & pos
                 if np.any(neg):
