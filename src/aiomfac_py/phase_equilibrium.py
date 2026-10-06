@@ -60,9 +60,10 @@ Acid sulfate systems are supported in the same way as in :mod:`aiomfac_py.sle`: 
 (total) components, and the bisulfate equilibrium HSO4- <-> H+ + SO4-- (Knopf et al. 2003 constant, as in
 :mod:`aiomfac_py.dissociation`) is solved inside every activity evaluation of every liquid; the potential of a
 stoichiometric component equals that of the free ion at the speciation equilibrium, so the formulation above is
-unchanged.  Pass H+ and SO4-- (never HSO4-).  Carbonate species (CO3--, HCO3-, OH-) are not supported.  No gas
-phase other than water.  A state without any liquid (all salts crystalline and no organic present) is not represented;
-use :class:`aiomfac_py.sle.SLESolver` for purely inorganic systems below their deliquescence RH.  Like
+unchanged.  Pass H+ and SO4-- (never HSO4-).  Carbonate systems use CO3-- (total carbonate) and H+ (sign-free
+proton excess), speciated into CO2(aq), HCO3-, CO3-- and OH- in every liquid.  NH3, HNO3, HCl and CO2 can be exchanged
+with an open reservoir (``p_gas``) or a closed ideal-gas phase (``gas_total``, ``n_air``).  A state without any liquid
+is reported with status "dry".  Design notes and validation: ``docs/phase_equilibrium.md``.  Like
 :mod:`aiomfac_py.lle` and :mod:`aiomfac_py.sle`, this module is not part of the Fortran AIOMFAC code (which provides
 activities only); every result carries its own equilibrium-condition checks (``PhaseEquilibriumResult.checks``).
 """
