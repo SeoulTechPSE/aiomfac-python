@@ -514,7 +514,7 @@ class RunResult:
                 if k not in cols:
                     cols.append(k)
         buf = _io.StringIO()
-        w = csv.DictWriter(buf, fieldnames=cols)
+        w = csv.DictWriter(buf, fieldnames=cols, lineterminator="\n")
         w.writeheader()
         for r in rows:
             w.writerow(r)
