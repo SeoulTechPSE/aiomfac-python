@@ -1624,6 +1624,22 @@ class PhaseEquilibrium:
     def solve(self, feed: dict, rh: float, *, solids="all", p_gas: dict | None = None, gas_total: dict | None = None,
               n_air: float | None = None, P_atm: float = 1.0, max_liquids: int = 3, max_outer: int = 8,
               verbose: bool = False, init: "PhaseEquilibriumResult | None" = None) -> PhaseEquilibriumResult:
+        """See :meth:`_solve`.  A warm-started solve (``init``) that does not converge is repeated from scratch, and
+        the cold result is used if it converges (a start from a neighbouring state can be poor, e.g. a small salt
+        liquid that disappears at the new RH)."""
+        kw = dict(solids=solids, p_gas=p_gas, gas_total=gas_total, n_air=n_air, P_atm=P_atm, max_liquids=max_liquids,
+                  max_outer=max_outer, verbose=verbose)
+        res = self._solve(feed, rh, init=init, **kw)
+        if init is not None and res.status == "not_converged":
+            cold = self._solve(feed, rh, init=None, **kw)
+            if cold.status == "converged":
+                cold.message = ((cold.message + "; ") if cold.message else "") + "warm start discarded (not converged)"
+                return cold
+        return res
+
+    def _solve(self, feed: dict, rh: float, *, solids="all", p_gas: dict | None = None, gas_total: dict | None = None,
+               n_air: float | None = None, P_atm: float = 1.0, max_liquids: int = 3, max_outer: int = 8,
+               verbose: bool = False, init: "PhaseEquilibriumResult | None" = None) -> PhaseEquilibriumResult:
         """Equilibrium for the non-water ``feed`` [mol] (organic names and ion keys) at relative humidity ``rh``.
 
         Gases (keys of :data:`aiomfac_py.gases.GASES`: NH3, HNO3, HCl, CO2) are optional:
@@ -2057,6 +2073,19 @@ class PhaseEquilibrium:
         if float(np.max(np.abs(tot[1:] - b[1:]))) > 1e-8:
             return None
         free = self.lm.free
+        # liquids smaller than 1 % of the largest are merged into it: such a liquid (e.g. a small salt liquid) may
+        # disappear at the new RH, and its water cannot always be adjusted; the stability test re-creates it if needed
+        sizes = [float(np.sum(np.abs(n[~free]))) for n in phases]
+        big = int(np.argmax(sizes))
+        merged = [phases[big].copy()]
+        for k, n in enumerate(phases):
+            if k == big:
+                continue
+            if sizes[k] < 0.01 * sizes[big]:
+                merged[0] = merged[0] + n
+            else:
+                merged.append(n.copy())
+        phases = merged
         out = []
         for n in phases:
             n = n.copy()

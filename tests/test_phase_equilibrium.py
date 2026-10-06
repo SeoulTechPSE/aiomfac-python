@@ -527,3 +527,21 @@ def test_incompatible_warm_start_is_ignored():
     b = pe.solve(_ansan_feed(False), 0.30, solids="none")
     _assert_equilibrium(a)
     assert a.gibbs == pytest.approx(b.gibbs, abs=1e-12)
+
+
+def test_warm_drying_path_past_a_disappearing_salt_liquid():
+    """Pinic acid + AS + AN (Seoul composition, 290 K) on the drying path: the small salt liquid of RH 0.20 disappears
+    at lower RH.  Warm-started from it, the solves at 0.15-0.05 failed (a salt liquid without water); small liquids are
+    now merged into the largest one at the start, with a cold restart as the fallback."""
+    from aiomfac_py.sle import implied_ln_s_crit
+    T, oir, f_an = 290.0, 2.78, 0.33124116480218            # paper_1 notebook 06, Seoul site mean
+    m_org, m_as, m_an = oir / 186.207, (1 - f_an) / 132.14, f_an / 80.04
+    feed = {"pinic_acid": m_org, "NH4+": 2 * m_as + m_an, "SO4--": m_as, "NO3-": m_an}
+    lsc = {"ammonium_sulfate": implied_ln_s_crit("ammonium_sulfate", T, 0.35), "ammonium_nitrate": 99.0}
+    grid = [0.80, 0.70, 0.60, 0.50, 0.45, 0.40, 0.35, 0.30, 0.25, 0.20, 0.15, 0.10, 0.05]
+    paths = {w: PhaseEquilibrium([PINIC], ["NH4+", "SO4--", "NO3-"], T_K=T).drying_path(feed, grid, ln_s_crit=lsc,
+                                                                                        warm=w) for w in (True, False)}
+    for a, b in zip(paths[True], paths[False]):
+        _assert_equilibrium(a)
+        assert a.n_liquids == b.n_liquids and set(a.solids) == set(b.solids)
+        assert a.gibbs == pytest.approx(b.gibbs, abs=1e-10)

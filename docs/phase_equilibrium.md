@@ -1,7 +1,7 @@
 # Combined liquid–liquid–solid equilibrium solver (`aiomfac_py.phase_equilibrium`)
 
 Implementation: `src/aiomfac_py/phase_equilibrium.py` (`LiquidModel`, `PhaseEquilibrium`, `PhaseEquilibriumResult`),
-tests: `tests/test_phase_equilibrium.py` (39 tests). Branch `feature/phase-equilibrium` (commits 3f1f230 onward).
+tests: `tests/test_phase_equilibrium.py` (40 tests). Branch `feature/phase-equilibrium` (commits 3f1f230 onward).
 
 Like `aiomfac_py.lle` and `aiomfac_py.sle`, this module is **not** part of the Fortran AIOMFAC code, which provides
 activities only. It is therefore not Fortran-validated. It is checked against the other solvers of this package and
@@ -603,6 +603,11 @@ print(res.summary())
   * The stability test runs as usual, so the result does not depend on the start. An incompatible `init` (other
     components, other feed or T) is ignored.
   * Not used with the barrier inner solver, which needs every solid strictly positive.
+  * Liquids smaller than 1 % of the largest are merged into it at the start: a small liquid can disappear at the new
+    RH, and its water cannot always be adjusted.
+  * A warm-started solve that does not converge is repeated from scratch, and the cold result is used if it converges.
+    Without these two rules, the drying path of pinic acid + AS + AN (Seoul composition, 290 K) failed at RH 0.15–0.05:
+    the small salt liquid of RH 0.20 lost its water.
 * `rh_scan(feed, rh_grid, *, warm=True, **kw)` solves along `rh_grid` in the given order, each solve warm-started from
   the previous result.
 * `drying_path(feed, rh_grid, *, ln_s_crit=0.0, warm=True, **gas_kw)` follows decreasing RH, with warm starts. A solid becomes a candidate once its
@@ -660,6 +665,7 @@ in its limits against independent implementations, and every result against its 
 | `test_explicit_species_are_at_reaction_equilibrium` | carbonate and bisulfate equilibria hold among the species potentials (1e-6); species add up to the components |
 | `test_warm_started_rh_scan_matches_cold_solves` | DLT + NaCl + H2SO4 (r = 3.0), RH 0.98 → 0.3 through 1, 2 and 3 liquids: warm and cold scans agree (1e-10) |
 | `test_incompatible_warm_start_is_ignored` | a result of another feed is not used as the start |
+| `test_warm_drying_path_past_a_disappearing_salt_liquid` | pinic acid + AS + AN drying path (paper_1 Seoul): warm and cold paths agree through the disappearance of a salt liquid |
 
 ---
 
