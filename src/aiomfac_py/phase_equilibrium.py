@@ -751,6 +751,8 @@ class PhaseEquilibrium:
         # stability test: "ss" = successive substitution (one activity evaluation per iteration; Newton polish only if
         # it does not converge), "newton" = barrier Newton from every start (the original method)
         self.tpd_method = "ss"
+        # stop scanning the trial starts once a liquid with TPD below -tpd_early_stop is found (None: all starts)
+        self.tpd_early_stop = 1.0e-3
         # inner problem: "newton" = Newton without a barrier, solids by an active set; "barrier" = log-barrier method
         # with mu continuation for liquids and solids (the original method)
         self.inner_method = "newton"
@@ -1366,7 +1368,7 @@ class PhaseEquilibrium:
         except (ValueError, FloatingPointError, OverflowError, ZeroDivisionError):
             return dry * rh / (1 - rh)
 
-    def _tpd_minimize(self, mu_eq: np.ndarray, w0: np.ndarray, refs=None):
+    def _tpd_minimize(self, mu_eq: np.ndarray, w0: np.ndarray, refs=None, known=None):
         """Stationary point of the tangent-plane distance from the start w0: successive substitution
         (:meth:`_tpd_ss`), polished with the barrier Newton method (:meth:`_tpd_newton`) if it does not converge.
         Carbonate systems (sign-free proton excess) use the Newton method only."""
@@ -1375,7 +1377,7 @@ class PhaseEquilibrium:
             if ok:
                 return w, t
             w0 = w
-        return self._tpd_newton(mu_eq, w0)
+        return self._tpd_newton(mu_eq, w0, refs=refs, known=known)
 
     def _tpd_ss(self, mu_eq: np.ndarray, w0: np.ndarray, max_iter: int = 100, tol: float = 1.0e-10, refs=None):
         """Successive substitution for the stationary points of TPD(w) = sum w_i (ln a_i(w) - mu_i) (Michelsen, 1982),
@@ -1477,9 +1479,11 @@ class PhaseEquilibrium:
             lnW_old = lnW
         return w, tpd_of(w, la), ok
 
-    def _tpd_newton(self, mu_eq: np.ndarray, w0: np.ndarray):
+    def _tpd_newton(self, mu_eq: np.ndarray, w0: np.ndarray, refs=None, known=None):
         """min_w sum w_i (ln a_i(w) - mu_i) over electroneutral w with sum of the bounded entries = 1 (barrier Newton
-        from w0; the proton excess of a carbonate system is a free entry)."""
+        from w0; the proton excess of a carbonate system is a free entry).  Early exits: within 1e-3 (max norm) of a
+        current liquid (``refs``) with TPD > -tol_tpd (the trivial solution, discarded by the caller), or within 1e-3
+        of a minimum already found in this stability test (``known``)."""
         N = self.N
         free = self.lm.free
         bnd = ~free
@@ -1531,6 +1535,12 @@ class PhaseEquilibrium:
                 if not ok:
                     break
                 w, la = wt, lat
+                if refs or known:
+                    t_now = float(np.dot(w, la - mu_eq))
+                    if refs and t_now > -self.tol_tpd and min(float(np.max(np.abs(w - x))) for x in refs) < 1.0e-3:
+                        return w, t_now                          # trivial solution
+                    if known and min(float(np.max(np.abs(w - x))) for x in known) < 1.0e-3:
+                        return w, t_now                          # a minimum found from another start
             mu *= 0.1
         return w, float(np.dot(w, la - mu_eq))
 
@@ -1679,7 +1689,7 @@ class PhaseEquilibrium:
                 child.hess_scheme, child.hess_reuse_tol = self.hess_scheme, self.hess_reuse_tol
                 child.tpd_hess_reuse_tol, child.tpd_method = self.tpd_hess_reuse_tol, self.tpd_method
                 child.inner_method, child.si_tol = self.inner_method, self.si_tol
-                child.seed_method = self.seed_method
+                child.seed_method, child.tpd_early_stop = self.seed_method, self.tpd_early_stop
                 child.newton_mu0, child.newton_mu_factor, child.newton_mu_min = (self.newton_mu0, self.newton_mu_factor,
                                                                                   self.newton_mu_min)
                 self._children[key] = child
@@ -1823,17 +1833,25 @@ class PhaseEquilibrium:
             # stability test of the liquid set (potentials of the largest liquid; water at ln RH)
             mu_eq = self._reference_potentials(liquids, ln_rh)
             best = (0.0, None)
+            known = []                                         # non-trivial minima found in this stability test
             for w0 in self._trial_points(b, rh, liquids):
                 try:
                     with np.errstate(all="ignore"):
-                        w, t = self._tpd_minimize(mu_eq, w0, refs=[L.mole_fractions for L in liquids])
+                        w, t = self._tpd_minimize(mu_eq, w0, refs=[L.mole_fractions for L in liquids], known=known)
                 except (ValueError, FloatingPointError, OverflowError, np.linalg.LinAlgError, ZeroDivisionError):
                     continue
                 if not (np.all(np.isfinite(w)) and np.isfinite(t) and np.all(w > 0)):
                     continue
                 dist = min(float(np.max(np.abs(w - L.mole_fractions))) for L in liquids)
+                if dist > 1e-3 and t < -self.tol_tpd:
+                    known.append(w)
                 if t < best[0] and dist > 1e-3:
                     best = (t, w)
+                # a clearly unstable liquid set needs one new liquid, not the most negative of all candidates: the
+                # next outer iteration tests again (Michelsen's practice); the final, stable test runs every start, and
+                # so does a test whose liquid count is at max_liquids (it reports tpd_min, e.g. for binodal searches)
+                if (self.tpd_early_stop is not None and n_liq < max_liquids and best[0] < -self.tpd_early_stop):
+                    break
             tpd_min = best[0]
             if verbose:
                 print(f"  outer {n_outer}: {n_liq} liquid(s), TPD_min={tpd_min:.3e}")

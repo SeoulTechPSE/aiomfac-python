@@ -456,6 +456,21 @@ one liquid where there are two. The TPD of every iterate is therefore monitored.
 reached (including the start) by more than max(1e-8, 1e-3 |lowest|), the substitution stops, and the Newton method
 continues from the lowest iterate.
 
+**Cost reductions.**
+* *Early stop.* Once a start gives TPD < −`tpd_early_stop` (1e-3), the remaining starts are skipped. A clearly
+  unstable liquid set needs one new liquid, not the most negative candidate, and the next outer iteration tests
+  again (Michelsen's practice). The final test of a stable state runs every start, and so does a test at
+  `max_liquids`, so the reported `tpd_min` is the smallest value found, as used in binodal searches.
+  `tpd_early_stop = None` disables the rule.
+* *Exits of the Newton method.* It stops when it comes within 1e-3 of a current liquid with TPD > −tol_tpd (the
+  trivial solution, as in the substitution) or within 1e-3 of a minimum already found in the same test.
+* *Effect.* The early stop and the Newton exits removed 60–96 % of the stability-test evaluations of the benchmark
+  cases. Profiling had shown that most of them were Newton runs reaching a minimum already found from another start
+  (11 of 12 starts in the three-liquid case) or the trivial solution (100–200 evaluations each).
+  * The number of liquids is unchanged in the paper_2 acid sweeps (240 states) and in the 52 paper_1 phase-state
+    cases.
+  * paper_1 notebook 06 is unchanged (viscosities within 1e-8).
+
 After 100 iterations without convergence, the barrier Newton method (`_tpd_newton`: 9 μ stages from 1e-4,
 eigenvalue shift for non-convex regions) finishes from the last iterate. Carbonate systems, whose proton excess is
 sign-free, use the Newton method only. `tpd_method = "newton"` restores the original method; the tests
@@ -617,11 +632,13 @@ print(res.summary())
 
   | scan | from scratch | warm start |
   |---|---|---|
-  | DLT + NaCl + H2SO4 (r = 0.75, open HCl), 16 RH from 0.98 to 0.10 | 22751 evaluations, 5.8 s | 9317, 2.4 s |
-  | DLT + NaCl + H2SO4 (r = 3.0), 16 RH (1 → 2 → 3 liquids) | 40414, 8.5 s | 19379, 4.2 s |
-  | pinic acid + AS + AN, drying path, 13 RH from 0.80 to 0.05 | 11216, 2.9 s | 7531, 1.7 s |
+  | DLT + NaCl + H2SO4 (r = 0.75, open HCl), 16 RH from 0.98 to 0.10 | 11485 evaluations, 3.0 s | 8410, 2.1 s |
+  | DLT + NaCl + H2SO4 (r = 3.0), 16 RH (1 → 2 → 3 liquids) | 17850, 3.9 s | 15647, 3.3 s |
+  | pinic acid + AS + AN, drying path, 13 RH from 0.80 to 0.05 | 7237, 1.6 s | 5586, 1.2 s |
 
-  The stability test, which is repeated from its fixed starts at every RH, takes most of the remaining cost.
+  These numbers are with the early stop of the stability test (Sect. 6.2). Before it, the warm start halved the cost
+  (for example 22751 → 9317 evaluations in the first scan). The final stability test, which runs every start at every
+  RH, takes most of the remaining cost.
 * `si_of(ln_a, ln_rh)` gives the saturation indices for one liquid's activities.
 * Constructor options: `k_mode` (K(T) mode of `aiomfac_py.solids`), `solid_keys` (restrict the candidate solids) and
   `speciation` (`"explicit"`, default, or `"internal"`; Sect. 3.4).
@@ -698,14 +715,14 @@ separation RH may lie between the two.
 * **Run time.** `benchmarks/pe_bench.py` reports the wall time and the number of activity evaluations (in total and in
   the stability test) of six representative cases. Measured one after another on one machine (one CPU core each):
 
-  | case | 1c693be | split Hessian (3b1dc3d) | + successive substitution (4be0487) | + active-set solids, 6 barrier stages | + line-search seed | + explicit speciation, single-salt trials |
-  |---|---|---|---|---|---|---|
-  | pinic acid + AS, RH 0.30, two liquids | 9765 evals, 1.4 s | 1297, 0.3 s | 825, 0.2 s | 663, 0.2 s | 730, 0.2 s | 746, 0.2 s |
-  | pinic acid + AS + AN, RH 0.6, two liquids + AS(s) | 11204, 1.7 s | 1570, 0.3 s | 713, 0.2 s | 438, 0.1 s | 461, 0.1 s | 755, 0.2 s |
-  | DLT + NaCl + H2SO4 (r = 0.75), open HCl, RH 0.2 | 62624, 338 s | 4276, 1.5 s | 4484, 1.3 s | 4544, 1.3 s | 4049, 1.4 s | 2456, 0.6 s |
-  | DLT + NaCl + H2SO4 (r = 1.5), open HCl, RH 0.5, three liquids | 42776, 136 s | 10811, 5.4 s | 8746, 4.6 s | 4038, 2.0 s | 3673, 1.8 s | 6170, 1.2 s |
-  | NaCl + base, closed CO2 | 7662, 2.6 s | 2132, 0.8 s | 2132, 0.8 s | 1231, 0.5 s | 1231, 0.5 s | 299, 0.1 s |
-  | pinic acid + NaCl + base, open CO2, RH 0.5, two liquids | 25021, 9.5 s | 17189, 6.5 s | 17189, 6.6 s | 17189, 6.6 s | 17159, 6.9 s | 6396, 1.2 s |
+  | case | 1c693be | split Hessian (3b1dc3d) | + successive substitution (4be0487) | + active-set solids, 6 barrier stages | + line-search seed | + explicit speciation, single-salt trials | + early stop in the stability test |
+  |---|---|---|---|---|---|---|---|
+  | pinic acid + AS, RH 0.30, two liquids | 9765 evals, 1.4 s | 1297, 0.3 s | 825, 0.2 s | 663, 0.2 s | 730, 0.2 s | 746, 0.2 s | 501, 0.1 s |
+  | pinic acid + AS + AN, RH 0.6, two liquids + AS(s) | 11204, 1.7 s | 1570, 0.3 s | 713, 0.2 s | 438, 0.1 s | 461, 0.1 s | 755, 0.2 s | 526, 0.1 s |
+  | DLT + NaCl + H2SO4 (r = 0.75), open HCl, RH 0.2 | 62624, 338 s | 4276, 1.5 s | 4484, 1.3 s | 4544, 1.3 s | 4049, 1.4 s | 2456, 0.6 s | 984, 0.3 s |
+  | DLT + NaCl + H2SO4 (r = 1.5), open HCl, RH 0.5, three liquids | 42776, 136 s | 10811, 5.4 s | 8746, 4.6 s | 4038, 2.0 s | 3673, 1.8 s | 6170, 1.2 s | 2524, 0.5 s |
+  | NaCl + base, closed CO2 | 7662, 2.6 s | 2132, 0.8 s | 2132, 0.8 s | 1231, 0.5 s | 1231, 0.5 s | 299, 0.1 s | 531, 0.1 s |
+  | pinic acid + NaCl + base, open CO2, RH 0.5, two liquids | 25021, 9.5 s | 17189, 6.5 s | 17189, 6.6 s | 17189, 6.6 s | 17159, 6.9 s | 6396, 1.2 s | 1761, 0.4 s |
 
   The equilibrium states are the same, and with trace re-entry (Sect. 5.1) F agrees with 1c693be within 1e-11 in
   every case. The single-salt trials make the stability test more expensive in electrolyte-rich cases, but each
