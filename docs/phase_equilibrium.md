@@ -1,7 +1,7 @@
 # Combined liquid–liquid–solid equilibrium solver (`aiomfac_py.phase_equilibrium`)
 
 Implementation: `src/aiomfac_py/phase_equilibrium.py` (`LiquidModel`, `PhaseEquilibrium`, `PhaseEquilibriumResult`),
-tests: `tests/test_phase_equilibrium.py` (34 tests). Branch `feature/phase-equilibrium` (commits 3f1f230 onward).
+tests: `tests/test_phase_equilibrium.py` (37 tests). Branch `feature/phase-equilibrium` (commits 3f1f230 onward).
 
 Like `aiomfac_py.lle` and `aiomfac_py.sle`, this module is **not** part of the Fortran AIOMFAC code, which provides
 activities only. It is therefore not Fortran-validated. It is checked against the other solvers of this package and
@@ -27,8 +27,8 @@ liquid–liquid split, and the two have to adjust at the same time.
 |---|---|---|
 | Neutral organics | any AIOMFAC `Component` (e.g. from `s2as.smiles_to_components`) | |
 | Non-reactive ions | Li+, Na+, K+, NH4+, Mg2+, Ca2+ / F-, Cl-, Br-, I-, NO3-, SO4-- (as in `solids.ION_REGISTRY`) | |
-| Acid sulfate | H+ and SO4-- as stoichiometric components | HSO4- is speciated inside every liquid (Sect. 3.2) |
-| Carbonate | CO3-- (total carbonate) and H+ (sign-free proton excess) | CO2(aq), HCO3-, CO3--, OH- are speciated inside every liquid (Sect. 3.3) |
+| Acid sulfate | H+ and SO4-- as stoichiometric components | HSO4- is an explicit species of every liquid (Sect. 3.4); `speciation="internal"`: speciated inside the activity evaluation (Sect. 3.2) |
+| Carbonate | CO3-- (total carbonate) and H+ (proton excess, either sign) | HCO3-, OH-, CO2(aq) are explicit species (Sect. 3.4); `speciation="internal"`: Sect. 3.3 |
 | Solids | all database solids whose ions are present, or a user list | hydrates through the hydrate water h |
 | Gases | NH3, HNO3, HCl, CO2 | open (`p_gas`) or closed (`gas_total`, `n_air`) |
 | Liquid phases | up to `max_liquids` (default 3) | added by a tangent-plane stability test |
@@ -222,6 +222,51 @@ results equal `SLESolver` (Sect. 10).
 
 ---
 
+### 3.4 Explicit speciation (`ExplicitLiquidModel`, `speciation="explicit"`, default)
+
+The products of the speciation reactions are variables of every liquid, and their equilibria follow from the
+minimization (plan item 4). The internal speciation of Sects. 3.2–3.3 instead solved an iteration inside every
+activity evaluation, and inside every finite-difference perturbation.
+
+* **Components and species.** The feed, mass balances, solids, gases and results stay in the component basis (H+ and
+  SO4-- as totals; CO3-- as total carbonate and H+ as the proton excess). The species of a liquid are the components
+  plus HSO4- (if H+ and SO4-- are present) and HCO3-, OH- and CO2(aq) (carbonate systems), appended after the
+  components so that every component keeps its index. A matrix E maps species to components (HSO4- = H+ + SO4--,
+  HCO3- = H+ + CO3--, CO2(aq) = 2 H+ + CO3-- − H2O, OH- = H2O − H+; water is open and has no balance). The mass-balance
+  rows of the linear constraints are E applied to each liquid block, and electroneutrality uses the species charges.
+* **Reaction constants.** `ln_a` of the explicit model returns the transformed potential μ_s = c_s + ln a_s, with
+  c(HSO4-) = ln K_HSO4, c(HCO3-) = ln K2, c(CO2) = ln K1 + ln K2 + ln RH and c(OH-) = −(ln Kw + ln RH). The base species
+  (H+, SO4--, CO3--) have c = 0, and water enters at its reservoir potential ln RH (`set_conditions`). Stationarity
+  under the component balances then gives μ_HSO4 = μ_H + μ_SO4, μ_HCO3 = μ_H + μ_CO3, μ_CO2 = 2 μ_H + μ_CO3 and
+  μ_OH = −μ_H, i.e. the same equilibrium conditions as Sects. 3.2–3.3.
+* **Consequences.**
+  * One AIOMFAC call per activity evaluation.
+  * No noise from nested iterations in the finite-difference Hessian.
+  * Exact Gibbs–Duhem for everything except CO2(aq). CO2(aq) is a molal solute with the salting-out activity
+    coefficient and does not enter the other activities, so the ~1 % inconsistency of Sect. 3.3 remains.
+  * No sign-free variable: the proton excess is a component total, and H+ and OH- are positive species.
+* **Starting point.** The internal model speciates the starting liquid (`initial_species`), and species that come out
+  zero get 1e-20 of the phase size.
+* **Traces of reacting species.** Species that take part in a reaction (H+, SO4--, CO3-- and the extra species) are
+  never removed as traces (Sect. 5.1). Their small amounts carry the equilibria, for example the free H+ of a liquid in
+  which most acid is HSO4-, i.e. its pH. Removing that H+ broke the bisulfate equilibrium of the phase.
+* **Barrier parameter.** Explicit H+ or OH- can be traces of 1e-14 of the feed and less. The final barrier stage
+  therefore continues until μ ≤ 1e-10 · min x, so that the barrier shifts no potential by more than 1e-10. Stopping
+  at μ = 1e-14 left the CO2(aq) equilibrium of a basic solution off by 1.7.
+* **Results.** `LiquidPhase.amounts` and `ln_a` are in the component basis (the ln a of a component is that of its
+  free species), as before. `species_names`, `species_amounts` and `species_ln_a` give the speciation.
+* With the explicit model, carbonate systems with organics use the active-set solver and the successive-substitution
+  stability test as well. The barrier solver and the Newton stability test are needed only with
+  `speciation="internal"`.
+
+Validation:
+* Tests compare both formulations on DLT + NaCl + H2SO4 open to HCl and on pinic acid + NaCl + base open to CO2: the
+  same phases, component amounts within 1e-5 and F within the removed traces. The reaction equilibria hold in every
+  liquid (1e-6).
+* The SLESolver limit tests (acid salts, carbonate with CO2) pass unchanged.
+* DLT + NaCl + H2SO4 with HCl gives F = −0.08090260331, as 1c693be and 3b1dc3d. The internal formulation of later
+  commits had removed a 6e-9 chloride trace there.
+
 ## 4. Problem reduction (child problems)
 
 A species that is absent from the feed and cannot be supplied by any of the given gases would need an artificial
@@ -290,8 +335,14 @@ correction weighted by the amounts. The stage is then repeated.
 The removed entry stands for an equilibrium amount that is negligible for the mass balance. Its ln a is reported as
 −∞, and the checks skip it. The ion-potential fit, the reference potentials of the TPD test and the SI use only the
 liquids that contain the ion; an ion absent from the reference liquid is assigned `λ_i + z_i ψ_ref` from a gauge fit.
-Before a new liquid is seeded, every removed entry gets a trace amount back (`_reactivate`), so that all liquids again
-contain all species. Removal is then repeated by the next inner solve. `checks["n_absent_entries"]` and
+Removal is reversible. When the final barrier stage of `_newton_solve` has converged, `_reenter` estimates the
+equilibrium amount of every absent entry. The potential of the species is taken from the other liquids (neutrals:
+ln x = μ − ln γ; ions: ln m = λ + z ψ_α − ln γ, from the gauge fit), and its activity coefficient at infinite
+dilution in that liquid. Entries whose estimate exceeds 10 trace_tol get it back, and the stage is repeated (at most
+three times). A species removed while it was transiently small, for example DLT in a liquid that later takes up
+organic, would otherwise stay absent. In DLT + NaCl + H2SO4 at RH 0.5 that left F too high by 1.4e-7. Before a new
+liquid is seeded, every removed entry gets a trace amount back (`_reactivate`), so that all liquids again contain all
+species. Removal is then repeated by the next inner solve. `checks["n_absent_entries"]` and
 `checks["max_removed_trace"]` report what was removed.
 
 ### 5.2 Solids by an active set; shorter barrier schedule (`inner_method = "newton"`, default)
@@ -417,10 +468,15 @@ mole-fraction patterns. They do not depend on RH, so close to saturation an "org
 * each organic at x = 0.3, 0.7 and 0.95 in water, with traces of the ions;
 * all organics in feed proportion at x = 0.5 and 0.9 (if there are two or more organics);
 * the feed ions at water-to-ion ratios 2 and 10 (concentrated and moderate salt solutions);
+* single-salt solutions of every cation–anion pair in the feed, at the same two water-to-ion ratios. Without them, a
+  liquid enriched in one salt was reached only by the random perturbations below. An example is the Na2SO4-rich third
+  liquid of DLT + NaCl + H2SO4 (r = 0.75–3, RH 0.3–0.4). Earlier versions missed it at some states and reported two
+  liquids with a higher F;
 * nearly pure water;
 * copies of the current liquids, perturbed with a fixed random seed.
 
-Each start is made electroneutral (by scaling the anions, or through the proton excess). A minimum counts only if it is
+The patterns are built in the component basis and made electroneutral (by scaling the anions, or through the proton
+excess). With explicit speciation they are then speciated with the internal model (Sect. 3.4). A minimum counts only if it is
 finite, positive, and at least 1e-3 away (max-norm) from every existing liquid.
 
 ### 6.3 Adding a phase
@@ -543,7 +599,8 @@ print(res.summary())
   SI in the metastable liquid exceeds `ln_s_crit` (a float, or a dict by solid key), and it stays a candidate at all
   lower RH. `ln_s_crit = 0` reproduces the equilibrium path; a large value gives the fully metastable path.
 * `si_of(ln_a, ln_rh)` gives the saturation indices for one liquid's activities.
-* Constructor options: `k_mode` (K(T) mode of `aiomfac_py.solids`) and `solid_keys` (restrict the candidate solids).
+* Constructor options: `k_mode` (K(T) mode of `aiomfac_py.solids`), `solid_keys` (restrict the candidate solids) and
+  `speciation` (`"explicit"`, default, or `"internal"`; Sect. 3.4).
 
 ---
 
@@ -580,6 +637,8 @@ in its limits against independent implementations, and every result against its 
 | `test_stability_test_methods_give_the_same_equilibrium` (2 cases) | successive-substitution and Newton stability tests give the same number of liquids and F (1e-7) |
 | `test_successive_substitution_finds_the_unstable_direction` | one-liquid pinic acid + AS at RH 0.30: the most negative TPD of both methods agrees (1e-6) |
 | `test_active_set_solids_match_barrier_solids` (3 cases) | pinic acid + AS + AN at RH 0.8, 0.6, 0.3: active-set and barrier treatments of solids give the same phases, solids (rel 1e-6) and F (1e-8) |
+| `test_explicit_and_internal_speciation_give_the_same_equilibrium` (2 cases) | DLT + NaCl + H2SO4 + HCl and pinic acid + NaCl + base + CO2: same phases, component amounts (1e-5), F (5e-8) |
+| `test_explicit_species_are_at_reaction_equilibrium` | carbonate and bisulfate equilibria hold among the species potentials (1e-6); species add up to the components |
 
 ---
 
@@ -612,17 +671,18 @@ separation RH may lie between the two.
 * **Run time.** `benchmarks/pe_bench.py` reports the wall time and the number of activity evaluations (in total and in
   the stability test) of six representative cases. Measured one after another on one machine (one CPU core each):
 
-  | case | 1c693be | split Hessian (3b1dc3d) | + successive substitution (4be0487) | + active-set solids, 6 barrier stages | + line-search seed |
-  |---|---|---|---|---|---|
-  | pinic acid + AS, RH 0.30, two liquids | 9765 evals, 1.4 s | 1297, 0.3 s | 825, 0.2 s | 663, 0.2 s | 730, 0.2 s |
-  | pinic acid + AS + AN, RH 0.6, two liquids + AS(s) | 11204, 1.7 s | 1570, 0.3 s | 713, 0.2 s | 438, 0.1 s | 461, 0.1 s |
-  | DLT + NaCl + H2SO4 (r = 0.75), open HCl, RH 0.2 | 62624, 338 s | 4276, 1.5 s | 4484, 1.3 s | 4544, 1.3 s | 4049, 1.4 s |
-  | DLT + NaCl + H2SO4 (r = 1.5), open HCl, RH 0.5, three liquids | 42776, 136 s | 10811, 5.4 s | 8746, 4.6 s | 4038, 2.0 s | 3673, 1.8 s |
-  | NaCl + base, closed CO2 | 7662, 2.6 s | 2132, 0.8 s | 2132, 0.8 s | 1231, 0.5 s | 1231, 0.5 s |
-  | pinic acid + NaCl + base, open CO2, RH 0.5, two liquids | 25021, 9.5 s | 17189, 6.5 s | 17189, 6.6 s | 17189, 6.6 s | 17159, 6.9 s |
+  | case | 1c693be | split Hessian (3b1dc3d) | + successive substitution (4be0487) | + active-set solids, 6 barrier stages | + line-search seed | + explicit speciation, single-salt trials |
+  |---|---|---|---|---|---|---|
+  | pinic acid + AS, RH 0.30, two liquids | 9765 evals, 1.4 s | 1297, 0.3 s | 825, 0.2 s | 663, 0.2 s | 730, 0.2 s | 746, 0.2 s |
+  | pinic acid + AS + AN, RH 0.6, two liquids + AS(s) | 11204, 1.7 s | 1570, 0.3 s | 713, 0.2 s | 438, 0.1 s | 461, 0.1 s | 755, 0.2 s |
+  | DLT + NaCl + H2SO4 (r = 0.75), open HCl, RH 0.2 | 62624, 338 s | 4276, 1.5 s | 4484, 1.3 s | 4544, 1.3 s | 4049, 1.4 s | 2456, 0.6 s |
+  | DLT + NaCl + H2SO4 (r = 1.5), open HCl, RH 0.5, three liquids | 42776, 136 s | 10811, 5.4 s | 8746, 4.6 s | 4038, 2.0 s | 3673, 1.8 s | 6170, 1.2 s |
+  | NaCl + base, closed CO2 | 7662, 2.6 s | 2132, 0.8 s | 2132, 0.8 s | 1231, 0.5 s | 1231, 0.5 s | 299, 0.1 s |
+  | pinic acid + NaCl + base, open CO2, RH 0.5, two liquids | 25021, 9.5 s | 17189, 6.5 s | 17189, 6.6 s | 17189, 6.6 s | 17159, 6.9 s | 6396, 1.2 s |
 
-  The equilibrium states are the same. F agrees within 1e-12, except for differences of up to 6e-9 from removed
-  traces (Sect. 5.2). The stability test still takes most of the evaluations in electrolyte-rich cases: there the substitution often stops on
+  The equilibrium states are the same, and with trace re-entry (Sect. 5.1) F agrees with 1c693be within 1e-11 in
+  every case. The single-salt trials make the stability test more expensive in electrolyte-rich cases, but each
+  evaluation is cheaper with explicit speciation, so the run time still falls. The stability test still takes most of the evaluations in electrolyte-rich cases: there the substitution often stops on
   the descent guard and the Newton method finishes (Sect. 6.2). Carbonate systems use the Newton method throughout.
   On the acid sweeps of `research/paper_2` (DLT + AS/NaCl + H2SO4, 240 states), the successive-substitution version
   gives the same number of liquids as 3b1dc3d at every state and is 3–5 times faster.

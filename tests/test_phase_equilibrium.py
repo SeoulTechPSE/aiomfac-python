@@ -454,3 +454,50 @@ def test_active_set_solids_match_barrier_solids(rh, solids):
         assert a.solids[k] == pytest.approx(b.solids[k], rel=1e-6)
     assert a.gibbs == pytest.approx(b.gibbs, abs=1e-8)
     assert a.checks["max_abs_si_present_solids"] < 1e-8
+
+
+def _org_carbonate_case(speciation):
+    pe = PhaseEquilibrium([PINIC], ["Na+", "Cl-", "CO3--", "H+"], T_K=298.15, speciation=speciation)
+    feed = {"pinic_acid": 3 / 184.19, "Na+": 1 / 58.44 + 2e-3, "Cl-": 1 / 58.44, "H+": -2e-3}
+    return pe.solve(feed, 0.5, solids="none", p_gas={"CO2": 4.2e-4})
+
+
+def _dlt_hcl_case(speciation):
+    pe0, feed = _dlt_nacl_acid(0.75)
+    pe = PhaseEquilibrium(pe0._organics, ["Na+", "H+", "Cl-", "SO4--"], T_K=298.15, speciation=speciation)
+    return pe.solve(feed, 0.2, solids="none", p_gas={"HCl": 1e-9})
+
+
+@pytest.mark.parametrize("make", [_dlt_hcl_case, _org_carbonate_case])
+def test_explicit_and_internal_speciation_give_the_same_equilibrium(make):
+    """HSO4- / carbonate species as explicit variables (default) or speciated inside every activity evaluation: the same
+    phases and component amounts (rel 1e-5) and F within the removed traces."""
+    a, b = make("explicit"), make("internal")
+    _assert_equilibrium(a)
+    _assert_equilibrium(b)
+    assert a.n_liquids == b.n_liquids
+    for La, Lb in zip(a.liquids, b.liquids):
+        assert La.names == Lb.names
+        big = La.amounts > 1e-6 * La.amounts.sum()
+        assert np.allclose(La.amounts[big], Lb.amounts[big], rtol=1e-5)
+    assert a.gibbs == pytest.approx(b.gibbs, abs=5e-8)
+
+
+def test_explicit_species_are_at_reaction_equilibrium():
+    """The species potentials of the explicit model satisfy the speciation equilibria in every liquid, and the species
+    amounts add up to the component amounts."""
+    r = _org_carbonate_case("explicit")
+    for L in r.liquids:
+        mu = dict(zip(L.species_names, L.species_ln_a))
+        assert mu["HCO3-"] - mu["H+"] - mu["CO3--"] == pytest.approx(0.0, abs=1e-6)
+        assert mu["CO2(aq)"] - 2 * mu["H+"] - mu["CO3--"] == pytest.approx(0.0, abs=1e-6)
+        assert mu["OH-"] + mu["H+"] == pytest.approx(0.0, abs=1e-6)
+        comp = dict(zip(L.names, L.amounts))
+        sp = dict(zip(L.species_names, L.species_amounts))
+        assert comp["CO3--"] == pytest.approx(sp["CO3--"] + sp["HCO3-"] + sp["CO2(aq)"], rel=1e-12)
+        assert comp["H+"] == pytest.approx(sp["H+"] - sp["OH-"] + sp["HCO3-"] + 2 * sp["CO2(aq)"], rel=1e-9, abs=1e-18)
+    r = _dlt_hcl_case("explicit")
+    for L in r.liquids:
+        mu = dict(zip(L.species_names, L.species_ln_a))
+        if np.isfinite(mu["HSO4-"]):
+            assert mu["HSO4-"] - mu["H+"] - mu["SO4--"] == pytest.approx(0.0, abs=1e-6)

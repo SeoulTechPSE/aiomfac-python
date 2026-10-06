@@ -18,6 +18,14 @@ def _counted(self, n, T):
 
 
 pe_mod.LiquidModel.ln_a = _counted
+if hasattr(pe_mod, "ExplicitLiquidModel"):
+    _orig_e = pe_mod.ExplicitLiquidModel.ln_a
+
+    def _counted_e(self, n, T):
+        COUNT["n"] += 1
+        return _orig_e(self, n, T)
+
+    pe_mod.ExplicitLiquidModel.ln_a = _counted_e
 
 
 def _dlt():
