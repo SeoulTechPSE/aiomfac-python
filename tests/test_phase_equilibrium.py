@@ -316,7 +316,7 @@ def test_trace_entries_are_removed_from_single_liquids():
     res = pe.solve(feed, 0.1, solids="none", p_gas={"HCl": 1e-9})
     _assert_equilibrium(res)
     assert res.checks["n_absent_entries"] >= 1
-    assert res.checks["max_removed_trace"] < 1e-10
+    assert res.checks["max_removed_trace"] < 1e-9
 
 
 def test_new_liquid_close_to_its_appearance_is_found_with_a_smaller_seed():

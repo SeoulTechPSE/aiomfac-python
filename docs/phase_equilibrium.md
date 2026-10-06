@@ -250,12 +250,12 @@ search cannot confirm a decrease and the potential conditions are left unmet.
 
 After every barrier stage (each μ), `_truncate` therefore checks every entry of every liquid. An entry is removed when
 three conditions hold:
-* its amount is below `trace_tol` (1e-10 in scaled units, Σ|b| = 1);
-* another liquid holds at least 100 times more of the species;
+* its amount is below `trace_tol` (1e-9 in scaled units, Σ|b| = 1);
+* another liquid holds at least 10 times more of the species;
 * it is not the carbonate components.
 
 The amount is moved to that liquid, and the entry is fixed at zero and excluded from the null-space basis. Moving an
-ion changes the charge of both liquids by about 1e-10, so the linear constraints are restored by a least-change
+ion changes the charge of both liquids by at most 1e-9, so the linear constraints are restored by a least-change
 correction weighted by the amounts. The stage is then repeated.
 
 The removed entry stands for an equilibrium amount that is negligible for the mass balance. Its ln a is reported as

@@ -411,7 +411,7 @@ class PhaseEquilibrium:
         self._lnk = {s.key: s.ln_k(self.T, k_mode) for s in self.all_solids}
         self.tol_tpd = 1.0e-7
         self.seed_fractions = (0.5, 0.2, 0.05)              # size of a new liquid's seed (fraction of the most possible)
-        self.trace_tol = 1.0e-10                    # scaled amount below which a liquid entry is removed
+        self.trace_tol = 1.0e-9                     # scaled amount below which a liquid entry is removed
         self._trunc_max = 0.0
 
     # ---------------------------------------------------------------------------------------------------
@@ -527,7 +527,7 @@ class PhaseEquilibrium:
 
     def _truncate(self, x, n_liq, act, A) -> bool:
         """Remove trace entries: species i in liquid a is set to zero and excluded (act False) when its amount is below
-        ``trace_tol`` (scaled units, sum |b| = 1) and another liquid holds at least 100 times more of it.  The amount is
+        ``trace_tol`` (scaled units, sum |b| = 1) and another liquid holds at least 10 times more of it.  The amount is
         moved to that liquid and the linear constraints are restored.  Such an entry is the barrier's approximation of
         an amount that is negligible for the mass balance; its potential has no influence on the other species, but
         its 1/n curvature and its contribution to F, far below the floating-point resolution of F, stall the Newton
@@ -544,7 +544,7 @@ class PhaseEquilibrium:
                 continue
             keep = max(idx, key=lambda k: x[k])
             for k in idx:
-                if k != keep and x[k] < tol and x[keep] >= 100.0 * x[k]:
+                if k != keep and x[k] < tol and x[keep] >= 10.0 * x[k]:
                     x[keep] += x[k]
                     self._trunc_max = max(self._trunc_max, float(x[k]))
                     x[k] = 0.0
