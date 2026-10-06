@@ -1,7 +1,7 @@
 # Combined liquid–liquid–solid equilibrium solver (`aiomfac_py.phase_equilibrium`)
 
 Implementation: `src/aiomfac_py/phase_equilibrium.py` (`LiquidModel`, `PhaseEquilibrium`, `PhaseEquilibriumResult`),
-tests: `tests/test_phase_equilibrium.py` (31 tests). Branch `feature/phase-equilibrium` (commits 3f1f230 onward).
+tests: `tests/test_phase_equilibrium.py` (34 tests). Branch `feature/phase-equilibrium` (commits 3f1f230 onward).
 
 Like `aiomfac_py.lle` and `aiomfac_py.sle`, this module is **not** part of the Fortran AIOMFAC code, which provides
 activities only. It is therefore not Fortran-validated. It is checked against the other solvers of this package and
@@ -294,13 +294,52 @@ Before a new liquid is seeded, every removed entry gets a trace amount back (`_r
 contain all species. Removal is then repeated by the next inner solve. `checks["n_absent_entries"]` and
 `checks["max_removed_trace"]` report what was removed.
 
-### 5.2 Starting point
+### 5.2 Solids by an active set; shorter barrier schedule (`inner_method = "newton"`, default)
+
+`_newton_solve` is the default inner solver; `inner_method = "barrier"` restores `_barrier_solve` described above.
+
+* **Solids.** Solids enter F linearly, so they are handled by an active set, as in `SLESolver`. They are not barrier
+  variables.
+  * Only active solids are variables.
+  * A step that would make an active solid negative is cut where the solid reaches zero, and the solid is dropped.
+  * When a barrier stage has converged, the most supersaturated inactive solid (SI > `si_tol` = 1e-9, from the
+    liquids that contain its ions) is added at zero amount and the stage is repeated. A solid that is driven negative
+    immediately after being added is not added again in that solve.
+  * At convergence every active solid has SI = 0 without a barrier residual, and every inactive one has SI ≤ si_tol.
+  * The solve starts without solids. The active solids are kept when a liquid is added.
+* **Liquids** keep a log-barrier, with a shorter schedule: μ = 1e-4, 1e-6, …, 1e-14 (factor `newton_mu_factor` = 0.01,
+  six stages instead of twelve). On the benchmark cases this schedule needed the fewest evaluations. Starting at 1e-6
+  or below, or a pure Newton iteration without a barrier (plan item 3), failed on the three-liquid case. Without the
+  barrier, the iteration stalls or takes huge steps in non-convex regions, for example just after a third liquid is
+  seeded or while a liquid disappears. The barrier curvature μ/x² regularizes these steps. A Levenberg–Marquardt
+  regularization in the metric diag(1/x) did not fix this.
+* **Traces and disappearing material.** These are checked after every step, not only at the end of a stage.
+  * Trace entries are removed (Sect. 5.1).
+  * An ion that falls below 1e-20 (scaled) in every liquid is removed from all liquids (`_vanish`) when an active gas
+    or solid can take it up; its mass-balance row then fixes the gas or solid amount. This handles complete evaporation
+    inside the iteration.
+  * A liquid whose total falls below 1e-10 ends the inner solve, and the outer loop removes it or reports `"dry"`.
+  * The constraint restoration after such removals is sign-safe: a correction that would flip a trace entry negative
+    removes that entry instead.
+* **Carbonate systems with organics** keep `_barrier_solve`, because their potentials are only approximately a
+  gradient (Sect. 3.3). Inorganic carbonate systems use the new solver.
+
+Validation against `_barrier_solve`:
+* paper_1 phase-state cases (pinic acid + AS ± AN, 290–300 K, RH 0.05–0.80, equilibrium and drying path; 52 states):
+  the same number of liquids, the same solids and the same F (within 1e-7) in every state.
+* paper_2 acid sweeps (240 states): the same number of liquids wherever the reference converged. Non-converged states
+  fell from 3 to 1 (r = 3.0, RH 0.1, with HCl).
+* F can differ by the removed trace amounts (≤ 1e-9 of the feed), for example 6.7e-10 for pinic acid removed from the
+  salt-rich liquid in pinic acid + AS + AN at RH 0.6.
+
+### 5.3 Starting point
 
 * **Liquid.** One liquid holds all non-water material; bounded entries are floored at 1e-7 (scaled units) and then
   re-neutralized. In a carbonate system the proton excess absorbs the charge; otherwise the anions are scaled.
 * **Water.** `_water_guess` bisects on ln n_w until `ln a_w = ln RH` for that composition, falling back to
   `RH/(1−RH)` per mole of solute.
-* **Solids.** Each solid starts at 1e-6.
+* **Solids.** With the default active-set solver no solid is active at the start. With `inner_method = "barrier"`,
+  each solid starts at 1e-6.
 * **Gases.** `_initial_gas` solves two linear programs. They give gas amounts that keep every bounded liquid species
   strictly positive without a floor, which matters for species absent from the feed, such as NO3- supplied only by
   HNO3 uptake:
@@ -532,6 +571,7 @@ in its limits against independent implementations, and every result against its 
 | `test_organic_carbonate_two_liquids_with_co2` | pinic acid + NaCl + base open to CO2: two liquids with carbonate traces in the organic liquid |
 | `test_stability_test_methods_give_the_same_equilibrium` (2 cases) | successive-substitution and Newton stability tests give the same number of liquids and F (1e-7) |
 | `test_successive_substitution_finds_the_unstable_direction` | one-liquid pinic acid + AS at RH 0.30: the most negative TPD of both methods agrees (1e-6) |
+| `test_active_set_solids_match_barrier_solids` (3 cases) | pinic acid + AS + AN at RH 0.8, 0.6, 0.3: active-set and barrier treatments of solids give the same phases, solids (rel 1e-6) and F (1e-8) |
 
 ---
 
@@ -564,17 +604,17 @@ separation RH may lie between the two.
 * **Run time.** `benchmarks/pe_bench.py` reports the wall time and the number of activity evaluations (in total and in
   the stability test) of six representative cases. Measured one after another on one machine (one CPU core each):
 
-  | case | 1c693be | split Hessian (3b1dc3d) | + successive substitution |
-  |---|---|---|---|
-  | pinic acid + AS, RH 0.30, two liquids | 9765 evals, 1.4 s | 1297, 0.3 s | 825, 0.2 s |
-  | pinic acid + AS + AN, RH 0.6, two liquids + AS(s) | 11204, 1.7 s | 1570, 0.3 s | 713, 0.2 s |
-  | DLT + NaCl + H2SO4 (r = 0.75), open HCl, RH 0.2 | 62624, 338 s | 4276, 1.5 s | 4484, 1.3 s |
-  | DLT + NaCl + H2SO4 (r = 1.5), open HCl, RH 0.5, three liquids | 42776, 136 s | 10811, 5.4 s | 8746, 4.6 s |
-  | NaCl + base, closed CO2 | 7662, 2.6 s | 2132, 0.8 s | 2132, 0.8 s |
-  | pinic acid + NaCl + base, open CO2, RH 0.5, two liquids | 25021, 9.5 s | 17189, 6.5 s | 17189, 6.6 s |
+  | case | 1c693be | split Hessian (3b1dc3d) | + successive substitution (4be0487) | + active-set solids, 6 barrier stages |
+  |---|---|---|---|---|
+  | pinic acid + AS, RH 0.30, two liquids | 9765 evals, 1.4 s | 1297, 0.3 s | 825, 0.2 s | 663, 0.2 s |
+  | pinic acid + AS + AN, RH 0.6, two liquids + AS(s) | 11204, 1.7 s | 1570, 0.3 s | 713, 0.2 s | 438, 0.1 s |
+  | DLT + NaCl + H2SO4 (r = 0.75), open HCl, RH 0.2 | 62624, 338 s | 4276, 1.5 s | 4484, 1.3 s | 4544, 1.3 s |
+  | DLT + NaCl + H2SO4 (r = 1.5), open HCl, RH 0.5, three liquids | 42776, 136 s | 10811, 5.4 s | 8746, 4.6 s | 4038, 2.0 s |
+  | NaCl + base, closed CO2 | 7662, 2.6 s | 2132, 0.8 s | 2132, 0.8 s | 1231, 0.5 s |
+  | pinic acid + NaCl + base, open CO2, RH 0.5, two liquids | 25021, 9.5 s | 17189, 6.5 s | 17189, 6.6 s | 17189, 6.6 s |
 
-  The equilibrium states are the same (F within 1e-12, except for 1e-12–1e-11 differences from removed traces). The
-  stability test still takes most of the evaluations in electrolyte-rich cases: there the substitution often stops on
+  The equilibrium states are the same. F agrees within 1e-12, except for differences of up to 6e-9 from removed
+  traces (Sect. 5.2). The stability test still takes most of the evaluations in electrolyte-rich cases: there the substitution often stops on
   the descent guard and the Newton method finishes (Sect. 6.2). Carbonate systems use the Newton method throughout.
   On the acid sweeps of `research/paper_2` (DLT + AS/NaCl + H2SO4, 240 states), the successive-substitution version
   gives the same number of liquids as 3b1dc3d at every state and is 3–5 times faster.

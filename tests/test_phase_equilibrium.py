@@ -434,3 +434,20 @@ def test_successive_substitution_finds_the_unstable_direction():
         best[method] = min(ts)
     assert best["ss"] < -0.1
     assert best["ss"] == pytest.approx(best["newton"], abs=1e-6)
+
+
+@pytest.mark.parametrize("rh,solids", [(0.6, "all"), (0.3, "all"), (0.8, "all")])
+def test_active_set_solids_match_barrier_solids(rh, solids):
+    """The active-set treatment of solids (default) gives the same phases, solids and F as the barrier treatment."""
+    out = {}
+    for method in ("newton", "barrier"):
+        pe = PhaseEquilibrium([PINIC], ["NH4+", "SO4--", "NO3-"], T_K=300.0)
+        pe.inner_method = method
+        out[method] = pe.solve(_ansan_feed(True), rh, solids=solids)
+        _assert_equilibrium(out[method])
+    a, b = out["newton"], out["barrier"]
+    assert a.n_liquids == b.n_liquids and set(a.solids) == set(b.solids)
+    for k in a.solids:
+        assert a.solids[k] == pytest.approx(b.solids[k], rel=1e-6)
+    assert a.gibbs == pytest.approx(b.gibbs, abs=1e-8)
+    assert a.checks["max_abs_si_present_solids"] < 1e-8

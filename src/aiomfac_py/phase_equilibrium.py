@@ -571,6 +571,11 @@ class PhaseEquilibrium:
         # stability test: "ss" = successive substitution (one activity evaluation per iteration; Newton polish only if
         # it does not converge), "newton" = barrier Newton from every start (the original method)
         self.tpd_method = "ss"
+        # inner problem: "newton" = Newton without a barrier, solids by an active set; "barrier" = log-barrier method
+        # with mu continuation for liquids and solids (the original method)
+        self.inner_method = "newton"
+        self.si_tol = 1.0e-9                         # an inactive solid is added once its SI exceeds this
+        self.newton_mu0, self.newton_mu_factor, self.newton_mu_min = 1.0e-4, 0.01, 1.0e-14   # liquid barrier: 6 stages
         self.trace_tol = 1.0e-9                     # scaled amount below which a liquid entry is removed
         self._trunc_max = 0.0
         self._ls_failures = 0
@@ -674,17 +679,27 @@ class PhaseEquilibrium:
     # ---------------------------------------------------------------------------------------------------
     # Species that are absent from one liquid (trace truncation)
     # ---------------------------------------------------------------------------------------------------
-    def _restore_constraints(self, x, act, A, target):
+    def _restore_constraints(self, x, act, A, target, n_liq):
         """Weighted least-change correction of the active entries so that A x = target again (after amounts were moved
-        between liquids); the weights are the amounts, so relative changes stay small."""
-        r = A @ x - target
-        if not np.any(np.abs(r) > 0.0):
-            return
-        Aa = A[:, act]
-        w = np.abs(x[act]) + 1e-300
-        M = (Aa * w) @ Aa.T
-        y = np.linalg.lstsq(M, r, rcond=None)[0]
-        x[act] -= w * (Aa.T @ y)
+        between liquids); the weights are the amounts, so relative changes stay small.  A correction larger than a
+        trace amount would flip its sign: such liquid entries are removed and the correction is repeated."""
+        nl = n_liq * self.N
+        bounded_liq = np.zeros(len(x), dtype=bool)
+        bounded_liq[:nl] = np.tile(~self.lm.free, n_liq)
+        for _ in range(5):
+            r = A @ x - target
+            if not np.any(np.abs(r) > 0.0):
+                return
+            Aa = A[:, act]
+            w = np.abs(x[act]) + 1e-300
+            M = (Aa * w) @ Aa.T
+            y = np.linalg.lstsq(M, r, rcond=None)[0]
+            x[act] -= w * (Aa.T @ y)
+            bad = act & bounded_liq & (x <= 0.0)
+            if not np.any(bad):
+                return
+            x[bad] = 0.0
+            act[bad] = False
 
     def _truncate(self, x, n_liq, act, A) -> bool:
         """Remove trace entries: species i in liquid a is set to zero and excluded (act False) when its amount is below
@@ -712,7 +727,34 @@ class PhaseEquilibrium:
                     act[k] = False
                     changed = True
         if changed:
-            self._restore_constraints(x, act, A, target)
+            self._restore_constraints(x, act, A, target, n_liq)
+        return changed
+
+    def _vanish(self, x, n_liq, act, A, tiny=1.0e-20) -> bool:
+        """Newton solver: a species whose amount falls below ``tiny`` (scaled units) in every liquid that holds it, while
+        an active gas or solid can take it up, is removed from all liquids (complete evaporation or precipitation of
+        that ion).  Without a barrier such an amount would otherwise shrink geometrically until 1/n overflows.  The
+        mass-balance row of the species then fixes the gas (or solid) amount; the constraints are restored."""
+        N, lm = self.N, self.lm
+        changed = False
+        target = A @ x
+        tail = np.flatnonzero(act[n_liq * N:]) + n_liq * N
+        for i in range(1, N):
+            if lm.free[i] or (lm._carb and i == lm._kc):
+                continue
+            idx = [a * N + i for a in range(n_liq) if act[a * N + i]]
+            if not idx or max(x[k] for k in idx) >= tiny:
+                continue
+            row = i - 1                                          # mass-balance row of species i in A
+            if not np.any(A[row, tail] != 0.0):
+                continue                                         # nothing can take it up: leave it
+            for k in idx:
+                self._trunc_max = max(self._trunc_max, float(x[k]))
+                x[k] = 0.0
+                act[k] = False
+            changed = True
+        if changed:
+            self._restore_constraints(x, act, A, target, n_liq)
         return changed
 
     def _reactivate(self, x, n_liq, act, A):
@@ -735,7 +777,7 @@ class PhaseEquilibrium:
             act[k] = True
             changed = True
         if changed:
-            self._restore_constraints(x, act, A, target)
+            self._restore_constraints(x, act, A, target, n_liq)
 
     def _barrier_solve(self, x, n_liq, ln_rh, *, act=None, mu0=1.0e-3, mu_min=1.0e-14, max_newton=60,
                        verbose=False):
@@ -879,6 +921,175 @@ class PhaseEquilibrium:
     # ---------------------------------------------------------------------------------------------------
     # Starting point, stability test, phase bookkeeping
     # ---------------------------------------------------------------------------------------------------
+    def _newton_solve(self, x, n_liq, ln_rh, *, act=None, max_newton=60, verbose=False):
+        """Inner problem with solids by an active set (``inner_method = "newton"``).
+
+        * Solids enter F linearly and are handled by an active set, as in SLESolver: only active solids are variables;
+          a step that would make an active solid negative is cut where it reaches zero and the solid is dropped; once a
+          barrier stage has converged, the most supersaturated inactive solid (SI > si_tol) is added at zero amount and
+          the stage is repeated.  At convergence every active solid has SI = 0 and every inactive one SI <= si_tol.
+        * Liquid (and closed-gas) amounts keep a log-barrier with mu continuation from ``newton_mu0`` down to 1e-14 by
+          factors of ``newton_mu_factor``.  A pure Newton iteration without a barrier (mu0 = 0) was tried: it stalls or
+          takes huge steps in non-convex regions (a third liquid being seeded, a liquid disappearing), where the barrier
+          curvature mu/x^2 regularizes the step.
+        * Trace entries are removed (:meth:`_truncate`) and ions that left every liquid through a gas or solid are
+          removed (:meth:`_vanish`) after every step; a liquid that disappears as a whole ends the inner solve.
+        ``act`` is modified in place.  Returns (x, converged)."""
+        N, S = self.N, len(self._solids_now)
+        x = np.array(x, dtype=float)
+        if act is None:
+            act = np.ones(len(x), dtype=bool)
+        A = self._build_A(n_liq)
+        free = self._free_mask(n_liq)
+        o_s = n_liq * N
+        is_solid = np.zeros(len(x), dtype=bool); is_solid[o_s:o_s + S] = True
+        converged = True
+
+        def setup():
+            if A.size:
+                Za = null_space(A[:, act])
+                Z = np.zeros((len(x), Za.shape[1]))
+                Z[act] = Za
+            else:
+                Z = np.eye(len(x))[:, act]
+            return Z, ~free & act & ~is_solid, act & is_solid
+
+        def raw(xx):
+            try:
+                with np.errstate(all="ignore"):
+                    return self._objective(xx, n_liq, ln_rh, act)
+            except (ValueError, OverflowError, FloatingPointError, ZeroDivisionError):
+                return None
+
+        def merit(xx, rv, mu_):
+            if rv is None:
+                return float("inf"), np.full(len(xx), np.nan)
+            F, lna, gg, _ = rv
+            g = self._grad(lna, ln_rh, gg)
+            g[~act] = 0.0
+            if mu_ > 0:
+                g[pos] -= mu_ / xx[pos]
+                F = F - mu_ * float(np.sum(np.log(xx[pos])))
+            return F, g
+
+        hcache: list = [None] * n_liq
+        reuse_tol = 0.0 if self.lm._carb else self.hess_reuse_tol
+
+        def liquid_hessian(a, rv):
+            sl = slice(a * N, (a + 1) * N)
+            n, ma = x[sl], act[sl]
+            if self.hess_scheme == "central":
+                return self.lm.hessian(n, self.T, active=ma)
+            c = hcache[a]
+            Ssz = float(np.sum(np.abs(n[ma])))
+            if (c is None or not np.array_equal(c[1], ma) or float(np.max(np.abs(n - c[0]))) > reuse_tol * Ssz):
+                R = self.lm.hessian_excess(n, self.T, ma, la0=None if rv is None else rv[1][a])
+                hcache[a] = (n.copy(), ma.copy(), R)
+            return self.lm.hessian_split(n, self.T, ma, R=hcache[a][2])
+
+        refused: set = set()
+
+        def supersaturated(rv):
+            best = (-math.inf, None)
+            if rv is None:
+                return best
+            for j, sld in enumerate(self._solids_now):
+                k = o_s + j
+                if act[k] or k in refused:
+                    continue
+                vals = [self.si_of(la, ln_rh, [sld])[sld.key] for la in rv[1]]
+                si = max((v for v in vals if np.isfinite(v)), default=-math.inf)
+                if si > best[0]:
+                    best = (si, k)
+            return best
+
+        Z, pos, sol = setup()
+        rv = raw(x)
+        mu = self.newton_mu0
+        changes = 0
+        while True:
+            for it in range(max_newton):
+                F0, gvec = merit(x, rv, mu)
+                Hg = rv[3] if rv is not None else np.zeros((0, 0))
+                H = np.zeros((len(x), len(x)))
+                for a in range(n_liq):
+                    H[a * N:(a + 1) * N, a * N:(a + 1) * N] = liquid_hessian(a, rv)
+                og = o_s + S
+                H[og:, og:] += Hg
+                if mu > 0:
+                    dg = np.zeros(len(x)); dg[pos] = mu / x[pos] ** 2
+                    H[np.diag_indices_from(H)] += dg
+                Hr = Z.T @ H @ Z
+                gr = Z.T @ gvec
+                if Hr.size == 0 or not np.all(np.isfinite(Hr)):
+                    break
+                w, Q = np.linalg.eigh(0.5 * (Hr + Hr.T))
+                big = max(1.0, abs(w[-1]))
+                shift = -w[0] + 1.0e-8 * big if w[0] <= 1.0e-12 * big else 0.0
+                d = -Q @ ((Q.T @ gr) / (w + shift))
+                dx = Z @ d
+                dec = float(-gr @ d)
+                r0 = float(np.linalg.norm(gr))
+                rel = float(np.max(np.abs(dx[pos]) / x[pos])) if np.any(pos) else 0.0
+                if dec < 1.0e-14 + 1.0e-10 * mu * len(x) and rel < 1.0e-8:
+                    break
+                amax, hit = 1.0, None
+                neg = (dx < 0) & pos
+                if np.any(neg):
+                    amax = min(amax, 0.995 * float(np.min(-x[neg] / dx[neg])))
+                negs = (dx < 0) & sol
+                if np.any(negs):
+                    ratios = -x[negs] / dx[negs]
+                    j = int(np.argmin(ratios))
+                    if ratios[j] < amax:
+                        amax, hit = float(ratios[j]), int(np.flatnonzero(negs)[j])
+                if hit is not None and amax <= 1.0e-14:
+                    if x[hit] == 0.0:
+                        refused.add(hit)                         # added at zero but driven negative at once
+                    act[hit] = False; x[hit] = 0.0; changes += 1
+                    Z, pos, sol = setup(); continue
+                step, ok = amax, False
+                for _ in range(40):
+                    xt = x + step * dx
+                    if hit is not None and step == amax:
+                        xt[hit] = 0.0
+                    if np.all(xt[pos] > 0) and np.all(xt[sol] >= 0):
+                        rvt = raw(xt)
+                        Ft, gt = merit(xt, rvt, mu)
+                        if np.isfinite(Ft) and np.all(np.isfinite(gt)) and (Ft <= F0 - 1.0e-4 * step * dec
+                                                  or float(np.linalg.norm(Z.T @ gt)) <= (1.0 - 1.0e-4 * step) * r0):
+                            ok = True
+                            break
+                    step *= 0.5
+                if not ok:
+                    if dec < 1.0e-14:
+                        break
+                    converged = False
+                    self._ls_failures += 1
+                    break
+                x, rv = xt, rvt
+                if hit is not None and step == amax:             # the limiting solid has dissolved completely
+                    act[hit] = False; x[hit] = 0.0; changes += 1
+                    Z, pos, sol = setup()
+                if any(float(np.sum(x[a * N:(a + 1) * N][pos[a * N:(a + 1) * N]])) < 1.0e-10 for a in range(n_liq)):
+                    return x, converged                          # a liquid disappears: the outer loop removes it
+                if (n_liq > 1 and self._truncate(x, n_liq, act, A)) | self._vanish(x, n_liq, act, A):
+                    Z, pos, sol = setup(); rv = raw(x)
+            else:
+                converged = False
+            if verbose:
+                print(f"    mu={mu:.1e} it={it} dec={dec:.2e} active solids={int(np.sum(act & is_solid))}")
+            # stage converged: add the most supersaturated inactive solid, if any, and repeat the stage
+            si, k = supersaturated(rv)
+            if k is not None and si > self.si_tol and changes < 4 * S + 10:
+                act[k] = True; x[k] = 0.0; changes += 1
+                Z, pos, sol = setup(); converged = True
+                continue
+            if mu <= self.newton_mu_min:
+                break
+            mu = max(mu * self.newton_mu_factor, self.newton_mu_min)
+        return x, converged
+
     def _water_guess(self, n: np.ndarray, rh: float) -> float:
         """Water amount for a single liquid at roughly a_w = RH (bisection on ln n_w)."""
         dry = n[1:].sum()
@@ -1153,6 +1364,9 @@ class PhaseEquilibrium:
                 child.tol_tpd, child.trace_tol, child.seed_fractions = self.tol_tpd, self.trace_tol, self.seed_fractions
                 child.hess_scheme, child.hess_reuse_tol = self.hess_scheme, self.hess_reuse_tol
                 child.tpd_hess_reuse_tol, child.tpd_method = self.tpd_hess_reuse_tol, self.tpd_method
+                child.inner_method, child.si_tol = self.inner_method, self.si_tol
+                child.newton_mu0, child.newton_mu_factor, child.newton_mu_min = (self.newton_mu0, self.newton_mu_factor,
+                                                                                  self.newton_mu_min)
                 self._children[key] = child
             sub_feed = {k: v for k, v in feed.items() if k in present}
             if isinstance(solids, (list, tuple)):
@@ -1211,7 +1425,10 @@ class PhaseEquilibrium:
 
         # strictly feasible start: one liquid with (almost) everything, solids at a tiny amount, closed-system gases
         # mostly in the gas phase, open-system gases at zero net transfer
-        u0 = np.full(S, 1e-6)
+        # carbonate systems with organics keep the barrier method: their potentials are only approximately a gradient
+        # (Sect. 3.3 of the design notes) and the unregularized Newton iteration wanders; the barrier stabilizes it
+        use_barrier = self.inner_method == "barrier" or (self.lm._carb and self.lm.n_neutral > 1)
+        u0 = np.full(S, 1e-6) if use_barrier else np.zeros(S)   # active set: no solid at the start
         g0 = self._initial_gas(b, V @ u0, G, gt / scale) if K else np.zeros(0)
         n0 = b.copy()
         n0[1:] = b[1:] - V[1:] @ u0 - G[1:] @ g0
@@ -1232,12 +1449,15 @@ class PhaseEquilibrium:
         inner_ok = True
         history = []
         act = np.ones(len(x), dtype=bool)                     # entries taking part (False: species absent from a liquid)
+        if not use_barrier:
+            act[N:N + S] = False                              # solids enter through the active set
+        inner = self._barrier_solve if use_barrier else self._newton_solve
         self._trunc_max = 0.0
         self._ls_failures = 0
         while True:
             n_outer += 1
             n_liq = len(phases)
-            x, conv = self._barrier_solve(x, n_liq, ln_rh, act=act, verbose=verbose)
+            x, conv = inner(x, n_liq, ln_rh, act=act, verbose=verbose)
             inner_ok = inner_ok and conv
             phases = [x[a * N:(a + 1) * N] for a in range(n_liq)]
             masks = [act[a * N:(a + 1) * N].copy() for a in range(n_liq)]
@@ -1262,7 +1482,7 @@ class PhaseEquilibrium:
                 phases = [phases[a] for a in merged]
                 x = np.concatenate(phases + [u])
                 act = np.concatenate([masks[a] for a in merged] + [tail_act])
-                x, conv = self._barrier_solve(x, len(phases), ln_rh, act=act, verbose=verbose)
+                x, conv = inner(x, len(phases), ln_rh, act=act, verbose=verbose)
                 n_liq = len(phases)
                 phases = [x[a * N:(a + 1) * N] for a in range(n_liq)]
                 masks = [act[a * N:(a + 1) * N].copy() for a in range(n_liq)]
@@ -1342,7 +1562,7 @@ class PhaseEquilibrium:
                 phases[a] = donor - theta * nonw
                 phases.append(newp)
             x = np.concatenate(phases + [u])
-            act = np.ones(len(x), dtype=bool)
+            act = np.concatenate([np.ones(len(phases) * N, dtype=bool), tail_act])   # keeps the active solids
 
         liquids = [LiquidPhase(p * scale, self.lm.ln_a(p, self.T), self.names) for p in phases]
         org_frac = lambda L: float(np.sum(L.amounts[1:nn]) / np.sum(L.amounts[~free]))
