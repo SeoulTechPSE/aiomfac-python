@@ -1435,6 +1435,8 @@ class PhaseEquilibrium:
                 psi = brentq(g, lo, hi, xtol=1e-14)
                 le = le + zi * psi
                 cmax = le.max()
+                if cmax > 700.0:                                 # diverging (e.g. a start far from any minimum)
+                    return best_w, best_t, False
                 E = math.exp(cmax) * float(np.exp(le - cmax).sum())
                 T = 0.5 * (Tn + math.sqrt(Tn * Tn + 4.0 * E))
                 W[nn:] = np.exp(le) / T
@@ -1803,7 +1805,7 @@ class PhaseEquilibrium:
                 try:
                     with np.errstate(all="ignore"):
                         w, t = self._tpd_minimize(mu_eq, w0, refs=[L.mole_fractions for L in liquids])
-                except (ValueError, FloatingPointError, np.linalg.LinAlgError, ZeroDivisionError):
+                except (ValueError, FloatingPointError, OverflowError, np.linalg.LinAlgError, ZeroDivisionError):
                     continue
                 if not (np.all(np.isfinite(w)) and np.isfinite(t) and np.all(w > 0)):
                     continue
@@ -1895,8 +1897,26 @@ class PhaseEquilibrium:
             sp = split(f_seed)
             if sp is None:
                 break
-            phases[a] = sp[0]
-            phases.append(sp[1])
+            donor_new, newp = sp[0].copy(), sp[1].copy()
+            # floor of 1e-12 of the new liquid's size: a trial from the successive substitution can carry entries of
+            # 1e-239 (exp(mu - ln gamma) of a strongly excluded organic), whose 1/x curvature overflows the inner
+            # iteration; the floor is taken from the donor (mass balance) and the charges are restored below
+            fl = 1.0e-12 * float(np.sum(np.abs(newp[~free])))
+            add = np.where(~free & (newp < fl) & (donor_new > 10.0 * fl), fl - newp, 0.0)
+            add[0] = 0.0
+            newp += add
+            donor_new -= add
+            phases[a] = donor_new
+            phases.append(newp)
+            if np.any(add > 0) and np.any(self.z != 0):
+                xs = np.concatenate(phases + [u])
+                n_new = len(phases)
+                A_new = self._build_A(n_new)
+                tgt = A_new @ xs
+                tgt[self.Nc - 1:] = 0.0                          # charge rows: electroneutral liquids
+                act_new = np.concatenate([np.ones(n_new * N, dtype=bool), tail_act])
+                self._restore_constraints(xs, act_new, A_new, tgt, n_new)
+                phases = [xs[k * N:(k + 1) * N] for k in range(n_new)]
             x = np.concatenate(phases + [u])
             act = np.concatenate([np.ones(len(phases) * N, dtype=bool), tail_act])   # keeps the active solids
 
