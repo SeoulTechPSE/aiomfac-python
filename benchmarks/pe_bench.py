@@ -78,14 +78,18 @@ def case_org_carbonate():
         p_gas={"CO2": 4.2e-4})
 
 
-# PE_HESS=ad|split|central selects the Hessian scheme of every PhaseEquilibrium created by the cases
+# PE_HESS=ad|split|central and PE_INNER=newton|barrier|rand select the Hessian scheme and the inner method of every
+# PhaseEquilibrium created by the cases
 import os  # noqa: E402
-if os.environ.get("PE_HESS"):
+if os.environ.get("PE_HESS") or os.environ.get("PE_INNER"):
     _init = PhaseEquilibrium.__init__
 
     def _init_h(self, *a, **k):
         _init(self, *a, **k)
-        self.hess_scheme = os.environ["PE_HESS"]
+        if os.environ.get("PE_HESS"):
+            self.hess_scheme = os.environ["PE_HESS"]
+        if os.environ.get("PE_INNER"):
+            self.inner_method = os.environ["PE_INNER"]
 
     PhaseEquilibrium.__init__ = _init_h
 if hasattr(pe_mod.ExplicitLiquidModel, "hessian_ad"):

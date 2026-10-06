@@ -313,6 +313,7 @@ def test_trace_entries_are_removed_from_single_liquids():
     """DLT + NaCl + H2SO4 (r = 1.5) open to HCl at RH 0.1: DLT and the last chloride are traces (< 1e-10 of the feed)
     in the salt-rich liquid; removing them from that liquid lets the potential conditions converge."""
     pe, feed = _dlt_nacl_acid(1.5)
+    pe.inner_method = "newton"                                     # trace removal belongs to the primal Newton solver
     res = pe.solve(feed, 0.1, solids="none", p_gas={"HCl": 1e-9})
     _assert_equilibrium(res)
     assert res.checks["n_absent_entries"] >= 1
@@ -432,6 +433,66 @@ def test_ad_hessian_gives_the_same_equilibrium(case):
     assert pe.lm.n_jac > 0
     assert out["ad"].n_liquids == out["split"].n_liquids
     assert out["ad"].gibbs == pytest.approx(out["split"].gibbs, abs=1e-9)
+
+
+def _rand_cases():
+    dlt_pe, dlt_feed = _dlt_nacl_acid(1.5)
+    org = dlt_pe._organics
+    m_org, m_as, m_an = 1.15 / 184.19, 0.778 / 132.14, 0.222 / 80.04
+    return {
+        "pinic_as": (lambda: PhaseEquilibrium([PINIC], ["NH4+", "SO4--"], T_K=298.15),
+                     (_ansan_feed(False), 0.30), dict(solids="none")),
+        "pinic_as_an_solid": (lambda: PhaseEquilibrium([PINIC], ["NH4+", "SO4--", "NO3-"], T_K=298.15),
+                              ({"pinic_acid": m_org, "NH4+": 2 * m_as + m_an, "SO4--": m_as, "NO3-": m_an}, 0.6), {}),
+        "dlt_3liq": (lambda: PhaseEquilibrium(org, ["Na+", "H+", "Cl-", "SO4--"], T_K=298.15),
+                     (dlt_feed, 0.5), dict(solids="none", p_gas={"HCl": 1e-9})),
+        "org_carbonate": (lambda: PhaseEquilibrium([PINIC], ["Na+", "Cl-", "CO3--", "H+"], T_K=298.15),
+                          ({"pinic_acid": 3 / 184.19, "Na+": 1 / 58.44 + 2e-3, "Cl-": 1 / 58.44, "H+": -2e-3}, 0.5),
+                          dict(solids="none", p_gas={"CO2": 4.2e-4})),
+    }
+
+
+@pytest.mark.parametrize("case", ["pinic_as", "pinic_as_an_solid", "dlt_3liq", "org_carbonate"])
+def test_rand_inner_solver_matches_newton(case):
+    """inner_method "rand" (logarithmic amounts, no barrier, no trace removal) gives the phases, solids and F of the
+    primal Newton solver; F may be lower by the trace entries that the primal solver removes (2e-11 for three liquids)."""
+    make, args, kw = _rand_cases()[case]
+    out = {}
+    for method in ("newton", "rand"):
+        pe = make()
+        pe.inner_method = method
+        out[method] = pe.solve(*args, **kw)
+        _assert_equilibrium(out[method])
+    a, b = out["newton"], out["rand"]
+    assert b.n_liquids == a.n_liquids
+    assert set(b.solids) == set(a.solids)
+    assert b.gibbs == pytest.approx(a.gibbs, abs=1e-10)
+    assert b.gibbs <= a.gibbs + 1e-12
+    assert b.checks["n_absent_entries"] == 0
+
+
+def test_rand_resolves_traces_without_removal():
+    """DLT + NaCl + H2SO4 (r = 1.5) open to HCl at RH 0.1, the case that needs trace removal in the primal solver
+    (test_trace_entries_are_removed_from_single_liquids): with logarithmic amounts every species stays in every liquid,
+    DLT far below 1e-30 of the salt-rich liquid, and all equilibrium conditions are met."""
+    pe, feed = _dlt_nacl_acid(1.5)
+    pe.inner_method = "rand"
+    res = pe.solve(feed, 0.1, solids="none", p_gas={"HCl": 1e-9})
+    _assert_equilibrium(res)
+    assert res.checks["n_absent_entries"] == 0
+    salt = min(res.liquids, key=lambda L: L.mole_fractions[1])
+    assert 0.0 < salt.mole_fractions[1] < 1e-30
+
+
+def test_rand_small_draining_liquid_is_merged_and_reseeded():
+    """Three-liquid DLT + NaCl + H2SO4 state with the fixed seed 0.5: the seeded liquid drains slowly in a non-convex
+    region; the RAND solver merges it, and the smaller seed then finds the third liquid."""
+    pe, feed = _dlt_nacl_acid(1.5)
+    pe.inner_method = "rand"
+    pe.seed_method = "fixed"
+    res = pe.solve(feed, 0.5, solids="none", p_gas={"HCl": 1e-9})
+    _assert_equilibrium(res)
+    assert res.n_liquids == 3
 
 
 def test_organic_carbonate_two_liquids_with_co2():

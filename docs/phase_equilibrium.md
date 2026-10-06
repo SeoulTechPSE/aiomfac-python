@@ -404,7 +404,51 @@ Validation against `_barrier_solve`:
 * F can differ by the removed trace amounts (≤ 1e-9 of the feed), for example 6.7e-10 for pinic acid removed from the
   salt-rich liquid in pinic acid + AS + AN at RH 0.6.
 
-### 5.3 Starting point
+### 5.3 Logarithmic amounts without a barrier (`inner_method = "rand"`, optional)
+
+The trace handling of Sects. 5.1 and 7 (removal, re-entry, complete evaporation, `trace_tol`) is a consequence of the
+primal formulation: amounts are the variables, steps are additive, and the 1/n curvature of a trace species makes the
+Newton system ill-conditioned. Element-potential (RAND-type) methods avoid this (Smith and Missen, 1982). `_rand_solve`
+is such an inner solver for the explicit liquid model (no sign-free entries); `inner_method = "rand"` selects it, and
+the internal speciation model falls back to `"newton"`.
+
+* **Scaling.** The Newton system is solved in the variables v = D⁻¹ n with D = diag(√n) for liquid (and closed-gas)
+  amounts and D = I for solids and open-gas transfers. The ideal part of the Hessian, diag(1/n) plus rank-one terms,
+  becomes the identity plus bounded terms, so a species of 1e-50 is as well conditioned as a major one. (With
+  D = diag(n) the scaled ideal part is diag(n), and trace directions look singular to the eigenvalue shift.) The
+  reduced system on the null space of A D is solved as in Sect. 5, with the same eigenvalue shift in non-convex
+  regions; where no shift is needed, the non-symmetric Jacobian is used as it is (CO2(aq) makes it slightly
+  non-symmetric, Sect. 3.4). The excess part is reused as in Sect. 3.1 and refreshed when the decrement stalls.
+* **Update.** An increase of a liquid amount is applied additively, a decrease multiplicatively, n exp(t Δn / n). The
+  map is smooth at Δn = 0, and an amount can approach zero but never cross it, so no fraction-to-the-boundary rule and
+  no barrier are needed. A decrease is limited to a factor of exp(−7) per step: the linear step of a liquid whose
+  composition changes a lot can predict Δn = −450 n for a minor species, and the exponential would turn this into
+  1e-195, far below its equilibrium amount, from which the additive increases recover only slowly. This happened at
+  five of the 240 paper_2 sweep states before the limit was introduced. Solids are additive and handled by the active
+  set of Sect. 5.2.
+* **Feasibility.** The multiplicative update leaves the mass and charge balances violated at second order. Before the
+  objective is evaluated, they are restored by x ← x exp(Aᵀ y) on the logarithmic entries (and an additive Aᵀ y on
+  open-gas transfers). This is a Newton iteration on the element potentials y with the matrix A diag(x) Aᵀ, and it
+  needs no activity evaluations.
+* **Acceptance and convergence.** The step is accepted on the Armijo condition or on a decrease of the norm of the
+  reduced gradient (as in Sect. 5). The iteration ends when the decrement is below 1e-15 and the largest relative
+  change of a liquid amount is below 1e-8. Because relative steps of trace entries carry the round-off of the major
+  entries (an absolute 1e-16), a decrement below 1e-24 also ends it.
+* **Draining liquids.** In a non-convex region the Newton step can be dominated by a nearly singular direction, and a
+  small liquid then drains only by short steps (seen with the fixed seed 0.5 at the three-liquid DLT state). After
+  three consecutive steps shorter than 0.01, a liquid holding less than 1e-3 of the liquid total is merged into the
+  liquid of the most similar composition. The outer loop removes it, and the stability test seeds it again if it is
+  needed (the same treatment as the small liquids of a warm start, Sect. 9).
+
+Every species stays in every liquid: in the DLT + NaCl + H2SO4 state of
+`test_trace_entries_are_removed_from_single_liquids`, DLT is resolved at a mole fraction of 1e-54 in the salt-rich
+liquid. Results agree with `"newton"`: same phases, solids and number of liquids on the paper_2 acid sweeps (240
+states, all converged), the 52 paper_1 solid states (104 equilibrium and drying-path comparisons, F within 2.3e-10),
+warm and cold RH scans (2e-15) and paper_1 notebook 06 (all results within 1e-6). F can be lower by the trace entries
+that the primal solver removes (2e-11 for the three-liquid DLT state). `"newton"` remains the default until the RAND
+solver has been used more widely.
+
+### 5.4 Starting point
 
 * **Liquid.** One liquid holds all non-water material; bounded entries are floored at 1e-7 (scaled units) and then
   re-neutralized. In a carbonate system the proton excess absorbs the charge; otherwise the anions are scaled.
@@ -711,6 +755,9 @@ in its limits against independent implementations, and every result against its 
 | `test_fast_bisulfate_speciation_matches_bracketing_solver` | warm-started speciation = `dissociation.solve_bisulfate` (1e-10) on random compositions |
 | `test_hessian_schemes_give_the_same_equilibrium` | split and central Hessians converge to the same two-liquid state |
 | `test_ad_activities_and_jacobian_match_numpy` (2 cases) | JAX ln a = NumPy ln a (1e-12); AD Jacobian = 4th-order central differences (1e-9 relative); NH4+ + H+ + SO4-- (Qcca, Rcc terms) and the carbonate system (CO2(aq) term) |
+| `test_rand_inner_solver_matches_newton` (4 cases) | pinic acid + AS, + AN with AS(s), three-liquid DLT + NaCl + H2SO4 + HCl, pinic acid + NaCl + base + CO2: `"rand"` and `"newton"` give the same phases, solids and F (1e-10); no entry is removed |
+| `test_rand_resolves_traces_without_removal` | the RH 0.1 state of the trace-removal test: all checks pass with DLT at a mole fraction below 1e-30 in the salt-rich liquid |
+| `test_rand_small_draining_liquid_is_merged_and_reseeded` | three-liquid DLT state with the fixed seed 0.5: the draining liquid is merged and the smaller seed finds three liquids |
 | `test_ad_hessian_gives_the_same_equilibrium` (2 cases) | three-liquid DLT + NaCl + H2SO4 + HCl and pinic acid + NaCl + base + CO2: `"ad"` and `"split"` give the same phases and F (1e-9) |
 | `test_organic_carbonate_two_liquids_with_co2` | pinic acid + NaCl + base open to CO2: two liquids with carbonate traces in the organic liquid |
 | `test_stability_test_methods_give_the_same_equilibrium` (2 cases) | successive-substitution and Newton stability tests give the same number of liquids and F (1e-7) |
@@ -753,16 +800,16 @@ separation RH may lie between the two.
 * **Run time.** `benchmarks/pe_bench.py` reports the wall time and the number of activity evaluations (in total and in
   the stability test) of six representative cases. Measured one after another on one machine (one CPU core each):
 
-  | case | 1c693be | split Hessian (3b1dc3d) | + successive substitution (4be0487) | + active-set solids, 6 barrier stages | + line-search seed | + explicit speciation, single-salt trials | + early stop in the stability test | 738f416, split | `hess_scheme = "ad"` |
-  |---|---|---|---|---|---|---|---|---|---|
-  | pinic acid + AS, RH 0.30, two liquids | 9765 evals, 1.4 s | 1297, 0.3 s | 825, 0.2 s | 663, 0.2 s | 730, 0.2 s | 746, 0.2 s | 501, 0.10 s | 372 + 73 Jacobians, 0.08 s |
-  | pinic acid + AS + AN, RH 0.6, two liquids + AS(s) | 11204, 1.7 s | 1570, 0.3 s | 713, 0.2 s | 438, 0.1 s | 461, 0.1 s | 755, 0.2 s | 526, 0.12 s | 392 + 80, 0.10 s |
-  | DLT + NaCl + H2SO4 (r = 0.75), open HCl, RH 0.2 | 62624, 338 s | 4276, 1.5 s | 4484, 1.3 s | 4544, 1.3 s | 4049, 1.4 s | 2456, 0.6 s | 945, 0.22 s | 543 + 273, 0.19 s |
-  | DLT + NaCl + H2SO4 (r = 1.5), open HCl, RH 0.5, three liquids | 42776, 136 s | 10811, 5.4 s | 8746, 4.6 s | 4038, 2.0 s | 3673, 1.8 s | 6170, 1.2 s | 2147, 0.44 s | 897 + 658, 0.29 s |
-  | NaCl + base, closed CO2 | 7662, 2.6 s | 2132, 0.8 s | 2132, 0.8 s | 1231, 0.5 s | 1231, 0.5 s | 299, 0.1 s | 531, 0.11 s | 235 + 112, 0.08 s |
-  | pinic acid + NaCl + base, open CO2, RH 0.5, two liquids | 25021, 9.5 s | 17189, 6.5 s | 17189, 6.6 s | 17189, 6.6 s | 17159, 6.9 s | 6396, 1.2 s | 1744, 0.35 s | 534 + 396, 0.18 s |
+  | case | 1c693be | split Hessian (3b1dc3d) | + successive substitution (4be0487) | + active-set solids, 6 barrier stages | + line-search seed | + explicit speciation, single-salt trials | + early stop in the stability test | 738f416, split | `hess_scheme = "ad"` | `inner_method = "rand"` | `"rand"` + `"ad"` |
+  |---|---|---|---|---|---|---|---|---|---|---|---|
+  | pinic acid + AS, RH 0.30, two liquids | 9765 evals, 1.4 s | 1297, 0.3 s | 825, 0.2 s | 663, 0.2 s | 730, 0.2 s | 746, 0.2 s | 501, 0.10 s | 372 + 73 Jacobians, 0.08 s | 449, 0.10 s | 369 + 17, 0.09 s |
+  | pinic acid + AS + AN, RH 0.6, two liquids + AS(s) | 11204, 1.7 s | 1570, 0.3 s | 713, 0.2 s | 438, 0.1 s | 461, 0.1 s | 755, 0.2 s | 526, 0.12 s | 392 + 80, 0.10 s | 433, 0.13 s | 362 + 34, 0.12 s |
+  | DLT + NaCl + H2SO4 (r = 0.75), open HCl, RH 0.2 | 62624, 338 s | 4276, 1.5 s | 4484, 1.3 s | 4544, 1.3 s | 4049, 1.4 s | 2456, 0.6 s | 945, 0.22 s | 543 + 273, 0.19 s | 635, 0.17 s | 435 + 154, 0.16 s |
+  | DLT + NaCl + H2SO4 (r = 1.5), open HCl, RH 0.5, three liquids | 42776, 136 s | 10811, 5.4 s | 8746, 4.6 s | 4038, 2.0 s | 3673, 1.8 s | 6170, 1.2 s | 2147, 0.44 s | 897 + 658, 0.29 s | 1537, 0.34 s | 697 + 402, 0.24 s |
+  | NaCl + base, closed CO2 | 7662, 2.6 s | 2132, 0.8 s | 2132, 0.8 s | 1231, 0.5 s | 1231, 0.5 s | 299, 0.1 s | 531, 0.11 s | 235 + 112, 0.08 s | 188, 0.06 s | 151 + 12, 0.05 s |
+  | pinic acid + NaCl + base, open CO2, RH 0.5, two liquids | 25021, 9.5 s | 17189, 6.5 s | 17189, 6.6 s | 17189, 6.6 s | 17159, 6.9 s | 6396, 1.2 s | 1744, 0.35 s | 534 + 396, 0.18 s | 448, 0.11 s | 254 + 86, 0.08 s |
 
-  The last two columns are times after compilation (median of five repeated solves in one process; the first solve
+  The last four columns are times after compilation (where it applies) (median of five repeated solves in one process; the first solve
   with `"ad"` adds 0.5–1.5 s for importing jax and compiling the Jacobians of the system and its child problems). With `"ad"` the activity evaluations fall by 26–69 % and the
   time by 15–49 %; F is the same as with `"split"` to 1e-12. On the paper_2 acid sweeps (240 states), the paper_1
   solid states (52) and notebook 06 of paper_1, `"ad"` gives the same phases, solids and results as `"split"`.
@@ -803,6 +850,8 @@ separation RH may lie between the two.
   chemical equilibrium problems related to the modeling of atmospheric inorganic aerosols, J. Optim. Theory Appl.,
   128, 469–498, 2006.
 * Michelsen, M. L.: The isothermal flash problem. Part I. Stability, Fluid Phase Equilib., 9, 1–19, 1982.
+* Smith, W. R. and Missen, R. W.: Chemical Reaction Equilibrium Analysis: Theory and Algorithms, Wiley, New York,
+  1982.
 * Zuend, A., Marcolli, C., Booth, A. M., et al.: New and extended parameterization of the thermodynamic model
   AIOMFAC, Atmos. Chem. Phys., 11, 9155–9206, 2011.
 * Zuend, A., Marcolli, C., Peter, T., and Seinfeld, J. H.: Computation of liquid-liquid equilibria and phase

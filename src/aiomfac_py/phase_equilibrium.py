@@ -771,7 +771,9 @@ class PhaseEquilibrium:
         # stop scanning the trial starts once a liquid with TPD below -tpd_early_stop is found (None: all starts)
         self.tpd_early_stop = 1.0e-3
         # inner problem: "newton" = Newton without a barrier, solids by an active set; "barrier" = log-barrier method
-        # with mu continuation for liquids and solids (the original method)
+        # with mu continuation for liquids and solids (the original method); "rand" = logarithmic amounts with
+        # element-potential feasibility restoration: no barrier and no trace removal (explicit speciation only;
+        # "newton" otherwise)
         self.inner_method = "newton"
         self.si_tol = 1.0e-9                         # an inactive solid is added once its SI exceeds this
         self.newton_mu0, self.newton_mu_factor, self.newton_mu_min = 1.0e-4, 0.01, 1.0e-14   # liquid barrier: 6 stages
@@ -1376,6 +1378,247 @@ class PhaseEquilibrium:
             mu = max(mu * self.newton_mu_factor, min(self.newton_mu_min, 1.0e-10 * small), 1.0e-300)
         return x, converged
 
+    def _rand_solve(self, x, n_liq, ln_rh, *, act=None, max_newton=100, verbose=False):
+        """Inner problem in logarithmic amounts (``inner_method = "rand"``; explicit speciation, no sign-free entries).
+
+        RAND-type formulation (element-potential methods; Smith and Missen, 1982): every liquid (and closed-gas)
+        amount is a logarithmic variable, n <- n exp(t delta), so no amount can become negative and a trace species
+        is as well resolved as a major one.  The Newton step solves the reduced system of the scaled Hessian S H S
+        (S = diag(n)), in which the 1/n curvature of the ideal part becomes the identity: trace species are well
+        conditioned and need no barrier, no fraction-to-boundary rule and no removal or re-entry.  A step leaves the
+        linear constraints (mass and charge balances) violated at second order; feasibility is restored before the
+        objective is evaluated by the multiplicative correction x <- x exp(A^T y) of the logarithmic entries (and an
+        additive one of open-gas amounts), a Newton iteration on the element potentials y.  Solids enter linearly and
+        are handled by the active set of :meth:`_newton_solve`.  ``act`` is modified in place: all liquid entries take
+        part (absent entries are given back a trace amount first).  Returns (x, converged)."""
+        N, S = self.N, len(self._solids_now)
+        x = np.array(x, dtype=float)
+        if act is None:
+            act = np.ones(len(x), dtype=bool)
+        A = self._build_A(n_liq)
+        nl = n_liq * N
+        o_s, og = nl, nl + S
+        K = len(x) - og
+        if not np.all(act[:nl]) or np.any(x[:nl] <= 0.0):
+            act[:nl] &= x[:nl] > 0.0
+            self._reactivate(x, n_liq, act, A)
+            act[:nl] = True
+            x[:nl] = np.maximum(x[:nl], 1.0e-300)
+        is_log = np.zeros(len(x), dtype=bool); is_log[:nl] = True
+        if self._gas_mode == "closed":
+            is_log[og:] = True
+        is_solid = np.zeros(len(x), dtype=bool); is_solid[o_s:og] = True
+        target = A @ x
+        if A.size and np.any(self.z != 0):
+            target[self.Nc - 1:] = 0.0                           # electroneutral liquids
+        corr = is_log | (~is_solid & ~is_log & (np.arange(len(x)) >= og))   # entries that restore feasibility
+        converged = True
+
+        def restore(xx):
+            """x exp(A^T y) on logarithmic entries (+ A^T y on open-gas entries) such that A x = target."""
+            if not A.size:
+                return xx
+            xx = xx.copy()
+            Ac = A[:, corr]
+            for _ in range(30):
+                r = A @ xx - target
+                if float(np.max(np.abs(r))) <= 1.0e-15 * max(1.0, float(np.max(np.abs(target)))):
+                    return xx
+                w = np.where(is_log[corr], xx[corr], 1.0)
+                J = (Ac * w) @ Ac.T
+                try:
+                    y = np.linalg.solve(J, r)
+                except np.linalg.LinAlgError:
+                    y = np.linalg.lstsq(J, r, rcond=None)[0]
+                e = Ac.T @ y
+                v = xx[corr]
+                lg = is_log[corr]
+                v[lg] = v[lg] * np.exp(np.clip(-e[lg], -50.0, 50.0))
+                v[~lg] = v[~lg] - e[~lg]
+                xx[corr] = v
+            return None
+
+        def raw(xx):
+            try:
+                with np.errstate(all="ignore"):
+                    return self._objective(xx, n_liq, ln_rh, act)
+            except (ValueError, OverflowError, FloatingPointError, ZeroDivisionError):
+                return None
+
+        def grad(rv):
+            g = self._grad(rv[1], ln_rh, rv[2])
+            g[~act] = 0.0
+            return g
+
+        hcache: list = [None] * n_liq
+
+        def liquid_hessian(a, rv):
+            n = x[a * N:(a + 1) * N]
+            if self.hess_scheme == "central":
+                return self.lm.hessian(n, self.T)
+            if self._use_ad():
+                return self.lm.hessian_ad(n, self.T)
+            # excess part reused as in _newton_solve; not symmetrized: CO2(aq) makes the Jacobian of the potentials
+            # slightly non-symmetric (Sect. 3.4)
+            c = hcache[a]
+            if c is None or float(np.max(np.abs(n - c[0]))) > self.hess_reuse_tol * float(np.sum(n)):
+                hcache[a] = (n.copy(), self.lm.hessian_excess(n, self.T, la0=rv[1][a]))
+            return self.lm.ideal_jacobian(n) + hcache[a][1]
+
+        refused: set = set()
+
+        def supersaturated(rv):
+            best = (-math.inf, None)
+            for j, sld in enumerate(self._solids_now):
+                k = o_s + j
+                if act[k] or k in refused:
+                    continue
+                vals = [self.si_of(la, ln_rh, [sld])[sld.key] for la in rv[1]]
+                si = max((v for v in vals if np.isfinite(v)), default=-math.inf)
+                if si > best[0]:
+                    best = (si, k)
+            return best
+
+        def setup():
+            As = A[:, act] * np.where(is_log[act], np.sqrt(np.abs(x[act])), 1.0)
+            if As.size:
+                Za = null_space(As)
+            else:
+                Za = np.eye(int(np.sum(act)))
+            Z = np.zeros((len(x), Za.shape[1]))
+            Z[act] = Za
+            return Z
+
+        rv = raw(x)
+        if rv is None:
+            return x, False
+        changes = 0
+        dec_prev = math.inf
+        short = 0
+        while True:
+            for it in range(max_newton):
+                F0 = rv[0]
+                g = grad(rv)
+                s = np.where(is_log, np.sqrt(np.abs(x)), 1.0)    # D = diag(sqrt n): D (1/n) D = identity
+                H = np.zeros((len(x), len(x)))
+                for a in range(n_liq):
+                    H[a * N:(a + 1) * N, a * N:(a + 1) * N] = liquid_hessian(a, rv)
+                if K:
+                    H[og:, og:] += rv[3]
+                Hs = H * s[:, None] * s[None, :]
+                gs = g * s
+                Z = setup()
+                Hr = Z.T @ Hs @ Z
+                gr = Z.T @ gs
+                if Hr.size == 0 or not np.all(np.isfinite(Hr)):
+                    break
+                w, Q = np.linalg.eigh(0.5 * (Hr + Hr.T))
+                big = max(1.0, abs(w[-1]))
+                shift = -w[0] + 1.0e-8 * big if w[0] <= 1.0e-12 * big else 0.0
+                if shift == 0.0:
+                    try:
+                        d = Z @ np.linalg.solve(Hr, -gr)
+                    except np.linalg.LinAlgError:
+                        d = Z @ (-Q @ ((Q.T @ gr) / w))
+                else:
+                    d = Z @ (-Q @ ((Q.T @ gr) / (w + shift)))
+                dec = float(-gr @ (Z.T @ d))
+                r0 = float(np.linalg.norm(gr))
+                d = s * d                                        # step in amounts
+                lg = is_log & act
+                dmax = float(np.max(np.abs(d[lg]) / x[lg])) if np.any(lg) else 0.0
+                # relative steps of trace entries carry the round-off of the major ones (absolute 1e-16): a decrement
+                # at round-off level ends the iteration as well
+                if dec < 1.0e-15 and (dmax < 1.0e-8 or dec < 1.0e-24):
+                    break
+                if dec > 0.9 * dec_prev:                         # stalling: refresh the excess Hessian
+                    hcache[:] = [None] * n_liq
+                dec_prev = dec
+                amax, hit = 1.0, None
+                sol = act & is_solid
+                negs = (d < 0) & sol
+                if np.any(negs):
+                    ratios = -x[negs] / d[negs]
+                    j = int(np.argmin(ratios))
+                    if ratios[j] < amax:
+                        amax, hit = float(ratios[j]), int(np.flatnonzero(negs)[j])
+                if hit is not None and amax <= 1.0e-14:
+                    if x[hit] == 0.0:
+                        refused.add(hit)
+                    act[hit] = False; x[hit] = 0.0; changes += 1
+                    continue
+                step, ok = amax, False
+                for _ in range(40):
+                    xt = x.copy()
+                    # increases additive, decreases multiplicative (n exp(t dn / n)): smooth at dn = 0, and an amount
+                    # can approach zero but never cross it.  A decrease is limited to a factor exp(-7) per step: the
+                    # linear step of a liquid whose composition changes a lot can predict dn = -450 n for a minor
+                    # species, which the exponential would turn into 1e-195, far below its equilibrium amount, from
+                    # where the additive increases recover only slowly
+                    dl = step * d[is_log]
+                    xl = x[is_log]
+                    with np.errstate(all="ignore"):
+                        xt[is_log] = np.where(dl >= 0.0, xl + dl, xl * np.exp(np.maximum(dl / xl, -7.0)))
+                    xt[~is_log] = x[~is_log] + step * d[~is_log]
+                    if hit is not None and step == amax:
+                        xt[hit] = 0.0
+                    xt[sol] = np.maximum(xt[sol], 0.0)
+                    xt = restore(xt)
+                    if xt is not None and np.all(xt[is_log] > 0.0):
+                        rvt = raw(xt)
+                        if rvt is not None and np.isfinite(rvt[0]):
+                            gt = grad(rvt)
+                            if np.all(np.isfinite(gt)):
+                                st = np.where(is_log, np.sqrt(np.abs(xt)), 1.0)
+                                At = A[:, act] * st[act]
+                                Pt = gt[act] * st[act]
+                                if At.size:
+                                    Pt = Pt - At.T @ np.linalg.lstsq(At.T, Pt, rcond=None)[0]
+                                if (rvt[0] <= F0 - 1.0e-4 * step * dec
+                                        or float(np.linalg.norm(Pt)) <= (1.0 - 1.0e-4 * step) * r0):
+                                    ok = True
+                                    break
+                    step *= 0.5
+                if not ok:
+                    if dec < 1.0e-14:
+                        break
+                    converged = False
+                    self._ls_failures += 1
+                    break
+                if verbose:
+                    print(f"      it={it} F={rvt[0]:.15e} dec={dec:.2e} dmax={dmax:.2e} step={step:.2e} shift={shift:.1e} "
+                          f"r0={r0:.2e}")
+                x, rv = xt, rvt
+                if hit is not None and step == amax:
+                    act[hit] = False; x[hit] = 0.0; changes += 1
+                # a small liquid that drains only by short steps (non-convex region, where the Newton step is dominated
+                # by a nearly singular direction): merge it into the liquid of the most similar composition; the outer
+                # loop removes it and the stability test seeds it again if it is needed
+                short = short + 1 if step < 1.0e-2 else 0
+                if short >= 3 and n_liq > 1:
+                    sizes = [float(np.sum(x[a * N:(a + 1) * N])) for a in range(n_liq)]
+                    a = int(np.argmin(sizes))
+                    if sizes[a] < 1.0e-3 * sum(sizes):
+                        xa = x[a * N:(a + 1) * N] / sizes[a]
+                        b = min((k for k in range(n_liq) if k != a),
+                                key=lambda k: float(np.max(np.abs(x[k * N:(k + 1) * N] / sizes[k] - xa))))
+                        x[b * N:(b + 1) * N] += x[a * N:(a + 1) * N]
+                        x[a * N:(a + 1) * N] = 0.0
+                        return x, converged
+                if any(float(np.sum(x[a * N:(a + 1) * N])) < 1.0e-10 for a in range(n_liq)):
+                    return x, converged                          # a liquid disappears: the outer loop removes it
+            else:
+                converged = False
+            if verbose:
+                print(f"    rand it={it} dec={dec:.2e} active solids={int(np.sum(act & is_solid))}")
+            si, k = supersaturated(rv)
+            if k is not None and si > self.si_tol and changes < 4 * S + 10:
+                act[k] = True; x[k] = 0.0; changes += 1
+                converged = True
+                continue
+            break
+        return x, converged
+
     def _water_guess(self, n: np.ndarray, rh: float) -> float:
         """Water amount for a single liquid at roughly a_w = RH (bisection on ln n_w)."""
         dry = n[1:].sum()
@@ -1820,6 +2063,8 @@ class PhaseEquilibrium:
             if warm is not None:
                 act[len(phases) * N:len(phases) * N + S] = solid_act   # warm start: the previous active solids
         inner = self._barrier_solve if use_barrier else self._newton_solve
+        if self.inner_method == "rand" and not use_barrier and not np.any(free):
+            inner = self._rand_solve
         self._trunc_max = 0.0
         self._ls_failures = 0
         while True:
