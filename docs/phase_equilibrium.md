@@ -1,7 +1,7 @@
 # Combined liquid–liquid–solid equilibrium solver (`aiomfac_py.phase_equilibrium`)
 
 Implementation: `src/aiomfac_py/phase_equilibrium.py` (`LiquidModel`, `PhaseEquilibrium`, `PhaseEquilibriumResult`),
-tests: `tests/test_phase_equilibrium.py` (20 tests). Branch `feature/phase-equilibrium` (commits 3f1f230 … 3a14629).
+tests: `tests/test_phase_equilibrium.py` (22 tests). Branch `feature/phase-equilibrium` (commits 3f1f230 onward).
 
 Like `aiomfac_py.lle` and `aiomfac_py.sle`, this module is **not** part of the Fortran AIOMFAC code, which provides
 activities only. It is therefore not Fortran-validated. It is checked against the other solvers of this package and
@@ -237,9 +237,35 @@ closed-mode gas amounts.
   The second condition was added for trace species (commit 3a14629). A trace species has curvature ~1/n, so a tiny
   decrement can hide a large error in its ln a. An example is Cl- that is almost completely evaporated as HCl.
 * **Barrier schedule.** μ starts at 1e-3 and is divided by 10 down to μ_min = 1e-14, with at most 60 Newton steps per
-  μ. A failed line search ends the solve; it counts as converged only if the decrement is below 1e-14.
+  μ. A failed line search ends the Newton iteration at that μ; it counts as converged only if the decrement is below
+  1e-14.
 
-### 5.1 Starting point
+### 5.1 Species absent from one liquid (trace removal)
+
+With several liquids, the barrier keeps every species in every liquid. A species that is strongly excluded from one
+liquid is driven down to amounts near the floating-point resolution, for example DLT in a concentrated salt liquid
+(about 1e-16 of its total) or the last chloride after HCl evaporation. Its 1/n curvature makes the reduced Hessian
+ill-conditioned (condition number above 1e17). Its contribution to F is far below the resolution of F, so the line
+search cannot confirm a decrease and the potential conditions are left unmet.
+
+After every barrier stage (each μ), `_truncate` therefore checks every entry of every liquid. An entry is removed when
+three conditions hold:
+* its amount is below `trace_tol` (1e-10 in scaled units, Σ|b| = 1);
+* another liquid holds at least 100 times more of the species;
+* it is not the carbonate components.
+
+The amount is moved to that liquid, and the entry is fixed at zero and excluded from the null-space basis. Moving an
+ion changes the charge of both liquids by about 1e-10, so the linear constraints are restored by a least-change
+correction weighted by the amounts. The stage is then repeated.
+
+The removed entry stands for an equilibrium amount that is negligible for the mass balance. Its ln a is reported as
+−∞, and the checks skip it. The ion-potential fit, the reference potentials of the TPD test and the SI use only the
+liquids that contain the ion; an ion absent from the reference liquid is assigned `λ_i + z_i ψ_ref` from a gauge fit.
+Before a new liquid is seeded, every removed entry gets a trace amount back (`_reactivate`), so that all liquids again
+contain all species. Removal is then repeated by the next inner solve. `checks["n_absent_entries"]` and
+`checks["max_removed_trace"]` report what was removed.
+
+### 5.2 Starting point
 
 * **Liquid.** One liquid holds all non-water material; bounded entries are floored at 1e-7 (scaled units) and then
   re-neutralized. In a carbonate system the proton excess absorbs the charge; otherwise the anions are scaled.
@@ -298,7 +324,8 @@ finite, positive, and at least 1e-3 away (max-norm) from every existing liquid.
 If the most negative TPD is below `−tol_tpd` (1e-7), a new liquid is seeded at the minimizer w. Its non-water part is
 moved out of the liquid that can supply the most of it:
 
-* the transfer amount θ is half of the largest amount that keeps the donor positive. Only species that are **major**
+* the transfer amount θ is a fraction (`seed_fractions[0]` = 0.5) of the largest amount that keeps the donor
+  positive. Only species that are **major**
   in w limit θ (above 1e-4 of its largest entry). Trace entries are capped at half of the donor's amount instead
   (commit 3a14629). Otherwise a trace in w, or in the donor, would make θ, and the new phase, vanishingly small;
 * the transfer is made electroneutral through the proton excess, or through the major counter-ion the donor holds most;
@@ -311,8 +338,13 @@ The loop stops when:
 
 * no trial has TPD < −1e-7 (stable);
 * `max_liquids` or `max_outer` is reached; or
-* the same (number of liquids, TPD) pair repeats. This happens in a near-critical split, where the added phase merges
-  back into its donor.
+* the same (number of liquids, TPD) pair has repeated `len(seed_fractions)` times.
+
+A repeat means that the added liquid vanished or merged back. This happens close to the RH where the new liquid
+appears: a large seed starts the inner solve far from the new state, and the Newton iteration returns to the old one.
+The phase is then seeded again with the smaller fractions 0.2 and 0.05 (`seed_fractions`). An example is DLT + NaCl +
+H2SO4 (r = 1.5) at RH 0.5. The two-liquid state has TPD −1.6e-3. The 0.5 seed falls back to it, while a 0.2 seed
+converges to three liquids with F lower by 5.3e-4. The default `max_outer` is 8, to leave room for these retries.
 
 In the last two cases a remaining negative TPD makes the status `not_converged` (Sect. 8).
 
@@ -360,6 +392,7 @@ The status is decided by the **equilibrium conditions of the final state**, not 
 | `max_abs_gas_residual` | 1e-4 | gas equilibrium relation |
 | `tpd_min` | > −1e-7 | stability |
 | `max_charge_residual`, `max_mass_balance_residual` | reported | exact by construction (≈ 1e-15) |
+| `n_absent_entries`, `max_removed_trace` | reported | entries removed from single liquids (Sect. 5.1) |
 
 * `"converged"`: all limits hold.
 * `"not_converged"`: at least one fails, and `message` names it. A one-liquid solve (`max_liquids=1`) of an unstable
@@ -390,7 +423,7 @@ print(res.summary())
 ```
 
 * `solve(feed, rh, *, solids="all" | "none" | [keys], p_gas=None, gas_total=None, n_air=None, P_atm=1.0,
-  max_liquids=3, max_outer=6, verbose=False)`.
+  max_liquids=3, max_outer=8, verbose=False)`.
   * `feed` maps organic names and ion keys to mol (water excluded) and must be electroneutral.
   * Give either `p_gas` or `gas_total` (with `n_air`), not both.
 * `drying_path(feed, rh_grid, *, ln_s_crit=0.0, **gas_kw)` follows decreasing RH. A solid becomes a candidate once its
@@ -425,6 +458,8 @@ in its limits against independent implementations, and every result against its 
 | `test_carbonate_with_co2_matches_sle_solver` | carbonate + CO2, open and closed, with a negative proton excess |
 | `test_organic_with_hcl_evaporation_is_in_equilibrium` | pinic acid + NaCl + H2SO4: > 99 % of chloride leaves as HCl; gas residual < 1e-4 |
 | `test_near_complete_hcl_evaporation_converges` | DLT + NaCl + H2SO4 at RH 0.2: near-complete evaporation passes all checks |
+| `test_trace_entries_are_removed_from_single_liquids` | DLT + NaCl + H2SO4 (r = 1.5), RH 0.1: trace DLT/Cl- removed from the salt liquid; all checks pass |
+| `test_new_liquid_close_to_its_appearance_is_found_with_a_smaller_seed` | same system, RH 0.5: three liquids found after a smaller seed |
 
 ---
 
@@ -460,8 +495,13 @@ separation RH may lie between the two.
   with one organic and 4–5 ions on a laptop, dominated by finite-difference Hessians
   (2N activity evaluations per liquid and Newton step) and the TPD starts. An analytic or automatic-differentiation
   Jacobian of AIOMFAC would remove most of it.
-* **Near-critical splits.** Two liquids of similar composition can merge back repeatedly. The loop then stops on the
-  repeat rule and reports a small negative TPD (of order 1e-3).
+* **Phase appearance.** If none of the seed sizes reaches the new liquid, the loop stops on the repeat rule and reports
+  a small negative TPD (status `not_converged`).
+* **Extreme supersaturation.** With crystallization suppressed (`solids="none"`) at low RH, a liquid can be required
+  that is far outside AIOMFAC's range. An example is DLT + NaCl + H2SO4 (r = 0.3) at RH 0.1, with a Na2SO4 liquid of
+  about 200 mol/kg, x_w = 0.15 and SI(thenardite) = 6. Activity coefficients then change so steeply that the Newton
+  iteration stalls, and the result is reported as not converged. The same point with `solids="all"` converges
+  (halite + thenardite + one organic liquid).
 * **Global optimality.** The TPD test uses a finite set of starts. A stable phase in an unsampled composition region
   can be missed, though less often than with the `lle` multistart, because the test runs on the converged state.
 * **Carbonate with organics.** Gibbs–Duhem is consistent only to about 1 % (Sect. 3.3).

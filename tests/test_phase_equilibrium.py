@@ -296,3 +296,33 @@ def test_near_complete_hcl_evaporation_converges():
     res = pe.solve(feed, 0.2, solids="none", p_gas={"HCl": 1e-9})
     _assert_equilibrium(res)
     assert res.gas["HCl"] > 0.999 * m
+
+
+def _dlt_nacl_acid(r):
+    from aiomfac_py.s2as import smiles_to_components
+    try:
+        dlt = smiles_to_components(["CCOC(=O)C(O)C(O)C(=O)OCC"], names=["DLT"]).components[1]
+    except ImportError:
+        pytest.skip("S2AS (epam.indigo) not installed")
+    m = 1 / 58.44
+    pe = PhaseEquilibrium([dlt], ["Na+", "H+", "Cl-", "SO4--"], T_K=298.15)
+    return pe, {"DLT": 3 / 206.19, "Na+": m, "Cl-": m, "H+": 2 * r * m, "SO4--": r * m}
+
+
+def test_trace_entries_are_removed_from_single_liquids():
+    """DLT + NaCl + H2SO4 (r = 1.5) open to HCl at RH 0.1: DLT and the last chloride are traces (< 1e-10 of the feed)
+    in the salt-rich liquid; removing them from that liquid lets the potential conditions converge."""
+    pe, feed = _dlt_nacl_acid(1.5)
+    res = pe.solve(feed, 0.1, solids="none", p_gas={"HCl": 1e-9})
+    _assert_equilibrium(res)
+    assert res.checks["n_absent_entries"] >= 1
+    assert res.checks["max_removed_trace"] < 1e-10
+
+
+def test_new_liquid_close_to_its_appearance_is_found_with_a_smaller_seed():
+    """DLT + NaCl + H2SO4 (r = 1.5) open to HCl at RH 0.5: a third liquid (Na-sulfate-rich) has just appeared
+    (TPD of the two-liquid state -1.6e-3).  The default seed falls back to two liquids; a smaller one finds three."""
+    pe, feed = _dlt_nacl_acid(1.5)
+    res = pe.solve(feed, 0.5, solids="none", p_gas={"HCl": 1e-9})
+    _assert_equilibrium(res)
+    assert res.n_liquids == 3
