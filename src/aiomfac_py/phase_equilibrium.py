@@ -561,6 +561,9 @@ class PhaseEquilibrium:
         self._lnk = {s.key: s.ln_k(self.T, k_mode) for s in self.all_solids}
         self.tol_tpd = 1.0e-7
         self.seed_fractions = (0.5, 0.2, 0.05)              # size of a new liquid's seed (fraction of the most possible)
+        # first seed: "linesearch" = minimize the Gibbs energy along the transfer direction (seed_fractions only for the
+        # retries), "fixed" = seed_fractions throughout (the previous rule)
+        self.seed_method = "linesearch"
         # Hessian of the inner Newton iteration: "split" = exact ideal Jacobian + forward-difference excess part, the
         # latter reused while no liquid amount has changed by more than hess_reuse_tol of the liquid's size;
         # "central" = central differences of ln a at every step (the original scheme)
@@ -1365,6 +1368,7 @@ class PhaseEquilibrium:
                 child.hess_scheme, child.hess_reuse_tol = self.hess_scheme, self.hess_reuse_tol
                 child.tpd_hess_reuse_tol, child.tpd_method = self.tpd_hess_reuse_tol, self.tpd_method
                 child.inner_method, child.si_tol = self.inner_method, self.si_tol
+                child.seed_method = self.seed_method
                 child.newton_mu0, child.newton_mu_factor, child.newton_mu_min = (self.newton_mu0, self.newton_mu_factor,
                                                                                   self.newton_mu_min)
                 self._children[key] = child
@@ -1532,35 +1536,67 @@ class PhaseEquilibrium:
             # species that are traces in the trial composition do not limit the amount moved into the new phase
             major = (nonw > 1e-4 * float(np.max(np.abs(nonw[~free])))) & ~free
             major[0] = False
-            cand = []
-            for a, p in enumerate(phases):
-                theta = frac * float(np.min(p[major] / nonw[major])) if np.any(major) else 0.0
-                cand.append((theta, a))
-            theta, a = max(cand)
+            full = [float(np.min(p[major] / nonw[major])) if np.any(major) else 0.0 for p in phases]
+            a = int(np.argmax(full))
             donor = phases[a]
-            tr = theta * nonw
-            minor = ~major & ~free
-            minor[0] = False
-            tr[minor] = np.minimum(tr[minor], 0.5 * donor[minor])
-            q = float(np.dot(self.z, tr))                      # keep the transferred amount electroneutral
-            if abs(q) > 0.0:
-                if free.any():
-                    tr[np.argmax(free)] -= q / self.z[np.argmax(free)]
-                else:
-                    opp = [i for i in range(self.N) if major[i] and self.z[i] * q < 0]
-                    if opp:
-                        k = max(opp, key=lambda i: donor[i])
-                        tr[k] -= q / self.z[k]
-            newp = tr.copy()
-            newp[0] = theta * w[0]
-            if np.all(donor[~free] - tr[~free] > 0) and np.all(newp[~free] >= 0):
-                phases[a] = donor - tr
-                phases.append(newp)
-            else:                                              # fall back to the strictly proportional transfer
-                theta = min(theta, frac * float(np.min(donor[~free & (nonw > 0)] / nonw[~free & (nonw > 0)])))
-                newp = theta * w.copy()
-                phases[a] = donor - theta * nonw
-                phases.append(newp)
+
+            def split(f):
+                """(donor after the transfer, new liquid) for the fraction f of the largest transfer (None if invalid)."""
+                theta = f * full[a]
+                tr = theta * nonw
+                minor = ~major & ~free
+                minor[0] = False
+                tr[minor] = np.minimum(tr[minor], 0.5 * donor[minor])
+                q = float(np.dot(self.z, tr))                  # keep the transferred amount electroneutral
+                if abs(q) > 0.0:
+                    if free.any():
+                        tr[np.argmax(free)] -= q / self.z[np.argmax(free)]
+                    else:
+                        opp = [i for i in range(self.N) if major[i] and self.z[i] * q < 0]
+                        if opp:
+                            k = max(opp, key=lambda i: donor[i])
+                            tr[k] -= q / self.z[k]
+                newp = tr.copy()
+                newp[0] = theta * w[0]
+                if np.all(donor[~free] - tr[~free] > 0) and np.all(newp[~free] >= 0):
+                    return donor - tr, newp
+                theta = min(theta, f * float(np.min(donor[~free & (nonw > 0)] / nonw[~free & (nonw > 0)])))
+                if theta <= 0:                                 # strictly proportional transfer as the fallback
+                    return None
+                return donor - theta * nonw, theta * w.copy()
+
+            f_seed = self.seed_fractions[tries]
+            if tries == 0 and self.seed_method == "linesearch":
+                # size of the new liquid by a one-dimensional minimization of the Gibbs energy of the donor and the new
+                # liquid along the transfer direction; for small f the change is f * TPD * (size) < 0, so a decrease
+                # always exists
+                def F_liq(n):
+                    la = self.lm.ln_a(n, self.T)
+                    return float(np.dot(n, la)) - n[0] * ln_rh
+                try:
+                    F_d = F_liq(donor)
+                    def dF(f):
+                        sp_ = split(f)
+                        if sp_ is None:
+                            return math.inf
+                        try:
+                            with np.errstate(all="ignore"):
+                                v = F_liq(sp_[0]) + F_liq(sp_[1]) - F_d
+                        except (ValueError, OverflowError, FloatingPointError, ZeroDivisionError):
+                            return math.inf
+                        return v if np.isfinite(v) else math.inf
+                    from scipy.optimize import minimize_scalar
+                    opt = minimize_scalar(lambda lf: dF(math.exp(lf)), bounds=(math.log(1e-4), math.log(0.999)),
+                                          method="bounded", options={"xatol": 1e-2})
+                    if np.isfinite(opt.fun) and opt.fun < 0.0:
+                        f_seed = float(math.exp(opt.x))
+                except (ValueError, OverflowError, FloatingPointError, ZeroDivisionError):
+                    pass
+            sp = split(f_seed)
+            if sp is None:
+                break
+            phases[a] = sp[0]
+            phases.append(sp[1])
             x = np.concatenate(phases + [u])
             act = np.concatenate([np.ones(len(phases) * N, dtype=bool), tail_act])   # keeps the active solids
 

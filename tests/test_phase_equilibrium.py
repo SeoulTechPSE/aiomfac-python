@@ -321,11 +321,14 @@ def test_trace_entries_are_removed_from_single_liquids():
 
 def test_new_liquid_close_to_its_appearance_is_found_with_a_smaller_seed():
     """DLT + NaCl + H2SO4 (r = 1.5) open to HCl at RH 0.5: a third liquid (Na-sulfate-rich) has just appeared
-    (TPD of the two-liquid state -1.6e-3).  The default seed falls back to two liquids; a smaller one finds three."""
-    pe, feed = _dlt_nacl_acid(1.5)
-    res = pe.solve(feed, 0.5, solids="none", p_gas={"HCl": 1e-9})
-    _assert_equilibrium(res)
-    assert res.n_liquids == 3
+    (TPD of the two-liquid state -1.6e-3).  With the barrier inner solver and a fixed seed of 0.5 the inner solve fell
+    back to two liquids and a smaller seed was needed; the line-search seed and the fixed seeds must both find three."""
+    for method in ("linesearch", "fixed"):
+        pe, feed = _dlt_nacl_acid(1.5)
+        pe.seed_method = method
+        res = pe.solve(feed, 0.5, solids="none", p_gas={"HCl": 1e-9})
+        _assert_equilibrium(res)
+        assert res.n_liquids == 3
 
 
 # ---------------------------------------------------------------------------------------------------------

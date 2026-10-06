@@ -428,8 +428,12 @@ finite, positive, and at least 1e-3 away (max-norm) from every existing liquid.
 If the most negative TPD is below `−tol_tpd` (1e-7), a new liquid is seeded at the minimizer w. Its non-water part is
 moved out of the liquid that can supply the most of it:
 
-* the transfer amount θ is a fraction (`seed_fractions[0]` = 0.5) of the largest amount that keeps the donor
-  positive. Only species that are **major**
+* the transfer amount θ is a fraction f of the largest amount that keeps the donor positive. In the first attempt f
+  is found by a **one-dimensional minimization** (`seed_method = "linesearch"`, default). The Gibbs energy of the donor
+  and of the new liquid is minimized along the transfer direction by a bounded Brent search on ln f ∈ [ln 1e-4,
+  ln 0.999], with about 15 evaluations of two liquids. For small f the change is f·TPD·(size) < 0, so a decrease always
+  exists. If none is found, f = `seed_fractions[0]` = 0.5 is used; `seed_method = "fixed"` uses the fixed fractions
+  throughout (the previous rule). Only species that are **major**
   in w limit θ (above 1e-4 of its largest entry). Trace entries are capped at half of the donor's amount instead
   (commit 3a14629). Otherwise a trace in w, or in the donor, would make θ, and the new phase, vanishingly small;
 * the transfer is made electroneutral through the proton excess, or through the major counter-ion the donor holds most;
@@ -446,9 +450,13 @@ The loop stops when:
 
 A repeat means that the added liquid vanished or merged back. This happens close to the RH where the new liquid
 appears: a large seed starts the inner solve far from the new state, and the Newton iteration returns to the old one.
-The phase is then seeded again with the smaller fractions 0.2 and 0.05 (`seed_fractions`). An example is DLT + NaCl +
+The phase is then seeded again with the smaller fractions 0.2 and 0.05 (`seed_fractions`); with the line-search seed
+these retries are rarely needed. An example is DLT + NaCl +
 H2SO4 (r = 1.5) at RH 0.5. The two-liquid state has TPD −1.6e-3. The 0.5 seed falls back to it, while a 0.2 seed
 converges to three liquids with F lower by 5.3e-4. The default `max_outer` is 8, to leave room for these retries.
+With the active-set inner solver (Sect. 5.2) the fixed 0.5 seed already reaches three liquids in this case. On the
+paper_2 acid sweeps (240 states), the line-search seed made the last non-converged state converge (r = 3.0, RH 0.1,
+three liquids), with the same number of liquids everywhere and the same run time.
 
 In the last two cases a remaining negative TPD makes the status `not_converged` (Sect. 8).
 
@@ -604,14 +612,14 @@ separation RH may lie between the two.
 * **Run time.** `benchmarks/pe_bench.py` reports the wall time and the number of activity evaluations (in total and in
   the stability test) of six representative cases. Measured one after another on one machine (one CPU core each):
 
-  | case | 1c693be | split Hessian (3b1dc3d) | + successive substitution (4be0487) | + active-set solids, 6 barrier stages |
-  |---|---|---|---|---|
-  | pinic acid + AS, RH 0.30, two liquids | 9765 evals, 1.4 s | 1297, 0.3 s | 825, 0.2 s | 663, 0.2 s |
-  | pinic acid + AS + AN, RH 0.6, two liquids + AS(s) | 11204, 1.7 s | 1570, 0.3 s | 713, 0.2 s | 438, 0.1 s |
-  | DLT + NaCl + H2SO4 (r = 0.75), open HCl, RH 0.2 | 62624, 338 s | 4276, 1.5 s | 4484, 1.3 s | 4544, 1.3 s |
-  | DLT + NaCl + H2SO4 (r = 1.5), open HCl, RH 0.5, three liquids | 42776, 136 s | 10811, 5.4 s | 8746, 4.6 s | 4038, 2.0 s |
-  | NaCl + base, closed CO2 | 7662, 2.6 s | 2132, 0.8 s | 2132, 0.8 s | 1231, 0.5 s |
-  | pinic acid + NaCl + base, open CO2, RH 0.5, two liquids | 25021, 9.5 s | 17189, 6.5 s | 17189, 6.6 s | 17189, 6.6 s |
+  | case | 1c693be | split Hessian (3b1dc3d) | + successive substitution (4be0487) | + active-set solids, 6 barrier stages | + line-search seed |
+  |---|---|---|---|---|---|
+  | pinic acid + AS, RH 0.30, two liquids | 9765 evals, 1.4 s | 1297, 0.3 s | 825, 0.2 s | 663, 0.2 s | 730, 0.2 s |
+  | pinic acid + AS + AN, RH 0.6, two liquids + AS(s) | 11204, 1.7 s | 1570, 0.3 s | 713, 0.2 s | 438, 0.1 s | 461, 0.1 s |
+  | DLT + NaCl + H2SO4 (r = 0.75), open HCl, RH 0.2 | 62624, 338 s | 4276, 1.5 s | 4484, 1.3 s | 4544, 1.3 s | 4049, 1.4 s |
+  | DLT + NaCl + H2SO4 (r = 1.5), open HCl, RH 0.5, three liquids | 42776, 136 s | 10811, 5.4 s | 8746, 4.6 s | 4038, 2.0 s | 3673, 1.8 s |
+  | NaCl + base, closed CO2 | 7662, 2.6 s | 2132, 0.8 s | 2132, 0.8 s | 1231, 0.5 s | 1231, 0.5 s |
+  | pinic acid + NaCl + base, open CO2, RH 0.5, two liquids | 25021, 9.5 s | 17189, 6.5 s | 17189, 6.6 s | 17189, 6.6 s | 17159, 6.9 s |
 
   The equilibrium states are the same. F agrees within 1e-12, except for differences of up to 6e-9 from removed
   traces (Sect. 5.2). The stability test still takes most of the evaluations in electrolyte-rich cases: there the substitution often stops on
