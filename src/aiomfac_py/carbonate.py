@@ -164,6 +164,18 @@ def solve_carbonate(model, T_K: float, wtf0, smc, sma, idx_h: int, idx_oh: int, 
             best = (sol.x, rn)
         if rn < 1e-6:
             break
+    if best[1] >= 1e-6:
+        # MINPACK's hybrid method can fail from every start (with SciPy 1.18 it stalls at the second point of the
+        # NaHCO3 reference case, residual 31, and the stalled iterate was returned); Levenberg-Marquardt converges
+        # there (residual 2e-14).  Used only when the hybrid method has failed, so converged results are unchanged.
+        for scale in (1.0, 0.3, 3.0, 0.05, 20.0):
+            sol = root(residual, x0 + math.log(scale), method="lm", options={"xtol": 1e-14, "ftol": 1e-14,
+                                                                             "maxiter": 20000})
+            rn = float(np.sum(np.abs(residual(sol.x))))
+            if rn < best[1]:
+                best = (sol.x, rn)
+            if rn < 1e-6:
+                break
     log_vars, rn = best
     n_hco3, n_carb, n_co2, n_oh, n_h = np.exp(log_vars)
     mol_neutral = mol_neutral_init.copy()
@@ -381,6 +393,18 @@ def solve_carb_sulf(model, T_K: float, wtf0, smc, sma, idx_h: int, idx_oh: int, 
             best = (sol.x, rn)
         if rn < 1e-6:
             break
+    if best[1] >= 1e-6:
+        # MINPACK's hybrid method can fail from every start (with SciPy 1.18 it stalls at the second point of the
+        # NaHCO3 reference case, residual 31, and the stalled iterate was returned); Levenberg-Marquardt converges
+        # there (residual 2e-14).  Used only when the hybrid method has failed, so converged results are unchanged.
+        for scale in (1.0, 0.3, 3.0, 0.05, 20.0):
+            sol = root(residual, x0 + math.log(scale), method="lm", options={"xtol": 1e-14, "ftol": 1e-14,
+                                                                             "maxiter": 20000})
+            rn = float(np.sum(np.abs(residual(sol.x))))
+            if rn < best[1]:
+                best = (sol.x, rn)
+            if rn < 1e-6:
+                break
     log_vars, rn = best
     log_vars = np.clip(log_vars, ln_bounds_lo, ln_bounds_hi)
     n_hco3, n_carb, n_co2, n_oh, n_hso4, n_h = np.exp(log_vars)
