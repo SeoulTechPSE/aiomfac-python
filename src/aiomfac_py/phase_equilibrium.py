@@ -2098,7 +2098,13 @@ class PhaseEquilibrium:
             tail_act = act[n_liq * N:].copy()
             # remove vanished liquids, merge identical ones
             size = lambda p: float(np.sum(p[~free]))
-            keep = [a for a in range(n_liq) if size(phases[a]) > 1e-8]
+            # a liquid that holds (practically) only water is dropped: water is open, so at RH < 1 such a liquid only
+            # raises F (by n_w (0 - ln RH)); it arises when the trace removal of the inner solver takes the last
+            # solute out of a small water-rich liquid, which then cannot reach a_w = RH (seen with surrogate
+            # activity models, research/paper_5)
+            solute = lambda p: float(np.sum(np.abs(p[1:])))
+            keep = [a for a in range(n_liq) if size(phases[a]) > 1e-8
+                    and not (n_liq > 1 and solute(phases[a]) <= 1e-12 * size(phases[a]))]
             if not keep:                                       # never drop the last liquid (see the "dry" status)
                 keep = [int(np.argmax([size(p) for p in phases]))]
             merged = []
