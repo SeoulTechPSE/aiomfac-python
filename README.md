@@ -1,3 +1,8 @@
+<p align="center">
+  <img src="docs/figs/rh0.40_centre_d0.05_j4_k10_D1_e0.005_n300.png"
+       alt="aiomfac_py title figure" width="600">
+</p>
+
 # aiomfac_py
 
 Pure-Python port of the **AIOMFAC** thermodynamic group-contribution model (activity coefficients of
