@@ -777,7 +777,7 @@ the electroneutral combinations of the ion potentials.
 
 ```json
 {
- "aiomfac_py_version": "1.0.1",
+ "aiomfac_py_version": "1.1.0",
  "title": "...",
  "mode": "lle",
  "engine": "pe",

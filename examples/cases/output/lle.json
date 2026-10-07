@@ -1,5 +1,5 @@
 {
- "aiomfac_py_version": "1.0.1",
+ "aiomfac_py_version": "1.1.0",
  "title": "pinic acid + ammonium sulfate at RH 0.3: liquid-liquid phase separation (no crystallization)",
  "mode": "lle",
  "engine": "pe",
