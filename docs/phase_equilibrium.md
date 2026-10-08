@@ -315,9 +315,9 @@ pay for automatic differentiation at every call:
 Tests (`tests/test_gibbs_model.py`): a regular solution (activities to 1e-13, Hessian against central differences,
 HVP, Gibbs–Duhem, homogeneity), its binodal inside the solver, the water content of an ideal molal electrolyte and a
 child problem with the restricted model, shared compilation, input validation. For the surrogates of
-aiomfac-surrogates (v3, `excess_gibbs/code/jax_surrogates.py`), a liquid evaluation costs 0.14–0.3 ms and a Hessian
-0.2–0.7 ms on one CPU thread, against 2–7 ms and 4–40 ms with torch autograd at every call; the phase-equilibrium runs
-of their papers (115 states) take 7–16 times less time than with torch and give the same states.
+aiomfac-surrogates (v3, `excess_gibbs/code/jax_surrogates.py`), a liquid evaluation costs 0.10–0.19 ms and a Hessian
+0.16–0.58 ms on one CPU thread, against 1.8–6.3 ms and 4–39 ms with torch autograd at every call; the phase-equilibrium runs
+of their papers (115 states) take 8.5–19 times less time than with torch and give the same states.
 
 ## 4. Problem reduction (child problems)
 
