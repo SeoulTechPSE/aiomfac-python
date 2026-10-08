@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v1.2.0 (2026-10)
 
 - **Gibbs-function liquids** (`aiomfac_py.gibbs_model`, optional `jax`): `GibbsLiquidModel` uses ln a = ∇g and the exact
   Hessian ∇²g of a JAX function g(n) = G/RT (excess-Gibbs-energy surrogates of AIOMFAC); gradient, forward-over-reverse

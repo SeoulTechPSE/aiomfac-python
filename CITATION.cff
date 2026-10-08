@@ -16,8 +16,8 @@ authors:
 repository-code: "https://github.com/SeoulTechPSE/aiomfac-python"
 url: "https://github.com/SeoulTechPSE/aiomfac-python"
 license: GPL-3.0-or-later
-version: 1.1.0
-doi: 10.5281/zenodo.23202730
+version: 1.2.0
+doi: 10.5281/zenodo.23122265
 identifiers:
   - type: doi
     value: 10.5281/zenodo.23202730
@@ -25,7 +25,7 @@ identifiers:
   - type: doi
     value: 10.5281/zenodo.23122265
     description: "All versions (concept DOI)"
-date-released: "2026-10-07"
+date-released: "2026-10-09"
 keywords:
   - atmospheric chemistry
   - aerosol thermodynamics
