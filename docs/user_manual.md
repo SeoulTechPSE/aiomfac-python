@@ -15,7 +15,7 @@ feed, the conditions, the *calculation mode* and the solver options. The tool ch
 can be written as a text summary, JSON or CSV.
 
 The numerical methods themselves are documented in `docs/phase_equilibrium.md` (combined solver) and
-`docs/SLE_design_ko.md` (inorganic solver), and in the module docstrings of `lle.py` and `gp_partition.py`.
+`docs/SLE_design.md` (inorganic solver), and in the module docstrings of `lle.py` and `gp_partition.py`.
 
 ---
 
