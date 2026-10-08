@@ -288,6 +288,37 @@ Validation:
 * DLT + NaCl + H2SO4 with HCl gives F = −0.08090260331, as 1c693be and 3b1dc3d. The internal formulation of later
   commits had removed a 6e-9 chloride trace there.
 
+### 3.5 Liquids defined by a Gibbs function (`aiomfac_py.gibbs_model`, optional)
+
+`GibbsLiquidModel` replaces AIOMFAC by the derivatives of one scalar function g(n) = G/RT of a liquid (ideal mixing +
+excess part, written in JAX), for excess-Gibbs-energy surrogates of AIOMFAC or any other model of that form:
+`ln a = ∇g + c` (c: the reaction constants of `ExplicitLiquidModel`) and `∂ ln a/∂n = ∇²g`, so Gibbs–Duhem holds
+exactly and the Hessian is symmetric. It is passed to the solver as `PhaseEquilibrium(..., liquid_model=lm)`;
+`hess_scheme` then defaults to `"ad"`, and child problems (Sect. 4) get `lm.restrict(...)`.
+
+The derivatives are computed so that a solver, which evaluates one composition at a time thousands of times, does not
+pay for automatic differentiation at every call:
+
+1. **Compiled once, reused.** `GibbsFunction.compiled` jit-compiles value-and-gradient, gradient, Hessian and
+   Hessian-vector product once per species set and caches them; child problems, repeated solves and new solver
+   instances reuse them. Temperature enters only through constants computed outside the compiled code and passed as
+   arguments, so a new temperature does not recompile. Gibbs functions that differ only in such constants (e.g. one
+   network evaluated for many molecules, with the molecule's embedding as a constant) can share one compilation
+   (`compiled_cache`); `enable_persistent_cache(path)` keeps compilations on disk across processes.
+2. **Forward-over-reverse.** The Hessian is `jacfwd(grad g)`: N Hessian-vector products evaluated together in one
+   compiled call. The solver needs the whole reduced Hessian at every Newton step (it is diagonalized to handle
+   non-convex regions, Sect. 5), so a full Hessian is what it uses; `hvp(n, T, v) = jvp(grad g)(n; v)` gives a single
+   product for matrix-free use (Krylov solvers or curvature along one direction in systems with many species).
+3. The model itself is unchanged; accuracy of the derivatives is a property of the surrogate (e.g. a derivative loss in
+   its training), not of the solver.
+
+Tests (`tests/test_gibbs_model.py`): a regular solution (activities to 1e-13, Hessian against central differences,
+HVP, Gibbs–Duhem, homogeneity), its binodal inside the solver, the water content of an ideal molal electrolyte and a
+child problem with the restricted model, shared compilation, input validation. For the surrogates of
+aiomfac-surrogates (v3, `excess_gibbs/code/jax_surrogates.py`), a liquid evaluation costs 0.14–0.3 ms and a Hessian
+0.2–0.7 ms on one CPU thread, against 2–7 ms and 4–40 ms with torch autograd at every call; the phase-equilibrium runs
+of their papers (115 states) take 7–16 times less time than with torch and give the same states.
+
 ## 4. Problem reduction (child problems)
 
 A species that is absent from the feed and cannot be supplied by any of the given gases would need an artificial
@@ -787,6 +818,7 @@ in its limits against independent implementations, and every result against its 
 | `test_warm_started_rh_scan_matches_cold_solves` | DLT + NaCl + H2SO4 (r = 3.0), RH 0.98 → 0.3 through 1, 2 and 3 liquids: warm and cold scans agree (1e-10) |
 | `test_incompatible_warm_start_is_ignored` | a result of another feed is not used as the start |
 | `test_warm_drying_path_past_a_disappearing_salt_liquid` | pinic acid + AS + AN drying path (paper_1 Seoul): warm and cold paths agree through the disappearance of a salt liquid |
+| `tests/test_gibbs_model.py` (7 tests) | Gibbs-function liquids: regular solution (activities, Hessian, HVP, Gibbs–Duhem), its binodal in the solver, ideal electrolyte water content with a child problem, shared compilation, validation |
 
 ---
 

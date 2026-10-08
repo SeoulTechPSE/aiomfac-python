@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **Gibbs-function liquids** (`aiomfac_py.gibbs_model`, optional `jax`): `GibbsLiquidModel` uses ln a = ∇g and the exact
+  Hessian ∇²g of a JAX function g(n) = G/RT (excess-Gibbs-energy surrogates of AIOMFAC); gradient, forward-over-reverse
+  Hessian and Hessian-vector product are jit-compiled once and reused (temperature as an argument, shared caches,
+  optional persistent cache). `PhaseEquilibrium(..., liquid_model=...)` accepts such a model (also for child problems).
+
 ## v1.1.0 (2026-10)
 
 New solvers on top of the validated activity-coefficient model (the AIOMFAC port itself is unchanged from v1.0.1):

@@ -322,6 +322,12 @@ H+ and SO4-- (never HSO4-); the bisulfate equilibrium is solved inside every act
 acid solids (NH4HSO4, letovicite, NaHSO4, ...) are candidates. In the acid inorganic limit the results equal `SLESolver`
 (including letovicite precipitation and the all-solid "dry" state).
 
+Other activity models can be plugged in through `PhaseEquilibrium(..., liquid_model=...)`. In particular
+`aiomfac_py.gibbs_model.GibbsLiquidModel` (optional `jax`) takes any JAX function g(n) = G/RT of a liquid — e.g. an
+excess-Gibbs-energy neural-network surrogate of AIOMFAC — and uses ln a = ∇g with the exact Hessian ∇²g, both
+jit-compiled once and reused for every call, phase, RH and temperature (forward-over-reverse Hessian; a Hessian-vector
+product is available for matrix-free use). See `docs/phase_equilibrium.md`, Sect. 3.5.
+
 Carbonate systems follow `SLESolver` as well: pass CO3-- (total carbonate) and H+ (the sign-free proton excess,
 negative for basic solutions); CO2(aq)/HCO3-/CO3--/OH- are speciated in every liquid, and carbonate and hydroxide
 solids are candidates. Volatile NH3, HNO3, HCl and CO2 (constants of `aiomfac_py.gases`) can be exchanged with an open
