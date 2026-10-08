@@ -159,6 +159,11 @@ class GibbsLiquidModel(ExplicitLiquidModel):
         """g(n) (without the reaction constants)."""
         return float(self._f[0](np.asarray(n, dtype=float), self.gibbs.constants(T))[0])
 
+    def ln_a_batch(self, n: np.ndarray, T: float) -> np.ndarray:
+        """:meth:`ln_a` for many compositions, shape (B, N) -> (B, N) (a loop over :meth:`ln_a`; the AIOMFAC batch
+        path of :class:`ExplicitLiquidModel` does not apply to a Gibbs-function liquid)."""
+        return np.stack([self.ln_a(x, T) for x in np.atleast_2d(np.asarray(n, dtype=float))])
+
     def ln_a(self, n: np.ndarray, T: float) -> np.ndarray:
         """c_s + dg/dn_s of every species; -inf for absent species (amount 0), as for the AIOMFAC model."""
         self.n_eval += 1

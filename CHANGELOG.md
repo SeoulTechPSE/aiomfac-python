@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- **Batched activities** (`ExplicitLiquidModel.ln_a_batch`, optional `jax`): `ln_a` for many compositions at one
+  temperature through the vectorized JAX transcription of `ad_activity` (compiled once per system, temperature and
+  batch size; equal to `ln_a` to round-off, tested for organic, salt, acid-sulfate and carbonate systems). On one CPU
+  thread (`tools/bench_batch.py`) it costs 0.2-1.4 microseconds per composition in batches of 1000-10 000, against
+  0.1-0.3 ms per `ln_a` call (NumPy), 35-90 microseconds per call of the compiled function, and 3-4 microseconds per
+  evaluation of the Fortran AIOMFAC on the same machine.
+
 ## v1.2.0 (2026-10)
 
 - **Gibbs-function liquids** (`aiomfac_py.gibbs_model`, optional `jax`): `GibbsLiquidModel` uses ln a = ∇g and the exact
