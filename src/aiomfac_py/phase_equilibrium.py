@@ -711,14 +711,26 @@ class PhaseEquilibrium:
     """
 
     def __init__(self, organics: Sequence[Component], ions: Sequence[str], T_K: float, *,
-                 k_mode: str | None = None, solid_keys: Sequence[str] | None = None, speciation: str = "explicit"):
+                 k_mode: str | None = None, solid_keys: Sequence[str] | None = None, speciation: str = "explicit",
+                 liquid_model: "ExplicitLiquidModel | None" = None):
         """``speciation``: "explicit" (HSO4-, HCO3-, OH-, CO2(aq) as species of the liquids, reactions at
         equilibrium through the minimization; :class:`ExplicitLiquidModel`) or "internal" (stoichiometric
-        components speciated inside every activity evaluation; :class:`LiquidModel`, the original formulation)."""
+        components speciated inside every activity evaluation; :class:`LiquidModel`, the original formulation).
+
+        ``liquid_model``: a liquid model of the same organics and ions to use instead of AIOMFAC, e.g. a
+        :class:`aiomfac_py.gibbs_model.GibbsLiquidModel` (excess-Gibbs-energy surrogate; its exact Hessians are used,
+        ``hess_scheme = "ad"``).  Child problems with fewer species get ``liquid_model.restrict(...)``."""
         if speciation not in ("explicit", "internal"):
             raise ValueError("speciation must be 'explicit' or 'internal'")
         self.speciation = speciation
-        self.lm = ExplicitLiquidModel(organics, ions) if speciation == "explicit" else LiquidModel(organics, ions)
+        if liquid_model is not None:
+            if speciation != "explicit" or not isinstance(liquid_model, ExplicitLiquidModel):
+                raise ValueError("liquid_model must be an ExplicitLiquidModel (explicit speciation)")
+            if [c.name for c in liquid_model.organics] != [c.name for c in organics] or list(liquid_model.ions) != list(ions):
+                raise ValueError("liquid_model is built for other organics or ions")
+            self.lm = liquid_model
+        else:
+            self.lm = ExplicitLiquidModel(organics, ions) if speciation == "explicit" else LiquidModel(organics, ions)
         self._organics, self._ions, self._solid_keys = list(organics), list(ions), solid_keys
         self._children: dict = {}
         self.T = float(T_K)
@@ -761,7 +773,7 @@ class PhaseEquilibrium:
         # latter reused while no liquid amount has changed by more than hess_reuse_tol of the liquid's size;
         # "central" = central differences of ln a at every step (the original scheme); "ad" = exact Jacobian by
         # automatic differentiation at every step (explicit speciation with jax installed; "split" otherwise)
-        self.hess_scheme = "split"
+        self.hess_scheme = "ad" if getattr(self.lm, "has_exact_hessian", False) else "split"
         self.hess_reuse_tol = 0.02
         # the stability test starts far from its minima: its excess Hessian is refreshed after much smaller changes
         self.tpd_hess_reuse_tol = 0.02
@@ -786,6 +798,8 @@ class PhaseEquilibrium:
         """Exact AD Hessians requested and possible (explicit liquid model, jax installed)."""
         if self.hess_scheme != "ad" or not isinstance(self.lm, ExplicitLiquidModel):
             return False
+        if getattr(self.lm, "has_exact_hessian", False):      # Gibbs-function models (gibbs_model)
+            return True
         from . import ad_activity
         return ad_activity.AVAILABLE
 
@@ -1976,8 +1990,9 @@ class PhaseEquilibrium:
             if key not in self._children:
                 sk = None if self._solid_keys is None else [k for k in self._solid_keys
                                                              if set(SOLIDS[k].ions) <= set(ions_kept)]
+                sub_lm = self.lm.restrict(orgs, ions_kept) if hasattr(self.lm, "restrict") else None
                 child = PhaseEquilibrium(orgs, ions_kept, self.T, k_mode=self.k_mode, solid_keys=sk,
-                                         speciation=self.speciation)
+                                         speciation=self.speciation, liquid_model=sub_lm)
                 child.tol_tpd, child.trace_tol, child.seed_fractions = self.tol_tpd, self.trace_tol, self.seed_fractions
                 child.hess_scheme, child.hess_reuse_tol = self.hess_scheme, self.hess_reuse_tol
                 child.tpd_hess_reuse_tol, child.tpd_method = self.tpd_hess_reuse_tol, self.tpd_method
