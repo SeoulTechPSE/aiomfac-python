@@ -17,8 +17,11 @@ repository-code: "https://github.com/SeoulTechPSE/aiomfac-python"
 url: "https://github.com/SeoulTechPSE/aiomfac-python"
 license: GPL-3.0-or-later
 version: 1.2.0
-doi: 10.5281/zenodo.23122265
+doi: 10.5281/zenodo.23248099
 identifiers:
+  - type: doi
+    value: 10.5281/zenodo.23248099
+    description: "Version 1.2.0"
   - type: doi
     value: 10.5281/zenodo.23202730
     description: "Version 1.1.0"
