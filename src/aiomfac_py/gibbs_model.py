@@ -97,12 +97,16 @@ class GibbsFunction:
         self.label = label
         self._compiled: dict = {} if compiled_cache is None else compiled_cache
         self._kcache: dict = {}
+        self._klast = None
 
     def constants(self, T: float):
+        if self._klast is not None and self._klast[0] == T:          # the solver works at one temperature
+            return self._klast[1]
         key = round(float(T), 9)
         if key not in self._kcache:
             self._kcache[key] = jax.tree_util.tree_map(lambda v: jnp.asarray(v, dtype=jnp.float64), self.consts(float(T)))
-        return self._kcache[key]
+        self._klast = (T, self._kcache[key])
+        return self._klast[1]
 
     def compiled(self, idx: tuple):
         """(value_and_grad, grad, Hessian, HVP) of g restricted to the species ``idx`` (indices into ``names``), jit-
@@ -140,6 +144,7 @@ class GibbsLiquidModel(ExplicitLiquidModel):
             raise ValueError(f"species {missing} are not variables of the Gibbs function {gibbs.label!r}")
         self.gibbs = gibbs
         self._idx = tuple(gibbs.names.index(s) for s in self.names)
+        self._f = gibbs.compiled(self._idx)                       # compiled once, held by the model
         self.n_hvp = 0
 
     def restrict(self, organics: Sequence[Component], ions: Sequence[str]) -> "GibbsLiquidModel":
@@ -148,34 +153,37 @@ class GibbsLiquidModel(ExplicitLiquidModel):
 
     # ---------------------------------------------------------------------------------------------------
     def _fns(self):
-        return self.gibbs.compiled(self._idx)
+        return self._f
 
     def gibbs_value(self, n: np.ndarray, T: float) -> float:
         """g(n) (without the reaction constants)."""
-        return float(self._fns()[0](jnp.asarray(n, dtype=jnp.float64), self.gibbs.constants(T))[0])
+        return float(self._f[0](np.asarray(n, dtype=float), self.gibbs.constants(T))[0])
 
     def ln_a(self, n: np.ndarray, T: float) -> np.ndarray:
         """c_s + dg/dn_s of every species; -inf for absent species (amount 0), as for the AIOMFAC model."""
         self.n_eval += 1
-        if self._T != float(T):
+        if self._T != T:
             self.set_conditions(T, self._ln_rh)
         n = np.asarray(n, dtype=float)
-        out = np.asarray(self._fns()[1](jnp.asarray(n), self.gibbs.constants(T)), dtype=float)
-        out = np.where(n > 0.0, out, -math.inf) if np.any(n <= 0.0) else out
-        return out + self._c
+        out = np.asarray(self._f[1](n, self.gibbs.constants(T))) + self._c
+        if (n <= 0.0).any():
+            out[n <= 0.0] = -math.inf
+        return out
 
     def hessian_ad(self, n: np.ndarray, T: float, active: np.ndarray | None = None) -> np.ndarray:
-        """Exact d ln a_i/d n_j = d2g/dn_i dn_j (forward-over-reverse); rows and columns of absent species are zero."""
+        """Exact d ln a_i/d n_j = d2g/dn_i dn_j (forward-over-reverse; symmetric to round-off, symmetrized); rows and
+        columns of absent species are zero."""
         self.n_jac += 1
-        n = np.asarray(n, dtype=float)
-        act = np.ones(self.N, dtype=bool) if active is None else np.asarray(active, dtype=bool)
-        H = np.asarray(self._fns()[2](jnp.asarray(n), self.gibbs.constants(T)), dtype=float)
-        if not np.all(act):
-            H = np.where(np.outer(act, act), H, 0.0)
-        return 0.5 * (H + H.T)
+        H = np.array(self._f[2](np.asarray(n, dtype=float), self.gibbs.constants(T)))
+        if active is not None and not np.all(active):
+            off = ~np.asarray(active, dtype=bool)
+            H[off, :] = 0.0
+            H[:, off] = 0.0
+        H += H.T
+        H *= 0.5
+        return H
 
     def hvp(self, n: np.ndarray, T: float, v: np.ndarray) -> np.ndarray:
         """Hessian-vector product (d2g/dn2) v without forming the Hessian (forward-over-reverse)."""
         self.n_hvp += 1
-        return np.asarray(self._fns()[3](jnp.asarray(n, dtype=jnp.float64), self.gibbs.constants(T),
-                                         jnp.asarray(v, dtype=jnp.float64)), dtype=float)
+        return np.asarray(self._f[3](np.asarray(n, dtype=float), self.gibbs.constants(T), np.asarray(v, dtype=float)))
