@@ -1,0 +1,18 @@
+pinic acid + ammonium sulfate + ammonium nitrate, liquid-liquid-solid equilibrium: mode=equilibrium, engine=pe, T=300.0 K
+[equilibrium/pe] RH=0.8000: converged
+  liquid 0: n=0.0174152 mol, a_w=0.80000; x: Water=0.6171, pinic_acid=0.3542, NH4+=0.0156, SO4--=0.002561, NO3-=0.01047
+  liquid 1: n=0.0919417 mol, a_w=0.80000; x: Water=0.7529, pinic_acid=9.205e-05, NH4+=0.1553, SO4--=0.06355, NO3-=0.02818
+  TPD_min=0, F=-0.009035592287
+[equilibrium/pe] RH=0.6000: converged
+  solids [mol]: ammonium_sulfate=0.00524775
+  liquid 0: n=0.0146399 mol, a_w=0.60000; x: Water=0.4631, pinic_acid=0.4219, NH4+=0.05862, SO4--=0.002279, NO3-=0.05406
+  liquid 1: n=0.0124035 mol, a_w=0.60000; x: Water=0.5337, pinic_acid=5.588e-08, NH4+=0.2576, SO4--=0.04891, NO3-=0.1598
+  TPD_min=0, F=0.0007136125034
+[equilibrium/pe] RH=0.4000: converged
+  solids [mol]: ammonium_nitrate=0.00193882, ammonium_sulfate=0.0058689
+  liquid 0: n=0.0116791 mol, a_w=0.40000; x: Water=0.3233, pinic_acid=0.5289, NH4+=0.0747, SO4--=0.001613, NO3-=0.07147
+  TPD_min=0, F=0.003450959949
+[equilibrium/pe] RH=0.2000: converged
+  solids [mol]: ammonium_nitrate=0.00208855, ammonium_sulfate=0.00587563
+  liquid 0: n=0.00922369 mol, a_w=0.20000; x: Water=0.1778, pinic_acid=0.6697, NH4+=0.07689, SO4--=0.001313, NO3-=0.07426
+  TPD_min=0, F=0.005203007

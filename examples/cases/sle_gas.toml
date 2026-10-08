@@ -1,0 +1,18 @@
+title = "NH4NO3 particle in a closed volume of air with HNO3 and NH3"
+
+[calculation]
+mode = "sle"
+rh = [0.8, 0.5]
+
+[system]
+T_K = 298.15
+ions = ["NH4+", "NO3-", "H+"]
+
+[salts]
+NH4NO3 = 1.0e-6
+
+[gas]
+mode = "closed"                    # "open": [gas] partial_pressure_atm = {HNO3 = 1e-9, ...}
+total_mol = {HNO3 = 1.0e-7, NH3 = 1.0e-7}
+n_air = 41.0                       # mol of air (about 1 m3 at 1 atm, 298 K)
+P_atm = 1.0

@@ -1,0 +1,5 @@
+pinic acid + ammonium sulfate at RH 0.3: liquid-liquid phase separation (no crystallization): mode=lle, engine=pe, T=298.15 K
+[lle/pe] RH=0.3000: converged
+  liquid 0: n=0.0108478 mol, a_w=0.30000; x: Water=0.2572, pinic_acid=0.5755, NH4+=0.1115, SO4--=0.05577
+  liquid 1: n=0.030254 mol, a_w=0.30000; x: Water=0.3095, pinic_acid=0, NH4+=0.4603, SO4--=0.2302
+  TPD_min=0, F=0.02475959805

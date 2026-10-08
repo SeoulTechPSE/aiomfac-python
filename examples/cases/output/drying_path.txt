@@ -1,0 +1,44 @@
+Ansan-type drying path: AS crystallizes after its critical supersaturation: mode=drying_path, engine=pe, T=300.0 K
+[drying_path/pe] RH=0.8000: converged (enabled solids: [])
+  enabled_solids=[]
+  liquid 0: n=0.0174152 mol, a_w=0.80000; x: Water=0.6171, pinic_acid=0.3542, NH4+=0.0156, SO4--=0.002561, NO3-=0.01047
+  liquid 1: n=0.0919417 mol, a_w=0.80000; x: Water=0.7529, pinic_acid=9.205e-05, NH4+=0.1553, SO4--=0.06355, NO3-=0.02818
+  TPD_min=0, F=-0.009035592287
+[drying_path/pe] RH=0.6000: converged (enabled solids: [])
+  enabled_solids=[]
+  liquid 0: n=0.0135521 mol, a_w=0.60000; x: Water=0.4752, pinic_acid=0.4558, NH4+=0.03941, SO4--=0.009881, NO3-=0.01965
+  liquid 1: n=0.052979 mol, a_w=0.60000; x: Water=0.5795, pinic_acid=2.784e-07, NH4+=0.2645, SO4--=0.1086, NO3-=0.04733
+  TPD_min=0, F=0.006360445183
+[drying_path/pe] RH=0.4500: converged (enabled solids: [])
+  enabled_solids=[]
+  liquid 0: n=0.0119917 mol, a_w=0.45000; x: Water=0.3665, pinic_acid=0.5151, NH4+=0.06986, SO4--=0.02132, NO3-=0.02722
+  liquid 1: n=0.0396684 mol, a_w=0.45000; x: Water=0.4507, pinic_acid=0, NH4+=0.3456, SO4--=0.142, NO3-=0.06169
+  TPD_min=0, F=0.01464990275
+[drying_path/pe] RH=0.3500: converged (enabled solids: [])
+  enabled_solids=[]
+  liquid 0: n=0.0112416 mol, a_w=0.35000; x: Water=0.2907, pinic_acid=0.5495, NH4+=0.09566, SO4--=0.03149, NO3-=0.03268
+  liquid 1: n=0.0332321 mol, a_w=0.35000; x: Water=0.3556, pinic_acid=0, NH4+=0.4054, SO4--=0.1665, NO3-=0.0724
+  TPD_min=0, F=0.01927296763
+[drying_path/pe] RH=0.3000: converged (enabled solids: [])
+  enabled_solids=[]
+  liquid 0: n=0.0109101 mol, a_w=0.30000; x: Water=0.2517, pinic_acid=0.5662, NH4+=0.1095, SO4--=0.03684, NO3-=0.03579
+  liquid 1: n=0.0305469 mol, a_w=0.30000; x: Water=0.3052, pinic_acid=0, NH4+=0.4372, SO4--=0.1796, NO3-=0.07802
+  TPD_min=0, F=0.02135513063
+[drying_path/pe] RH=0.2500: converged (enabled solids: ['ammonium_sulfate'])
+  enabled_solids=['ammonium_sulfate']
+  solids [mol]: ammonium_sulfate=0.00581633
+  liquid 0: n=0.011532 mol, a_w=0.25000; x: Water=0.1998, pinic_acid=0.5357, NH4+=0.1329, SO4--=0.001314, NO3-=0.1303
+  liquid 1: n=0.0033952 mol, a_w=0.25000; x: Water=0.2016, pinic_acid=0, NH4+=0.4075, SO4--=0.01657, NO3-=0.3744
+  TPD_min=0, F=0.006109928928
+[drying_path/pe] RH=0.2000: converged (enabled solids: ['ammonium_sulfate'])
+  enabled_solids=['ammonium_sulfate']
+  solids [mol]: ammonium_sulfate=0.00583439
+  liquid 0: n=0.0112043 mol, a_w=0.20000; x: Water=0.1611, pinic_acid=0.5513, NH4+=0.1444, SO4--=0.001232, NO3-=0.1419
+  liquid 1: n=0.00301878 mol, a_w=0.20000; x: Water=0.1766, pinic_acid=0, NH4+=0.4182, SO4--=0.0131, NO3-=0.392
+  TPD_min=0, F=0.006700398836
+[drying_path/pe] RH=0.1000: converged (enabled solids: ['ammonium_sulfate'])
+  enabled_solids=['ammonium_sulfate']
+  solids [mol]: ammonium_sulfate=0.00586003
+  liquid 0: n=0.0108075 mol, a_w=0.10000; x: Water=0.08129, pinic_acid=0.5716, NH4+=0.1741, SO4--=0.001067, NO3-=0.172
+  liquid 1: n=0.00217097 mol, a_w=0.10000; x: Water=0.1347, pinic_acid=0, NH4+=0.4364, SO4--=0.007452, NO3-=0.4215
+  TPD_min=0, F=0.007863974956

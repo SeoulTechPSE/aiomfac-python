@@ -1,0 +1,3 @@
+efflorescence of ammonium sulfate for ln S_crit implied by ERH 0.35: mode=efflorescence, engine=sle, T=298.15 K
+[efflorescence/sle]: converged
+  erh=0.349984, salt=ammonium_sulfate

@@ -1,0 +1,11 @@
+NaCl + (NH4)2SO4: solid-liquid equilibrium along RH: mode=sle, engine=sle, T=298.15 K
+[sle/sle] RH=0.9000: converged (aqueous)
+  liquid 0: n=40.7114 mol, a_w=0.90000; x: Water=0.8772, Na+=0.02456, Cl-=0.02456, NH4+=0.04913, SO4--=0.02456
+[sle/sle] RH=0.8000: converged (aqueous)
+  liquid 0: n=23.3576 mol, a_w=0.80000; x: Water=0.7859, Na+=0.04281, Cl-=0.04281, NH4+=0.08563, SO4--=0.04281
+[sle/sle] RH=0.7000: converged (aqueous)
+  liquid 0: n=17.1947 mol, a_w=0.70000; x: Water=0.7092, Na+=0.05816, Cl-=0.05816, NH4+=0.1163, SO4--=0.05816
+[sle/sle] RH=0.6000: dry (aqueous phase unstable at this RH (all salts crystalline))
+  solids [mol]: sal_ammoniac=1, thenardite=0.5, ammonium_sulfate=0.5
+[sle/sle] RH=0.5000: dry (aqueous phase unstable at this RH (all salts crystalline))
+  solids [mol]: sal_ammoniac=1, thenardite=0.5, ammonium_sulfate=0.5

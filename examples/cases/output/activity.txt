@@ -1,0 +1,5 @@
+activities of water + pinic acid + ammonium sulfate: mode=activity, engine=aiomfac, T=298.15 K
+[activity/aiomfac]: converged (neutrals: mole-fraction scale (dissociated-ion basis); ions: molal scale)
+  liquid 0: n=1.11 mol, a_w=0.93958; x: Water=0.9009, pinic_acid=0.04505, NH4+=0.03604, SO4--=0.01802
+    activity: Water=0.93958, pinic_acid=0.36208, NH4+=1.1695, SO4--=0.086191
+    activity coefficient: Water=1.0429, pinic_acid=8.0381, NH4+=0.79886, SO4--=0.11775

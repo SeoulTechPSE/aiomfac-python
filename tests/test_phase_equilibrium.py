@@ -675,3 +675,28 @@ def test_warm_drying_path_past_a_disappearing_salt_liquid():
         _assert_equilibrium(a)
         assert a.n_liquids == b.n_liquids and set(a.solids) == set(b.solids)
         assert a.gibbs == pytest.approx(b.gibbs, abs=1e-10)
+
+
+
+def test_pure_water_liquid_is_dropped():
+    """A liquid that holds only water cannot satisfy a_w = RH < 1 and only raises F; the outer loop drops it.  With a
+    strongly non-ideal (Margules, A = 35, Gibbs-Duhem consistent) binary, the water-rich trial liquid holds about
+    e^-35 of organic, which the trace removal takes out, leaving pure water (previously reported as two liquids,
+    not converged; first seen with surrogate activity models)."""
+    from aiomfac_py.phase_equilibrium import ExplicitLiquidModel
+    oil = Component(2, "oil", ((1, 2), (2, 6)))
+
+    class Margules(ExplicitLiquidModel):
+        def ln_a(self, n, T):
+            self.n_eval += 1
+            n = np.asarray(n, dtype=float)
+            x = n / n.sum()
+            with np.errstate(divide="ignore"):
+                return np.log(x) + 35.0 * x[::-1] ** 2 + self._c
+
+    pe = PhaseEquilibrium([oil], [], T_K=298.15)
+    pe.lm = Margules([oil], [])
+    pe.hess_scheme = "central"
+    r = pe.solve({"oil": 1.0}, 0.99999, solids="none")
+    assert r.status == "converged", r.message
+    assert r.n_liquids == 1 and r.liquids[0].mole_fractions[1] > 0.99

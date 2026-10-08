@@ -1,0 +1,10 @@
+glycerol partitioning over ammonium sulfate seed (Zuend et al., 2010, method): mode=gas_particle, engine=gp, T=298.15 K
+[gas_particle/gp] RH=0.3000: converged (particle phases from the one-shot LLE diagnostic (lle.solve_pep))
+  water_activity=0.3, n_water_PM_mol=1.34497e-08, n_iter=131, glycerol_particle_mol=3.58388e-17, glycerol_gas_mol=3e-08, glycerol_particle_fraction=1.19463e-09, glycerol_activity=0.00325607
+  liquid 0: phase fraction=1; x: Water=0.5736, glycerol=6.631e-08, (NH4)2SO4=0.4264
+[gas_particle/gp] RH=0.6000: converged (particle phases from the one-shot LLE diagnostic (lle.solve_pep))
+  water_activity=0.6, n_water_PM_mol=4.47918e-08, n_iter=55, glycerol_particle_mol=7.54641e-12, glycerol_gas_mol=2.99925e-08, glycerol_particle_fraction=0.000251547, glycerol_activity=0.00325525
+  liquid 0: phase fraction=1; x: Water=0.8174, glycerol=0.0001377, (NH4)2SO4=0.1825
+[gas_particle/gp] RH=0.9000: converged (particle phases from the one-shot LLE diagnostic (lle.solve_pep))
+  water_activity=0.9, n_water_PM_mol=1.92995e-07, n_iter=34, glycerol_particle_mol=5.00052e-10, glycerol_gas_mol=2.94999e-08, glycerol_particle_fraction=0.0166684, glycerol_activity=0.0032018
+  liquid 0: phase fraction=1; x: Water=0.9484, glycerol=0.002457, (NH4)2SO4=0.04914

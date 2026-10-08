@@ -1,0 +1,20 @@
+title = "pinic acid + ammonium sulfate at RH 0.3: liquid-liquid phase separation (no crystallization)"
+
+[calculation]
+mode = "lle"
+rh = 0.3
+
+[system]
+T_K = 298.15
+
+[[system.organics]]
+name = "pinic_acid"
+subgroups = [[1, 2], [2, 2], [3, 2], [4, 1], [137, 2]]
+
+[feed]
+pinic_acid = 0.006243
+"NH4+" = 0.015136
+"SO4--" = 0.007568
+
+[solver]
+engine = "pe"

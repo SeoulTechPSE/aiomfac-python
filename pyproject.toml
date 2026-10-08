@@ -4,12 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aiomfac_py"
-version = "1.0.1"
+version = "1.1.0"
 description = "Pure-Python port of the AIOMFAC thermodynamic activity-coefficient model"
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "GPL-3.0-or-later" }
 dependencies = ["numpy>=1.22"]
+
+[project.scripts]
+aiomfac-tool = "aiomfac_py.tool:main"
 
 [project.optional-dependencies]
 test = ["pytest>=7"]

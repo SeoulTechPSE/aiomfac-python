@@ -1,0 +1,18 @@
+title = "activities of water + pinic acid + ammonium sulfate"
+
+[calculation]
+mode = "activity"
+
+[system]
+T_K = 298.15
+
+[[system.organics]]
+name = "pinic_acid"
+subgroups = [[1, 2], [2, 2], [3, 2], [4, 1], [137, 2]]
+
+[feed]                             # mol
+Water = 1.0
+pinic_acid = 0.05
+
+[salts]
+"(NH4)2SO4" = 0.02

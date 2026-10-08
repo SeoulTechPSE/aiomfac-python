@@ -1,0 +1,13 @@
+title = "efflorescence of ammonium sulfate for ln S_crit implied by ERH 0.35"
+
+[calculation]
+mode = "efflorescence"
+
+[system]
+T_K = 298.15
+
+[salts]
+"(NH4)2SO4" = 1.0
+
+[efflorescence]
+erh = {ammonium_sulfate = 0.35}

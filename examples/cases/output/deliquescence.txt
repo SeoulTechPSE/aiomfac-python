@@ -1,0 +1,3 @@
+deliquescence of ammonium sulfate: mode=deliquescence, engine=sle, T=298.15 K
+[deliquescence/sle]: converged (bisection on the phase assemblage)
+  drh=0.798721, full_dissolution_rh=0.798721
