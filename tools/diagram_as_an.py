@@ -1,8 +1,10 @@
 """Example: X--RH phase diagram of (NH4)2SO4 + NH4NO3 particles at 298.15 K with AIOMFAC (aiomfac_py.diagram).
 X is the mole fraction of (NH4)2SO4 in the dry salt.  About 3 min on one CPU thread.
 usage: python tools/diagram_as_an.py [out_prefix]      (needs scipy and matplotlib: pip install aiomfac_py[plot])
-Note: the solid database has no NH4NO3-(NH4)2SO4 double salts (2NH4NO3.(NH4)2SO4, 3NH4NO3.(NH4)2SO4), so the dry
-region and the mutual deliquescence RH are those of a mixture of the two single salts."""
+The solids include the double salts (NH4)2SO4.2NH4NO3 and (NH4)2SO4.3NH4NO3 (Clegg et al., 1998).  Note that AIOMFAC
+underestimates the salting-out of (NH4)2SO4 by NH4NO3: at the measured (NH4)2SO4-saturated composition of 3.0 mol/kg
+(NH4)2SO4 + 13.5 mol/kg NH4NO3 (25 C) its saturation index is -1.0, so the computed invariant solutions hold about
+2 mol/kg more (NH4)2SO4 than measured and the mutual deliquescence RHs are correspondingly lower."""
 import json
 import sys
 import time

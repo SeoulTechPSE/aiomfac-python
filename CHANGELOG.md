@@ -7,6 +7,13 @@
   composition–RH maps with refinement in composition where the boundary topology changes (`phase_map`), plotting with
   boundary lines and region colours (`plot_phase_map`), phase composition for pie charts (`pie_composition`). The
   traced deliquescence RH of ten single salts equals `sle.binary_saturation` to 4e-5.
+- **Double salts** (`aiomfac_py.solids`): (NH4)2SO4·2NH4NO3, (NH4)2SO4·3NH4NO3 and NH4HSO4·NH4NO3 as composite
+  solids, ln K = sum of the simple salts' ln K (this database, fitted to AIOMFAC) + the solid-state formation reaction
+  from Clegg, Brimblecombe and Wexler (1998, Table 2), which does not depend on the solution model.
+- `PhaseEquilibrium`: an all-solid state is now the minimum of a linear program over the candidate solids (water
+  open), which corrects dry results with a non-optimal assemblage and replaces a liquid-containing result whose
+  transformed Gibbs energy is higher than the best all-solid one; saturation indices of dry results come from the
+  program. Mutual deliquescence RHs are therefore invariant in the mixing ratio, as the phase rule requires.
 - `PhaseEquilibrium`: the charge-balance bracket search of the tangent-plane successive substitution could loop
   forever when an activity coefficient had overflowed; it is now bounded and hands over to the Newton step.
 

@@ -820,6 +820,19 @@ class PhaseEquilibrium:
     def _solid_columns(self, solids: list[Solid]) -> np.ndarray:
         return self._columns(solids)
 
+    def _dry_assemblage(self, b: np.ndarray):
+        """Minimum of sum_s u_s c_s (c = solid cost at the current RH) over u >= 0 with V u = b (all non-water
+        material in the candidate solids; ``b`` scaled).  Returns (u, F) or None when the feed cannot be fully
+        crystallized (e.g. it holds organics or ions without a solid)."""
+        from scipy.optimize import linprog
+        V = self._columns(self._solids_now)[1:]
+        lp = linprog(self._solid_cost_now, A_eq=V, b_eq=b[1:self.Nc], bounds=(0, None), method="highs")
+        if lp.status != 0:
+            return None
+        # saturation indices of the solids relative to the optimal assemblage: minus the reduced costs
+        si = -(self._solid_cost_now - V.T @ np.asarray(lp.eqlin.marginals))
+        return np.asarray(lp.x), float(lp.fun), np.minimum(si, 0.0)
+
     def _solid_cost(self, solids: list[Solid], ln_rh: float) -> np.ndarray:
         return np.array([self._lnk[s.key] - s.h_eff * ln_rh for s in solids])
 
@@ -2324,9 +2337,27 @@ class PhaseEquilibrium:
         checks["max_removed_trace"] = self._trunc_max
         checks["n_line_search_failures"] = float(self._ls_failures)
         liquids = [self._to_components(L) for L in liquids]          # largest removed amount, relative to sum |feed|
+        # all-solid state: with water open, its transformed Gibbs energy sum_s n_s (ln K_s - h_s ln RH) is linear in
+        # the solid amounts, so its minimum over the candidate solids is a linear program.  It corrects a dry result
+        # whose solids are not the optimal assemblage (the iteration has no liquid left to exchange material through)
+        # and replaces a liquid-containing result whose F is higher (e.g. just below a mutual deliquescence RH, where
+        # the iteration can end at a liquid saturated with a non-optimal pair of solids).
+        dry_si = None
+        if self._solids_now and self._gas_mode == "none":
+            dry_lp = self._dry_assemblage(b)
+            if dry_lp is not None:
+                u_lp, F_lp, si_lp = dry_lp
+                F_now = float(np.dot(x[len(phases) * N:len(phases) * N + S], self._solid_cost_now)) if dry else F
+                if F_lp < F_now - 1e-9 * max(1.0, abs(F_now)):
+                    dry = True
+                    F = F_lp
+                    solid_amounts = {s_.key: float(v) * scale for s_, v in zip(self._solids_now, u_lp)
+                                     if v * scale > thresh}
+                if dry:                                   # saturation indices of a dry state: from the program
+                    dry_si = {s_.key: float(v) for s_, v in zip(self._solids_now, si_lp)}
         if dry:
             # all non-water material is in solids; the remaining "liquid" is a numerical remnant of the barrier
-            si = self._si_liquids(liquids, ln_rh)
+            si = dry_si if dry_si is not None else self._si_liquids(liquids, ln_rh)
             return PhaseEquilibriumResult("dry", self.T, rh, [], solid_amounts, si, F * scale,
                                           {"max_mass_balance_residual": checks["max_mass_balance_residual"]},
                                           0.0, n_outer, message="no liquid phase (all solutes crystalline)",

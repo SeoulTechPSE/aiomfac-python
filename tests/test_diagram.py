@@ -78,3 +78,25 @@ def test_pie_composition_groups():
     pie = pie_composition(res)
     assert pie[0][0] == "L1" and set(pie[0][1]) == {"water", "ions"}
     assert np.isclose(pie[0][1]["ions"], 2.0)
+
+
+def test_ammonium_sulfate_nitrate_double_salts():
+    """(NH4)2SO4 + NH4NO3: the dry assemblage follows the stoichiometry of the double salts (linear program over
+    the candidate solids), and the mutual deliquescence RH of (NH4)2SO4 + (NH4)2SO4.2NH4NO3 is an invariant point
+    (independent of the mixing ratio)."""
+    pe = PhaseEquilibrium([], ["NH4+", "SO4--", "NO3-"], T_K=T0)
+    feed = lambda x: {"NH4+": 2 * x + (1 - x), "SO4--": x, "NO3-": 1 - x}
+    expect = {0.1: {"ammonium_nitrate", "AS_3AN"}, 0.3: {"AS_3AN", "AS_2AN"}, 0.6: {"ammonium_sulfate", "AS_2AN"},
+              0.97: {"ammonium_sulfate", "AS_2AN"}}
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        for x, solids in expect.items():
+            r = pe.solve(feed(x), 0.4)
+            assert r.status == "dry" and set(r.solids) == solids, (x, r.solids)
+            assert max(r.si.values()) <= 1e-9
+        mdrh = []
+        for x in (0.6, 0.97):
+            t = trace(pe, feed(x), rh_min=0.55, rh_max=0.66, n=8, tol=1e-4)
+            mdrh.append(t.boundaries[0].rh)
+            assert t.boundaries[0].below.solids == ("AS_2AN", "ammonium_sulfate")
+    assert abs(mdrh[0] - mdrh[1]) < 3e-4

@@ -267,6 +267,8 @@ def phase_map(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], x_values
             if b - a <= tol or res[a].signature == res[b].signature:
                 continue
             m = 0.5 * (a + b)
+            if any(abs(m - k) < 1e-12 for k in res):
+                continue
             res[m] = run(m)
             stack += [(a, m), (m, b)]
     xs = sorted(res)
@@ -296,7 +298,7 @@ def pie_composition(res: PhaseEquilibriumResult, group: Callable[[str], str] | N
 def _tex_formula(f: str) -> str:
     """'(NH4)2SO4' -> '(NH$_4$)$_2$SO$_4$' (digits after an element or a bracket become subscripts)."""
     import re
-    return re.sub(r"(?<=[A-Za-z)])(\d+)", r"$_{\1}$", f)
+    return re.sub(r"(?<=[A-Za-z)])(\d+)", r"$_{\1}$", f).replace(".", "·")
 
 
 def plot_phase_map(pm: PhaseMap, ax=None, *, colors: dict | None = None, quality_dashed: bool = True,

@@ -66,6 +66,9 @@ Differences from JOTA-1: (0) acidic systems are handled with total-quantity comp
 | anhydrite | CaSO4 | 0 | A | – | – |
 | antarcticite | CaCl2·6H2O | 6 | C | 7.4 | – |
 | Ca_nitrate_4H2O | Ca(NO3)2·4H2O | 4 | C | 8.675 | 273–313 |
+| AS_2AN | (NH4)2SO4·2NH4NO3 | 0 | B | composite (Clegg 1998) | 263–323 |
+| AS_3AN | (NH4)2SO4·3NH4NO3 | 0 | B | composite (Clegg 1998) | 263–323 |
+| AHS_AN | NH4HSO4·NH4NO3 | 0 | C | composite (Clegg 1998) | 273–323 |
 | ammonium_bisulfate | NH4HSO4 | 0 | B | Clegg 1998 | 273–323 |
 | letovicite | (NH4)3H(SO4)2 | 0 | B | Clegg 1998 | 273–323 |
 | sodium_bisulfate_hydrate | NaHSO4·H2O | 1 | B | Clegg 1998 (298 K) | – |

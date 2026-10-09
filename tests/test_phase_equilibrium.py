@@ -144,13 +144,16 @@ def test_equilibrium_sequence_with_nitrate():
         _assert_equilibrium(r)
     assert hi.n_liquids == 2 and not hi.solids                      # LLPS, no solid
     assert mid.n_liquids == 2 and set(mid.solids) == {"ammonium_sulfate"}
-    assert set(lo.solids) == {"ammonium_sulfate", "ammonium_nitrate"}
+    # with the sulfate-nitrate double salts in the database, NH4NO3 crystallizes as (NH4)2SO4.2NH4NO3 next to the
+    # excess (NH4)2SO4 (Clegg et al., 1998)
+    assert set(lo.solids) == {"ammonium_sulfate", "AS_2AN"}
 
 
 def test_drying_path_crystallizes_only_after_critical_supersaturation():
     T = 300.0
     pe = PhaseEquilibrium([PINIC], ["NH4+", "SO4--", "NO3-"], T_K=T)
-    lsc = {"ammonium_sulfate": implied_ln_s_crit("ammonium_sulfate", T, 0.35), "ammonium_nitrate": 99.0}
+    lsc = {"ammonium_sulfate": implied_ln_s_crit("ammonium_sulfate", T, 0.35), "ammonium_nitrate": 99.0,
+           "AS_2AN": 99.0, "AS_3AN": 99.0}                                   # nitrate-bearing salts stay dissolved
     path = pe.drying_path(_ansan_feed(True), [0.60, 0.40, 0.30, 0.20], ln_s_crit=lsc)
     by_rh = {round(r.rh, 2): r for r in path}
     assert not by_rh[0.60].solids and not by_rh[0.40].solids        # supersaturated but metastable
@@ -667,7 +670,8 @@ def test_warm_drying_path_past_a_disappearing_salt_liquid():
     T, oir, f_an = 290.0, 2.78, 0.33124116480218            # paper_1 notebook 06, Seoul site mean
     m_org, m_as, m_an = oir / 186.207, (1 - f_an) / 132.14, f_an / 80.04
     feed = {"pinic_acid": m_org, "NH4+": 2 * m_as + m_an, "SO4--": m_as, "NO3-": m_an}
-    lsc = {"ammonium_sulfate": implied_ln_s_crit("ammonium_sulfate", T, 0.35), "ammonium_nitrate": 99.0}
+    lsc = {"ammonium_sulfate": implied_ln_s_crit("ammonium_sulfate", T, 0.35), "ammonium_nitrate": 99.0,
+           "AS_2AN": 99.0, "AS_3AN": 99.0}                                   # nitrate-bearing salts stay dissolved
     grid = [0.80, 0.70, 0.60, 0.50, 0.45, 0.40, 0.35, 0.30, 0.25, 0.20, 0.15, 0.10, 0.05]
     paths = {w: PhaseEquilibrium([PINIC], ["NH4+", "SO4--", "NO3-"], T_K=T).drying_path(feed, grid, ln_s_crit=lsc,
                                                                                         warm=w) for w in (True, False)}
