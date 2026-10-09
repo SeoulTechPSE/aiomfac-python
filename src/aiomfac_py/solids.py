@@ -234,9 +234,10 @@ _DB: list[Solid] = [
     Solid("kieserite", "MgSO4.H2O", {"Mg++": 1, "SO4--": 1}, 1,
           _ph(47.24, -0.12077, -5.356e3, 0, 0, 7.272e-5), anchor_m=None, quality="B", source=_PH_REF),
     Solid("Mg_nitrate_6H2O", "Mg(NO3)2.6H2O", {"Mg++": 1, "NO3-": 2}, 6,
-          _vh(0.0, 16.8e3, -200.0), anchor_m=None, quality="C",
-          source="dH from NBS dfH Mg(NO3)2.6H2O(s) -2613.3, Mg++ -466.85, NO3- -207.36, H2O -285.83",
-          note="dCp is an ESTIMATE; no anchor (solubility not verified)"),
+          _vh(0.0, 16.8e3, -200.0), anchor_m=4.80, quality="C",
+          source="dH from NBS dfH Mg(NO3)2.6H2O(s) -2613.3, Mg++ -466.85, NO3- -207.36, H2O -285.83; anchor: "
+                 "solubility 41.6 mass % Mg(NO3)2 at 25 C (CRC Handbook) = 4.80 mol/kg",
+          note="dCp is an ESTIMATE; K0 anchored to AIOMFAC at 4.80 m (AIOMFAC DRH 0.554 at 298 K; measured 0.529)"),
     # ---- Ca ---------------------------------------------------------------------------------------------
     Solid("gypsum", "CaSO4.2H2O", {"Ca++": 1, "SO4--": 1}, 2,
           _ph(82.381, 0, -3804.5, -29.9952), anchor_m=None, quality="A", source=_PH_REF),
@@ -358,6 +359,7 @@ ANCHOR_OFFSETS: dict[str, float] = {
     "ammonium_sulfate": 0.0258,
     "bischofite": -0.7091,
     "epsomite": -0.1763,
+    "Mg_nitrate_6H2O": 6.7662,
     "antarcticite": 9.0691,
     "Ca_nitrate_4H2O": 4.5486,
 }

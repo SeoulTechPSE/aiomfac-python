@@ -51,6 +51,14 @@ def test_binary_drh_298(key, drh):
     assert abs(100 * r["aw"] - drh) < 1.6, (key, 100 * r["aw"], drh)
 
 
+def test_mg_nitrate_anchored():
+    """Mg(NO3)2.6H2O had a placeholder ln K0 = 0 without anchor, which kept the crystal stable up to RH ~ 1;
+    anchored to the 25 C solubility (4.80 mol/kg), AIOMFAC gives DRH 55.4 % (measured 52.9 %, Greenspan 1977)."""
+    r = binary_saturation("Mg_nitrate_6H2O", T0)
+    assert abs(r["molality"] / 4.80 - 1.0) < 0.01
+    assert abs(100 * r["aw"] - 52.9) < 3.0, 100 * r["aw"]
+
+
 @pytest.mark.parametrize("key,T_C,g100", [("halite", 40, 36.42), ("sylvite", 20, 34.24), ("sal_ammoniac", 40, 46.0),
                                           ("ammonium_sulfate", 40, 81.2), ("ammonium_nitrate", 40, 283.0),
                                           ("arcanite", 60, 18.2)])
