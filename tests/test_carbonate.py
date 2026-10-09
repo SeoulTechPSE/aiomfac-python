@@ -1,11 +1,10 @@
 """Bicarbonate-only dissociation equilibrium (carbonate.py), validated against the instrumented Fortran model.
 
-Unlike the bisulfate equilibrium (test_completion.py's bisulfate tests, atol 1e-12/1e-13), this solver's agreement
-with Fortran varies by species: ~1e-6 relative for the dominant carbon species (HCO3-), degrading to ~3e-4 for the
-trace ion H+. This is NOT a skipped Fortran branch (that was checked and ruled out) -- it is catastrophic
-cancellation inherent to the mass-balance formulation (a ~1e-8 remainder from subtracting terms of order 1), which
-affects Fortran's own solver just as much; see the README's validation section for the full analysis. The
-tolerances below reflect this measured, per-species pattern rather than a single blanket number.
+The reference dumps come from the unpatched Fortran code, whose Gammas() does not refresh the sum of ion molalities
+after the carbonate speciation (it does so only for bisulfate systems; see README, "Bicarbonate-only systems").
+The resulting small, per-species differences (~1e-6 for HCO3-, ~3e-4 for the trace ion H+) set the tolerances
+of the first test. ``test_matches_fortran_with_ion_sum_refresh`` checks against the Fortran code with that one
+line corrected, where the agreement is at the printed precision.
 """
 import numpy as np
 import pytest
@@ -45,3 +44,18 @@ def test_pure_bicarbonate_dims_match_fortran():
     pts = parse_dump(D / "dumps" / "debug_terms_c002.txt.gz")
     model = ActivityModel(case.components)
     assert (model.mixture.n_neutral, model.mixture.sr.n_cation, model.mixture.sr.n_anion) == pts[0]["dims"]
+
+
+# Fortran with `if (bisulfsyst .or. bicarbsyst)` in Gammas(): (a_w, m_H+, m_HCO3-, m_CO3--) for NaHCO3, input_c002
+FIXED_FORTRAN_C002 = [(9.9210745e-01, 1.4545730e-08, 2.3601423e-01, 3.4348369e-03),
+                      (9.8027960e-01, 2.2445202e-08, 6.0671835e-01, 9.7124472e-03)]
+
+
+def test_matches_fortran_with_ion_sum_refresh():
+    case = read_input_file(D / "inputs" / "input_c002.txt")
+    model = ActivityModel(case.components)
+    idx_h, idx_oh, idx_hco3, idx_carb, _ = model._carbonate
+    for k, (aw, mh, mhco3, mco3) in enumerate(FIXED_FORTRAN_C002):
+        r = model.evaluate(case.fractions[k], case.T_K[k], case.basis)
+        np.testing.assert_allclose([r.activity[0], r.smc[idx_h], r.sma[idx_hco3], r.sma[idx_carb]],
+                                   [aw, mh, mhco3, mco3], rtol=2e-6)

@@ -73,7 +73,7 @@ fields.
 | `src/aiomfac_py/composition.py`, `numerics.py` | mass/mole fraction → mass fraction → ion molalities; `safe_exp` — validated |
 | `src/aiomfac_py/completion.py` | auto-completion of bisulfate/bicarbonate systems (species set) — validated structurally |
 | `src/aiomfac_py/dissociation.py` | HSO4- <-> H+ + SO4-- equilibrium (Brent's method, `numerics.brent_root`) — validated end-to-end, wired into `ActivityModel` |
-| `src/aiomfac_py/carbonate.py` | bicarbonate-only equilibrium (`solve_carbonate`, CO2(aq)/HCO3-/CO3--/OH-/H+, approximate ~1e-3 to 1e-4, see below) and the joint bisulfate+bicarbonate equilibrium (`solve_carb_sulf`, machine precision, plus Ca2+/CaSO4(s) precipitation) — both `scipy.optimize.root`-based, wired into `ActivityModel`; this is the carbonate/bicarbonate side of the ion extension of Yin et al. (2022, *Atmos. Chem. Phys.* 22, 973–1013) — the iodide/iodate (I-/IO3-) side of the same paper needs no dedicated module, just the existing ion subgroups and parameter tables, demonstrated in `notebooks/04_zuend2011_new_functional_groups.ipynb` |
+| `src/aiomfac_py/carbonate.py` | bicarbonate-only equilibrium (`solve_carbonate`, CO2(aq)/HCO3-/CO3--/OH-/H+; differences from the Fortran code trace to a Fortran ion-sum refresh, see below) and the joint bisulfate+bicarbonate equilibrium (`solve_carb_sulf`, machine precision, plus Ca2+/CaSO4(s) precipitation) — both `scipy.optimize.root`-based, wired into `ActivityModel`; this is the carbonate/bicarbonate side of the ion extension of Yin et al. (2022, *Atmos. Chem. Phys.* 22, 973–1013) — the iodide/iodate (I-/IO3-) side of the same paper needs no dedicated module, just the existing ion subgroups and parameter tables, demonstrated in `notebooks/04_zuend2011_new_functional_groups.ipynb` |
 | `src/aiomfac_py/model.py` | `ActivityModel` / `activity_coefficients()` — end-to-end for simple systems |
 | `src/aiomfac_py/s2as/` | SMILES -> AIOMFAC subgroups (optional `epam.indigo` dependency) — integration of the upstream S2AS tool, validated bit-for-bit against it |
 | `src/aiomfac_py/lle.py` | liquid-liquid equilibrium (`solve_pep`/`solve_pep_gfe`) — primal-dual interior-point/active-set Gibbs-energy minimization on top of `ActivityModel`, port of Amundson et al. (2006, JOTA 130); **not** part of AIOMFAC-web, not Fortran-validated (see the module docstring and `tests/test_lle.py`) |
@@ -407,35 +407,20 @@ For **example 0003** specifically: LR and MR of water and of all ions agree to 1
   H2O <-> H+ + OH-, plus two mass balances) with `scipy.optimize.root(method="hybr")` -- SciPy's own MINPACK
   `hybrd` wrapper, the same algorithm Fortran uses, rather than a hand-written solver. `GammaCO2` (which overwrites
   CO2(aq)'s own ln(gamma) with a salting-out-coefficient sum) is ported and applied automatically.
-  **This one is meaningfully less precise than everything else in this port, and the reason is now well
-  understood** (an earlier version of this note wrongly blamed a skipped near-zero-concentration smoothing branch;
-  that has been ruled out -- see below). Validated against two Fortran cases (NaHCO3, KHCO3; 2 points each) by
-  instrumenting the Fortran source to dump its own converged molar amounts directly (not just the printed
-  molalities), so the comparison is apples-to-apples:
-
-  | species | relative difference vs. Fortran |
-  |---|---|
-  | HCO3- (the dominant carbon species, ~97% of total carbon here) | ~1e-6 |
-  | CO3--, CO2(aq) (minor carbon species, ~1-2% each) | ~4e-5 |
-  | OH- (trace, ~1e-8 mol/kg) | ~5e-5 |
-  | H+ (trace, ~1e-10 mol/kg) | ~3e-4 |
-
-  So the practically important quantities (water activity, the salt's own activity, which are governed by the
-  *dominant* species) are accurate to ~1e-6 -- close to the rest of this port. The error is concentrated in the
-  *trace* ions H+ and OH-, and the reason is a textbook catastrophic-cancellation problem, not a bug: the
-  mass-balance equation that fixes H+ (`n_h_max - n_hco3 - 2*n_co2 - n_oh_max + n_oh = 0`) subtracts terms of
-  order 1 from each other to obtain a remainder around 1e-8 -- roughly 8 of the ~16 significant digits of double
-  precision are lost in that step. This affects *any* solver working with this formulation, including Fortran's
-  own `hybrd`: instrumenting the Fortran source to print its internal constants (`nHmax`, `nCarbmax`, `nOHmax`,
-  etc.) confirmed they are computed identically to this port's values (bit-for-bit, up to the last 1-2 digits), and
-  seeding this port's solver with Fortran's own converged answer causes it to visibly move *away* from that answer
-  to a different point where the equations (as coded, matching Fortran's source line-for-line) are satisfied to
-  machine precision (residual ~1e-14) -- i.e., both solvers are finding genuine, self-consistent roots of an
-  ill-conditioned system, and the small disagreement between them for the trace species is inherent to that
-  conditioning rather than a fixable defect. An attempt to sidestep this for H+ specifically, by recomputing it
-  from the (well-conditioned, purely multiplicative) Kw equilibrium instead of the mass balance, reproduced the
-  same value -- unsurprising in hindsight, since Kw is already satisfied by the converged solution to the same
-  ~1e-14 residual, so that recomputation is circular and adds no information.
+  Validated against two Fortran cases (NaHCO3, KHCO3; 2 points each) by instrumenting the Fortran source to dump
+  its converged molar amounts. The port agrees with the reference Fortran code (andizuend/AIOMFAC b9cb96d) to
+  ~1e-6 for HCO3- and to ~3e-4 for the trace ion H+, and in systems where the speciation changes the number of ion
+  moles strongly (e.g. H2CO3 given as H+/CO3--) the water activity differs by up to 0.06. **The cause is in the
+  Fortran code, not in this port** (an earlier version of this note blamed catastrophic cancellation in the mass
+  balance; that explanation was wrong). In `Gammas()` (ModCalcActCoeff.f90) the sum of ion molalities used for the
+  mole fractions is refreshed only `if (bisulfsyst)`, although the comment there says it changes in both the
+  sulfuric and the carbonate dissociation; in a bicarbonate-only system it therefore keeps the value from before
+  the speciation, the mole fractions no longer sum to one, and x_water (hence a_w) and the short-range terms are
+  evaluated at a stale composition. With that line changed to `if (bisulfsyst .or. bicarbsyst)`, the Fortran
+  results agree with this port to the printed digits (a_w and all ion molalities to ~1e-7 relative, including
+  H+), and for the 84 bicarbonate-only compositions of the surrogate cost benchmark the largest water-activity
+  difference falls from 0.057 to 5e-9. This port follows the corrected (self-consistent) behaviour; the
+  reference tests below compare with the unpatched Fortran dumps at the tolerances that the discrepancy requires.
   Requires the optional `scipy` dependency (`pip install aiomfac_py[carbonate]`); `ActivityModel` raises
   `ImportError` from within `carbonate.solve_carbonate` if it is used without scipy installed.
 * **Bisulfate + bicarbonate systems together** (both HSO4-/SO4-- and HCO3-/CO3--) are now handled automatically

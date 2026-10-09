@@ -61,7 +61,7 @@ Differences from JOTA-1: (0) acidic systems are handled with total-quantity comp
 | epsomite | MgSO4·7H2O | 7 | A | 3.0 | 273–313 |
 | hexahydrite | MgSO4·6H2O | 6 | B | – | – |
 | kieserite | MgSO4·H2O | 1 | B | – | – |
-| Mg_nitrate_6H2O | Mg(NO3)2·6H2O | 6 | C | – | – |
+| Mg_nitrate_6H2O | Mg(NO3)2·6H2O | 6 | C | 4.80 | – |
 | gypsum | CaSO4·2H2O | 2 | A | – | – |
 | anhydrite | CaSO4 | 0 | A | – | – |
 | antarcticite | CaCl2·6H2O | 6 | C | 7.4 | – |
