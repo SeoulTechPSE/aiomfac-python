@@ -20,6 +20,8 @@ test = ["pytest>=7"]
 carbonate = ["scipy>=1.9"]
 # needed only for aiomfac_py.sle / aiomfac_py.solids (solid-liquid equilibrium: linprog, brentq, minimize)
 sle = ["scipy>=1.9"]
+# needed only for aiomfac_py.diagram.plot_phase_map (phase diagrams; the tracing itself needs only scipy)
+plot = ["scipy>=1.9", "matplotlib>=3.5"]
 # needed only for aiomfac_py.s2as (SMILES -> AIOMFAC subgroups, uses the Indigo cheminformatics toolkit)
 smiles = ["epam.indigo"]
 # needed only for aiomfac_py.tgml_armeli.predict_tg_ml_fg / predict_tg_ml_smiles (Armeli, Peters and Koop,

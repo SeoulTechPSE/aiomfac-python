@@ -1756,8 +1756,19 @@ class PhaseEquilibrium:
                     mc, ma = lc.max(), la_.max()
                     return (mc + math.log(np.exp(lc - mc).sum())) - (ma + math.log(np.exp(la_ - ma).sum()))
                 lo, hi = -5.0, 5.0
-                while g(lo) > 0: lo -= 10.0
-                while g(hi) < 0: hi += 10.0
+                # bracket the root; g is not finite when an activity coefficient has overflowed (the bracket search
+                # would then never end), and |psi| beyond ~700/|z| only means a diverging iterate
+                g_lo, g_hi = g(lo), g(hi)
+                for _ in range(80):
+                    if not (math.isfinite(g_lo) and g_lo > 0):
+                        break
+                    lo -= 10.0; g_lo = g(lo)
+                for _ in range(80):
+                    if not (math.isfinite(g_hi) and g_hi < 0):
+                        break
+                    hi += 10.0; g_hi = g(hi)
+                if not (math.isfinite(g_lo) and math.isfinite(g_hi) and g_lo <= 0.0 <= g_hi):
+                    return best_w, best_t, False
                 from scipy.optimize import brentq
                 psi = brentq(g, lo, hi, xtol=1e-14)
                 le = le + zi * psi

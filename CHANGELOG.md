@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- **Phase diagrams** (`aiomfac_py.diagram`, extra `plot`): phase-boundary tracing in RH by bisection on
+  `PhaseEquilibrium` solves (`trace`; equilibrium and metastable modes; non-converged solves are dropped and listed),
+  composition–RH maps with refinement in composition where the boundary topology changes (`phase_map`), plotting with
+  boundary lines and region colours (`plot_phase_map`), phase composition for pie charts (`pie_composition`). The
+  traced deliquescence RH of ten single salts equals `sle.binary_saturation` to 4e-5.
+- `PhaseEquilibrium`: the charge-balance bracket search of the tangent-plane successive substitution could loop
+  forever when an activity coefficient had overflowed; it is now bounded and hands over to the Newton step.
+
 ## v1.3.0 (2026-10)
 
 - **Batched activities** (`ExplicitLiquidModel.ln_a_batch`, optional `jax`): `ln_a` for many compositions at one
