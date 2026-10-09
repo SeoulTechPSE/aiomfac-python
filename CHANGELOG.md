@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v1.3.0 (2026-10)
 
 - **Batched activities** (`ExplicitLiquidModel.ln_a_batch`, optional `jax`): `ln_a` for many compositions at one
   temperature through the vectorized JAX transcription of `ad_activity` (compiled once per system, temperature and
@@ -8,6 +8,15 @@
   thread (`tools/bench_batch.py`) it costs 0.2-1.4 microseconds per composition in batches of 1000-10 000, against
   0.1-0.3 ms per `ln_a` call (NumPy), 35-90 microseconds per call of the compiled function, and 3-4 microseconds per
   evaluation of the Fortran AIOMFAC on the same machine.
+- **Numba prototype** (`tools/numba_prototype.py`): the short-range term for water + organics as one compiled loop
+  kernel, 2.3 microseconds per binary evaluation (Fortran level), as an estimate of what a compiled core would gain.
+- **Solid data**: Mg(NO3)2·6H2O had a placeholder ln K0 = 0 without an anchor, which kept the crystal stable up to
+  RH ~ 1; it is now anchored to its 25 °C solubility (4.80 mol/kg), giving a deliquescence RH of 0.554 at 298 K
+  (measured 0.529).
+- **Bicarbonate systems vs. Fortran** (documentation and tests only): the differences from the Fortran code in
+  bicarbonate systems without sulfate come from the Fortran `Gammas()`, which refreshes the sum of ion molalities
+  only for bisulfate systems. With that line corrected, the Fortran results agree with this port to the printed
+  digits; the earlier explanation (catastrophic cancellation) was wrong. A test against the corrected values is added.
 
 ## v1.2.0 (2026-10)
 
