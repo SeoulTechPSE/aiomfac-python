@@ -128,3 +128,21 @@ def test_acid_sulfate_ph_and_letovicite():
     p = particle_properties(pe, feed, r)
     assert "letovicite" in p["solids"] and p["n_liquids"] == 1
     assert -3.0 < p["pH"] < 1.0 and p["rel_mass"] > 1.0
+
+
+def test_ternary_lle_three_phase_region():
+    """water / 1-hexacosanol / pinic acid: one three-phase triangle (Amundson et al., 2007, Fig. 2), equilibrium
+    activities equal in all three coexisting liquids, and the binary water/pinic acid gap at the edge."""
+    from aiomfac_py import Component
+    from aiomfac_py.diagram import binary_mixing_curve, ternary_lle
+    W = Component(1, "Water", ((16, 1),))
+    hexa = Component(2, "1-hexacosanol", ((145, 1), (146, 24), (150, 1), (153, 1)))
+    pinic = Component(3, "pinic acid", ((1, 2), (2, 2), (3, 2), (4, 1), (137, 2)))
+    gap = binary_mixing_curve([W, Component(2, "pinic acid", pinic.subgroups)], T0)["splits"]
+    assert len(gap) == 1 and 0.005 < gap[0][0] < 0.012 and 0.19 < gap[0][1] < 0.23
+    td = ternary_lle([W, hexa, pinic], T0, h=0.01)
+    assert len(td.three_phase) == 1
+    V = td.three_phase[0]
+    assert V[:, 0].max() > 0.6 and V[:, 1].max() > 0.15         # an organic-rich and an acid-rich liquid
+    eq = td.equilibrium(0.3, 0.1)
+    assert eq["n_phases"] == 3 and 0.95 < eq["activities"][0] <= 1.0

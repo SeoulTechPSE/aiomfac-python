@@ -24,7 +24,8 @@ import warnings
 
 import numpy as np
 
-from aiomfac_py import ActivityModel, Component
+from aiomfac_py import Component
+from aiomfac_py.diagram import binary_mixing_curve, plot_ternary, ternary_lle
 from aiomfac_py.s2as import smiles_to_components
 
 warnings.filterwarnings("ignore")
@@ -45,39 +46,8 @@ def comp(key, idx):
     return Component(idx, SMILES[key][0], tuple(sub))
 
 
-def binary_curve(c1, c2, n=401):
-    """normalized Gibbs energy of mixing g = sum x ln(gamma x), activities, and the equilibrium (convex-hull) phase
-    split of the binary c1/c2 (x = mole fraction of c2)."""
-    m = ActivityModel([c1, c2])
-    x = np.concatenate([np.logspace(-12, -3, 40), np.linspace(1e-3, 1 - 1e-3, n), 1 - np.logspace(-3, -12, 40)])
-    g, a1, a2 = [], [], []
-    for xv in x:
-        r = m.evaluate([1 - xv, xv], T, "mole")
-        ga = r.activity[:2]
-        a1.append(ga[0]); a2.append(ga[1])
-        g.append((1 - xv) * np.log(max(ga[0], 1e-300)) + xv * np.log(max(ga[1], 1e-300)))
-    g, a1, a2 = map(np.array, (g, a1, a2))
-    # lower convex hull of (x, g): segments longer than one grid step are two-phase regions
-    pts = sorted(zip(x, g))
-    hull = []
-    for p in pts:
-        while len(hull) >= 2 and (hull[-1][0] - hull[-2][0]) * (p[1] - hull[-2][1]) - \
-                (hull[-1][1] - hull[-2][1]) * (p[0] - hull[-2][0]) <= 0:
-            hull.pop()
-        hull.append(p)
-    hx = np.array([h[0] for h in hull])
-    splits = []
-    for a, b in zip(hx[:-1], hx[1:]):
-        inner = np.sum((x > a) & (x < b))
-        if inner >= 3 and b - a > 1e-3:
-            splits.append((float(a), float(b)))
-    # equilibrium activities: constant across a two-phase region
-    a1e, a2e = a1.copy(), a2.copy()
-    for a, b in splits:
-        ia = int(np.argmin(np.abs(x - a)))
-        mask = (x > a) & (x < b)
-        a1e[mask], a2e[mask] = a1[ia], a2[ia]
-    return {"x": x, "g": g, "a1": a1e, "a2": a2e, "splits": splits}
+def binary_curve(c1, c2):
+    return binary_mixing_curve([c1, c2], T)
 
 
 def run_fig1(out):
@@ -91,55 +61,13 @@ def run_fig1(out):
     pickle.dump(res, open(os.path.join(out, "u07_fig1.pkl"), "wb"))
 
 
-def run_ternary(N, out, h=0.005, long_edge=0.06):
-    """Phase diagram from the lower convex hull of the normalized Gibbs energy of mixing g(x) = sum x ln a over the
-    composition triangle (global minimum by construction): a hull facet with three long edges is a three-phase
-    triangle, one with a single short edge a two-phase tie-line strip, a small facet a one-phase region.  The plane
-    of a facet gives the equilibrium chemical potentials, mu_i = ln a_i = plane value at pure i."""
-    from scipy.spatial import ConvexHull
+def run_ternary(N, out):
     s2, s3 = TERNARY[N]
-    model = ActivityModel([WATER, comp(s2, 2), comp(s3, 3)])
-    pts = set()
-    n = int(round(1 / h))
-    for i in range(n + 1):
-        for j in range(n + 1 - i):
-            pts.add((round(i * h, 10), round(j * h, 10)))
-    for t in (1e-12, 1e-9, 1e-7, 1e-5, 1e-4, 1e-3, 3e-3):     # near the edges and vertices
-        for k in range(n + 1):
-            u = k * h * (1 - t)
-            pts.update({(t, u), (u, t), (t, max(0.0, 1 - t - u)), (max(0.0, 1 - t - u), t)})
-    P = np.array(sorted(pts))                                  # columns: x2, x3
-    P = P[(P[:, 0] + P[:, 1] <= 1 + 1e-12)]
-    g = np.empty(len(P))
     t0 = time.time()
-    for k, (x2, x3) in enumerate(P):
-        x = np.array([max(1 - x2 - x3, 0.0), x2, x3])
-        if x.max() > 1 - 1e-13:
-            g[k] = 0.0
-            continue
-        x = np.clip(x, 1e-300, None)
-        a = np.asarray(model.evaluate(list(x), T, "mole").activity[:3])
-        g[k] = float(np.sum(x * np.log(np.clip(a, 1e-300, None))))
-    hull = ConvexHull(np.column_stack([P, g]))
-    lower = hull.simplices[hull.equations[:, 2] < -1e-12]
-    facets = []
-    for tri in lower:
-        V = P[tri]
-        e = [float(np.linalg.norm(V[i] - V[(i + 1) % 3])) for i in range(3)]
-        nlong = sum(x > long_edge for x in e)
-        cls = 3 if nlong == 3 else (2 if nlong == 2 else 1)
-        A = np.column_stack([np.ones(3), V])                   # plane g = c0 + c2 x2 + c3 x3
-        c = np.linalg.lstsq(A, g[tri], rcond=None)[0]
-        mu = np.array([c[0], c[0] + c[1], c[0] + c[2]])        # water, s2, s3
-        facets.append({"v": tri, "cls": cls, "mu": mu, "edges": e})
-    tri3 = [P[f["v"]] for f in facets if f["cls"] == 3]
-    print(f"Fig. {N}: {len(P)} points, {len(facets)} lower facets, {time.time() - t0:.0f} s; three-phase facets: "
-          f"{len(tri3)}", flush=True)
-    for V in tri3:
-        print("   three-phase vertices (x_s2, x_s3):", np.round(V, 4).tolist(), flush=True)
-    pickle.dump({"s2": s2, "s3": s3, "P": P, "g": g, "facets": facets},
-                open(os.path.join(out, f"u07_tern{N}.pkl"), "wb"))
-
+    td = ternary_lle([WATER, comp(s2, 2), comp(s3, 3)], T)
+    print(f"Fig. {N}: {len(td.P)} points, {time.time() - t0:.0f} s; three-phase triangles: "
+          f"{[np.round(v, 4).tolist() for v in td.three_phase]}", flush=True)
+    pickle.dump({"s2": s2, "s3": s3, "td": td}, open(os.path.join(out, f"u07_tern{N}.pkl"), "wb"))
 
 # ---------------------------------------------------------------------------------------------------------------
 # inorganic + organic systems (Figs. 8-12)
@@ -306,61 +234,17 @@ def plot_all(out):
         if not os.path.exists(f):
             continue
         d = pickle.load(open(f, "rb"))
-        P, facets = d["P"], d["facets"]
-        tris = np.array([fc["v"] for fc in facets])
-        cls = np.array([fc["cls"] for fc in facets])
-        mu = np.array([fc["mu"] for fc in facets])
-        tri = mtri.Triangulation(P[:, 1], P[:, 0], tris)            # x axis: s3, y axis: s2
+        td = d["td"]
         n2, n3 = SMILES[d["s2"]][0], SMILES[d["s3"]][0]
         fig, axs = plt.subplots(2, 2, figsize=(10, 9.5))
         titles = ["phase diagram", "activity of water", f"activity of {n2}", f"activity of {n3}"]
-        gx, gy = np.meshgrid(np.linspace(0, 1, 301), np.linspace(0, 1, 301))
-        fi = tri.get_trifinder()(gx, gy)
-        three = [fc for fc in facets if fc["cls"] == 3]
-        rng = np.random.RandomState(0)
         for k, ax in enumerate(axs.flat):
-            ax.plot([0, 1, 0, 0], [0, 0, 1, 0], "k-", lw=1)
-            if k == 0:
-                ax.tripcolor(tri, facecolors=cls.astype(float),
-                             cmap=matplotlib.colors.ListedColormap(["#ffffff", "#e3edf7", "#f6dcc8"]),
-                             vmin=0.5, vmax=3.5)
-                two = [fc for fc in facets if fc["cls"] == 2]
-                for fc in [two[i] for i in rng.choice(len(two), min(len(two), 60), replace=False)] if two else []:
-                    V = P[fc["v"]]
-                    q = int(np.argmin(fc["edges"]))                 # tie line: short-edge midpoint to third vertex
-                    m = 0.5 * (V[q] + V[(q + 1) % 3])
-                    o = V[(q + 2) % 3]
-                    ax.plot([m[1], o[1]], [m[0], o[0]], "--", color="#3060a0", lw=0.5)
-                for c, name in ((2, "L2"), (3, "L3")):
-                    sel = np.nonzero(cls == c)[0]
-                    if len(sel):
-                        w = np.array([0.5 * abs(np.cross(P[t[1]] - P[t[0]], P[t[2]] - P[t[0]])) for t in tris[sel]])
-                        if w.sum() > 2e-3:
-                            cen = P[tris[sel]].mean(axis=1)
-                            cc = (cen * w[:, None]).sum(0) / w.sum()
-                            ax.text(cc[1], cc[0], name, fontsize=11, ha="center", va="center")
-            else:
-                z = np.full(gx.shape, np.nan)
-                ok = fi >= 0
-                z[ok] = np.exp(mu[fi[ok], k - 1])
-                cs = ax.contour(gx, gy, np.ma.masked_invalid(z), levels=np.arange(0.1, 1.0, 0.1), cmap="jet",
-                                linewidths=0.8)
-                ax.clabel(cs, fmt="%.1f", fontsize=6)
-            # region boundaries: edges between facets of different class, and the three-phase triangles
-            for fc in three:
-                V = P[list(fc["v"]) + [fc["v"][0]]]
-                ax.plot(V[:, 1], V[:, 0], "-", color="k", lw=1.8)
-            ax.tricontour(mtri.Triangulation(gx[fi >= 0], gy[fi >= 0]), cls[fi[fi >= 0]].astype(float),
-                          levels=[1.5, 2.5], colors="k", linewidths=1.6)
-            ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.set_aspect("equal")
-            ax.set_xlabel(f"mole fraction of {n3}")
-            ax.set_ylabel(f"mole fraction of {n2}")
+            plot_ternary(td, ax=ax, show="phases" if k == 0 else k - 1)
             ax.set_title(f"({'abcd'[k]}) {titles[k]}", fontsize=10)
         fig.suptitle(f"Fig. {N} (AIOMFAC): water / {n2} ({d['s2']}) / {n3} ({d['s3']}), 298.15 K", fontsize=11)
         plt.tight_layout()
         plt.savefig(os.path.join(out, f"uhaero07_fig{N:02d}.png"), dpi=130)
         plt.close(fig)
-
 
 
 def _pie(ax, x, y, parts, r):

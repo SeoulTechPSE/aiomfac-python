@@ -14,6 +14,9 @@ feed, the conditions, the *calculation mode* and the solver options. The tool ch
 (or the one you request), runs every point and returns the results in one solver-independent format. That format
 can be written as a text summary, JSON or CSV.
 
+Phase diagrams built on these solvers (composition–RH diagrams, deliquescence curves, ternary liquid–liquid
+diagrams) are described separately in `docs/phase_diagrams.md`.
+
 The numerical methods themselves are documented in `docs/phase_equilibrium.md` (combined solver) and
 `docs/SLE_design.md` (inorganic solver), and in the module docstrings of `lle.py` and `gp_partition.py`.
 

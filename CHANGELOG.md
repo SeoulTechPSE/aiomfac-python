@@ -6,7 +6,11 @@
   `PhaseEquilibrium` solves (`trace`; equilibrium and metastable modes; non-converged solves are dropped and listed),
   composition–RH maps with refinement in composition where the boundary topology changes (`phase_map`), plotting with
   boundary lines and region colours (`plot_phase_map`), phase composition for pie charts (`pie_composition`). The
-  traced deliquescence RH of ten single salts equals `sle.binary_saturation` to 4e-5.
+  traced deliquescence RH of ten single salts equals `sle.binary_saturation` to 4e-5. Also `rh_profile`,
+  `particle_properties` (relative particle mass, pH), `deliquescence_point`, `label_regions`, and for neutral
+  mixtures `binary_mixing_curve`, `ternary_lle` (phase diagram from the lower convex hull of the Gibbs energy of
+  mixing) and `plot_ternary`. Manual `docs/phase_diagrams.md`, notebook `notebooks/07_phase_diagrams.ipynb`, and the
+  figures of Amundson et al. (2006, 2007) with AIOMFAC (`tools/uhaero2006_figures.py`, `tools/uhaero2007_figures.py`).
 - **Double salts** (`aiomfac_py.solids`): (NH4)2SO4·2NH4NO3, (NH4)2SO4·3NH4NO3 and NH4HSO4·NH4NO3 as composite
   solids, ln K = sum of the simple salts' ln K (this database, fitted to AIOMFAC) + the solid-state formation reaction
   from Clegg, Brimblecombe and Wexler (1998, Table 2), which does not depend on the solution model.

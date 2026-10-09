@@ -28,7 +28,8 @@ import numpy as np
 from .phase_equilibrium import PhaseEquilibrium, PhaseEquilibriumResult
 
 __all__ = ["PhaseState", "Boundary", "Trace", "PhaseMap", "phase_state", "trace", "phase_map", "plot_phase_map",
-           "pie_composition", "particle_properties", "rh_profile", "deliquescence_point", "label_regions"]
+           "pie_composition", "particle_properties", "rh_profile", "deliquescence_point", "label_regions",
+           "singular_lines", "binary_mixing_curve", "TernaryLLE", "ternary_lle", "plot_ternary"]
 
 
 @dataclass(frozen=True, order=True)
@@ -595,4 +596,184 @@ def label_regions(ax, pm: PhaseMap, labels: dict, *, min_cells: int = 40, fontsi
         ax.text(xf[ix[q]], rg[iy[q]], "+".join(parts) if parts else "", ha="center", va="center", fontsize=fontsize)
     for xv, a, b, st in singular_lines(pm):
         parts = (["L"] if st.n_liquids == 1 else []) + [labels.get(t, t) for t in st.solids]
-        ax.text(xv, 0.5 * (a + b), " " + "+".join(parts), ha="left", va="center", fontsize=fontsize - 1)
+        ax.text(xv, 0.75 * a + 0.25 * b, "+".join(parts), ha="center", va="center", fontsize=fontsize - 1,
+                rotation=90, bbox={"boxstyle": "square,pad=0.1", "fc": "white", "ec": "none"})
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# liquid-liquid equilibrium of neutral mixtures from the convex hull of the Gibbs energy of mixing
+# ---------------------------------------------------------------------------------------------------------------
+def _gmix(model, x, T):
+    """normalized Gibbs energy of mixing g = sum x_i ln a_i (pure liquids as reference) and the activities"""
+    x = np.asarray(x, float)
+    if x.max() > 1.0 - 1e-13:
+        return 0.0, np.where(x > 0.5, 1.0, 0.0)
+    xc = np.clip(x, 1e-300, None)
+    a = np.asarray(model.evaluate(list(xc), T, "mole").activity[:len(x)], float)
+    return float(np.sum(xc * np.log(np.clip(a, 1e-300, None)))), a
+
+
+def binary_mixing_curve(components, T_K: float, *, n: int = 401) -> dict:
+    """Normalized Gibbs energy of mixing g(x) = (1-x) ln a_1 + x ln a_2 of a binary mixture of two neutral components
+    (x: mole fraction of the second), its equilibrium phase splits from the lower convex hull of g, and the
+    equilibrium activities (constant across a two-phase region).
+
+    Returns ``{"x", "g", "a1", "a2", "splits"}``; ``splits`` lists the coexisting compositions (x', x'') of each
+    miscibility gap.  The compositions are resolved to the grid (``n`` points, refined towards both pure
+    components down to 1e-12)."""
+    from .model import ActivityModel
+    model = ActivityModel(list(components))
+    x = np.concatenate([np.logspace(-12, -3, 40), np.linspace(1e-3, 1 - 1e-3, n), 1 - np.logspace(-3, -12, 40)])
+    g, a1, a2 = np.empty(len(x)), np.empty(len(x)), np.empty(len(x))
+    for k, xv in enumerate(x):
+        g[k], a = _gmix(model, [1 - xv, xv], T_K)
+        a1[k], a2[k] = a
+    hull = []
+    for p in zip(x, g):                                   # lower convex hull (monotone chain)
+        while len(hull) >= 2 and (hull[-1][0] - hull[-2][0]) * (p[1] - hull[-2][1]) - \
+                (hull[-1][1] - hull[-2][1]) * (p[0] - hull[-2][0]) <= 0:
+            hull.pop()
+        hull.append(p)
+    hx = np.array([h[0] for h in hull])
+    splits = [(float(a), float(b)) for a, b in zip(hx[:-1], hx[1:])
+              if np.sum((x > a) & (x < b)) >= 3 and b - a > 1e-3]
+    a1e, a2e = a1.copy(), a2.copy()
+    for a, b in splits:
+        ia = int(np.argmin(np.abs(x - a)))
+        inside = (x > a) & (x < b)
+        a1e[inside], a2e[inside] = a1[ia], a2[ia]
+    return {"x": x, "g": g, "a1": a1e, "a2": a2e, "splits": splits}
+
+
+@dataclass
+class TernaryLLE:
+    """Liquid-liquid phase diagram of a ternary neutral mixture (see :func:`ternary_lle`).
+
+    ``P``: compositions (x_2, x_3) of the grid; ``g``: normalized Gibbs energy of mixing there; ``facets``: the lower
+    convex-hull triangles, each ``{"v": vertex indices, "cls": number of phases (1, 2, 3), "mu": ln a of the three
+    components at equilibrium, "edges": edge lengths}``."""
+    names: list
+    T_K: float
+    P: np.ndarray
+    g: np.ndarray
+    facets: list
+
+    @property
+    def three_phase(self) -> list:
+        """compositions (x_2, x_3) of the three coexisting liquids of every three-phase triangle"""
+        return [self.P[f["v"]] for f in self.facets if f["cls"] == 3]
+
+    def tie_lines(self, max_lines: int | None = None, seed: int = 0) -> list:
+        """[(x', x'')] end points (x_2, x_3) of tie lines of the two-phase regions (a random subset if
+        ``max_lines``)"""
+        out = []
+        for f in self.facets:
+            if f["cls"] == 2:
+                V = self.P[f["v"]]
+                q = int(np.argmin(f["edges"]))                # short edge -> its midpoint joins the third vertex
+                out.append((0.5 * (V[q] + V[(q + 1) % 3]), V[(q + 2) % 3]))
+        if max_lines is not None and len(out) > max_lines:
+            idx = np.random.RandomState(seed).choice(len(out), max_lines, replace=False)
+            out = [out[i] for i in sorted(idx)]
+        return out
+
+    def equilibrium(self, x2: float, x3: float) -> dict:
+        """number of phases and equilibrium activities (a_1, a_2, a_3) of the overall composition (x_2, x_3)"""
+        import matplotlib.tri as mtri
+        tri = mtri.Triangulation(self.P[:, 0], self.P[:, 1], np.array([f["v"] for f in self.facets]))
+        k = int(tri.get_trifinder()(x2, x3))
+        if k < 0:
+            raise ValueError("composition outside the triangle")
+        return {"n_phases": self.facets[k]["cls"], "activities": np.exp(self.facets[k]["mu"])}
+
+
+def ternary_lle(components, T_K: float, *, h: float = 0.005, long_edge: float = 0.06) -> TernaryLLE:
+    """Liquid-liquid(-liquid) phase diagram of three neutral components (water and organics) at ``T_K``.
+
+    The normalized Gibbs energy of mixing g(x) = sum x_i ln a_i is evaluated with AIOMFAC on a triangular grid of
+    spacing ``h`` (with extra points down to 1e-12 near the edges), and the phase diagram is read off its lower
+    convex hull, which is the global minimum of the Gibbs energy for every overall composition: a hull triangle
+    with three edges longer than ``long_edge`` is a three-phase triangle, one with two long edges a two-phase
+    (tie-line) element, the others one-phase.  The plane of a triangle gives the equilibrium chemical potentials, so
+    the activities in the equilibrium state follow directly.  About 25 000 AIOMFAC evaluations (10-15 s) at the
+    default spacing; compositions are resolved to the grid (use :func:`aiomfac_py.lle.solve_pep` to refine a
+    particular split)."""
+    from scipy.spatial import ConvexHull
+
+    from .model import ActivityModel
+    comps = list(components)
+    if len(comps) != 3:
+        raise ValueError("ternary_lle needs exactly three components")
+    model = ActivityModel(comps)
+    pts = set()
+    n = int(round(1 / h))
+    for i in range(n + 1):
+        for j in range(n + 1 - i):
+            pts.add((round(i * h, 10), round(j * h, 10)))
+    for t in (1e-12, 1e-9, 1e-7, 1e-5, 1e-4, 1e-3, 3e-3):
+        for k in range(n + 1):
+            u = k * h * (1 - t)
+            pts.update({(t, u), (u, t), (t, max(0.0, 1 - t - u)), (max(0.0, 1 - t - u), t)})
+    P = np.array(sorted(pts))
+    P = P[P[:, 0] + P[:, 1] <= 1 + 1e-12]
+    g = np.array([_gmix(model, [max(1 - a - b, 0.0), a, b], T_K)[0] for a, b in P])
+    hull = ConvexHull(np.column_stack([P, g]))
+    facets = []
+    for tri in hull.simplices[hull.equations[:, 2] < -1e-12]:
+        V = P[tri]
+        e = [float(np.linalg.norm(V[i] - V[(i + 1) % 3])) for i in range(3)]
+        nlong = sum(v > long_edge for v in e)
+        c = np.linalg.lstsq(np.column_stack([np.ones(3), V]), g[tri], rcond=None)[0]
+        facets.append({"v": tri, "cls": 3 if nlong == 3 else (2 if nlong == 2 else 1),
+                       "mu": np.array([c[0], c[0] + c[1], c[0] + c[2]]), "edges": e})
+    return TernaryLLE([c.name for c in comps], float(T_K), P, g, facets)
+
+
+def plot_ternary(td: TernaryLLE, ax=None, *, show: str = "phases", n_tie: int = 60, levels=None):
+    """Right-triangle plot of a :class:`TernaryLLE` (x axis: mole fraction of component 3, y axis: component 2,
+    component 1 at the origin).  ``show="phases"``: one-, two- and three-phase regions with tie lines; ``show`` = a
+    component index (0, 1, 2): contours of its equilibrium activity.  Region boundaries and three-phase triangles
+    are drawn in both cases."""
+    import matplotlib.colors as mcolors
+    import matplotlib.pyplot as plt
+    import matplotlib.tri as mtri
+
+    if ax is None:
+        _, ax = plt.subplots(figsize=(5.2, 5.0))
+    P, facets = td.P, td.facets
+    tris = np.array([f["v"] for f in facets])
+    cls = np.array([f["cls"] for f in facets])
+    tri = mtri.Triangulation(P[:, 1], P[:, 0], tris)
+    gx, gy = np.meshgrid(np.linspace(0, 1, 301), np.linspace(0, 1, 301))
+    fi = tri.get_trifinder()(gx, gy)
+    ax.plot([0, 1, 0, 0], [0, 0, 1, 0], "k-", lw=1)
+    if show == "phases":
+        ax.tripcolor(tri, facecolors=cls.astype(float), cmap=mcolors.ListedColormap(["#ffffff", "#e3edf7", "#f6dcc8"]),
+                     vmin=0.5, vmax=3.5)
+        for a, b in td.tie_lines(n_tie):
+            ax.plot([a[1], b[1]], [a[0], b[0]], "--", color="#3060a0", lw=0.5)
+        for c, name in ((2, "L2"), (3, "L3")):
+            sel = np.nonzero(cls == c)[0]
+            if len(sel):
+                w = np.array([0.5 * abs(np.cross(P[t[1]] - P[t[0]], P[t[2]] - P[t[0]])) for t in tris[sel]])
+                if w.sum() > 2e-3:
+                    cc = (P[tris[sel]].mean(axis=1) * w[:, None]).sum(0) / w.sum()
+                    ax.text(cc[1], cc[0], name, fontsize=11, ha="center", va="center")
+    else:
+        k = int(show)
+        z = np.full(gx.shape, np.nan)
+        ok = fi >= 0
+        z[ok] = np.exp(np.array([f["mu"] for f in facets])[fi[ok], k])
+        cs = ax.contour(gx, gy, np.ma.masked_invalid(z), levels=levels if levels is not None else
+                        np.arange(0.1, 1.0, 0.1), cmap="jet", linewidths=0.8)
+        ax.clabel(cs, fmt="%.1f", fontsize=6)
+    for V in td.three_phase:
+        V = np.vstack([V, V[:1]])
+        ax.plot(V[:, 1], V[:, 0], "-", color="k", lw=1.8)
+    inside = fi >= 0
+    ax.tricontour(mtri.Triangulation(gx[inside], gy[inside]), cls[fi[inside]].astype(float), levels=[1.5, 2.5],
+                  colors="k", linewidths=1.6)
+    ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.set_aspect("equal")
+    ax.set_xlabel(f"mole fraction of {td.names[2]}")
+    ax.set_ylabel(f"mole fraction of {td.names[1]}")
+    return ax
