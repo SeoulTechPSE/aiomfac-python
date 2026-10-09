@@ -164,7 +164,34 @@ range), so that boundaries end close to where they meet (eutonic and peritectic 
 `PhaseMap` attributes and methods: `x`, `traces`, `x_label`, `mode`; `states()` (all states that occur);
 `boundary_lines()` (`{(below, above): (x, rh)}`, for analysis); `to_records()` (flat list of boundaries for CSV/JSON).
 
-#### `plot_phase_map(pm, ax=None, *, colors=None, rh_points=400, x_points=300, legend=True, metastable=None)`
+#### `trace_boundaries(pe, feed_of_x, pm, *, tol=5e-4, h0=0.02, h_min=0.002, h_max=0.05, delta_max=0.05, rh_samples=40, snap=None, solve_timeout=None, verbose=False, **solve_kw) -> BoundaryCurves`
+
+Traces every boundary line of a phase map continuously in the (x, RH) plane, so that the lines are smooth and meet
+at the junctions (eutonic and peritectic points) instead of being interpolated between the computed compositions.
+`pe` and `feed_of_x` must be those used for `pm`; the boundary points of `pm`'s traces are the starting points.
+Lengths are in units of the diagram (x and RH ranges scaled to 1):
+
+* `tol` — accuracy of each point across the line;
+* `h0`, `h_min`, `h_max` — first, smallest and largest step along the line (a line end is located to within `h_min`);
+* `delta_max` — widest bracket searched across the line;
+* `rh_samples` — RH levels at which changes of state between neighbouring traces are checked, to find lines that
+  cross no trace (vertical boundaries at fixed composition);
+* `snap` — line ends closer than this (default `2.5 h_min`) are joined at a common junction point;
+* `solve_timeout` — seconds after which a solve is abandoned and counted as not converged (POSIX, main thread), for
+  compositions where the solver is very slow;
+* `verbose=True` prints each line as it is traced (`2` also prints every step).
+
+`BoundaryCurves` holds `curves` (a list of `BoundaryCurve`), `x_range`, `rh_range`, `n_solves` and
+`to_records()` (for JSON). A `BoundaryCurve` has `left`, `right` (the `PhaseState`s on either side; `left` is
+at higher RH when the points run towards higher x), `x`, `rh` (arrays), `ends` (how each end stopped:
+`"junction"`, `"edge"` or `"merged"`), `kind` and `sides(i)` ((state at lower RH, state at higher RH) at segment
+`i`).
+
+#### `plot_boundary_curves(bc, ax, *, color="#222222", lw=1.3)`
+
+Draws the lines of a `BoundaryCurves` on an axes (`plot_phase_map(..., curves=bc)` calls it).
+
+#### `plot_phase_map(pm, ax=None, *, colors=None, rh_points=400, x_points=300, legend=True, metastable=None, curves=None)`
 
 Draws the diagram on a matplotlib axes and returns it:
 
@@ -173,16 +200,18 @@ Draws the diagram on a matplotlib axes and returns it:
 * phase states that occur at a single interior composition only (e.g. the exact stoichiometry of letovicite in the
   NH4+/H+/SO4-- system) as dotted vertical lines;
 * `metastable=` a second `PhaseMap` (mode `"metastable"`) whose boundaries are overlaid in grey;
-* `rh_points`, `x_points` — resolution of the region grid; raise them for zoomed views.
+* `rh_points`, `x_points` — resolution of the region grid; raise them for zoomed views;
+* `curves=` the result of `trace_boundaries`: the boundaries are drawn as the traced lines and the regions are
+  filled between them.
 
-The regions between computed compositions are interpolated: each boundary of the nearer trace is interpolated
+Without `curves`, the regions between computed compositions are interpolated: each boundary of the nearer trace is interpolated
 linearly in x towards the boundary of the same kind (same states below and above, closest in RH) of the other trace.
 
-#### `label_regions(ax, pm, labels, *, min_cells=40, fontsize=8, rh_points=400)`
+#### `label_regions(ax, pm, labels, *, min_cells=40, fontsize=8, rh_points=400, curves=None)`
 
 Writes a label in every region (and next to every singular line), built from `labels` = {solid key: short label},
 e.g. `{"ammonium_sulfate": "A", "letovicite": "B"}` → "L+A", "A+B". Regions smaller than `min_cells` grid cells
-are skipped.
+are skipped. Pass the same `curves` as to `plot_phase_map`.
 
 #### `singular_lines(pm) -> [(x, rh_from, rh_to, PhaseState)]`
 
@@ -203,7 +232,7 @@ across a miscibility gap) and `splits` = [(x', x'')] of the coexisting compositi
 
 #### `ternary_lle(components, T_K, *, h=0.005, long_edge=0.06) -> TernaryLLE`
 
-Phase diagram of three neutral components from the lower convex hull of g(x) over the composition triangle (§6.5).
+Phase diagram of three neutral components from the lower convex hull of g(x) over the composition triangle (§6.6).
 `h` is the grid spacing (about 25 000 AIOMFAC evaluations, 5–15 s, at the default); `long_edge` the hull-edge length
 above which an edge joins two coexisting phases.
 
@@ -263,9 +292,25 @@ ax = dg.plot_phase_map(pm, legend=False, colors={s: "white" for s in pm.states()
 dg.label_regions(ax, pm, {"ammonium_sulfate": "A", "letovicite": "B", "ammonium_bisulfate": "C"})
 ```
 
-### 5.5 Saving results
+### 5.5 Smooth boundary lines
 
-`PhaseMap` and `TernaryLLE` objects can be pickled; `PhaseMap.to_records()` gives a list of dicts for
+`phase_map` computes the boundaries at a set of compositions only; between them the plot interpolates, so a
+boundary that bends or ends between two compositions is drawn as a polygon. `trace_boundaries` follows each line
+from those points with a few solves per point and gives smooth lines that meet at the junctions:
+
+```python
+pm = dg.phase_map(pe, feed, np.linspace(0.005, 0.995, 11), x_label="x", n=32)
+bc = dg.trace_boundaries(pe, feed, pm, verbose=True)
+ax = dg.plot_phase_map(pm, curves=bc)
+dg.label_regions(ax, pm, {"ammonium_sulfate": "A"}, curves=bc)
+```
+
+The phase map can be coarser when the lines are traced (they need one boundary point per line, plus the vertical
+boundaries found between traces), e.g. 11 compositions without `refine_x`.
+
+### 5.6 Saving results
+
+`PhaseMap`, `BoundaryCurves` and `TernaryLLE` objects can be pickled; `PhaseMap.to_records()` gives a list of dicts for
 `json.dump` or `pandas.DataFrame`.
 
 ## 6. How it works
@@ -299,9 +344,30 @@ of the program.
 For plotting, the state is evaluated on a fine (x, RH) grid: for each x, the boundaries of the nearer computed trace
 are used, each interpolated linearly towards the boundary of the same kind in the other neighbouring trace. Traces
 holding a state that exists at that x only (a singular composition) are drawn as lines and left out of the grid.
-Region outlines are the contour lines of the grid.
+Region outlines are the contour lines of the grid. With traced lines (`curves=`), each column of the grid is instead
+split at the RH values where the lines cross it, and each part takes the state on that side of the line (vertical
+lines separate columns and are not used).
 
-### 6.5 Convex hull for liquid–liquid equilibrium
+### 6.5 Continuation of the boundary lines
+
+`trace_boundaries` works in the unit square (x and RH scaled by their ranges). From a point on the boundary between
+states L and R it predicts the next point one step h along the secant of the last two points and corrects it along
+the normal: the states at ±δ across the line must be L and R (δ is doubled until they are, up to `delta_max`), and
+the bracket is bisected to `tol`. δ is set from the previous correction (at least `2 tol`, at most h/2), so a
+straight line costs about four solves per point; each solve is warm-started from the last liquid result on its side.
+The step grows by 1.6 after a small correction (up to `h_max`) and is halved when the bracket holds a third state,
+cannot be found, or the new point turns by more than 25°; below `h_min` the line ends there (a junction). Because
+the correction is across the line, vertical boundaries (fixed composition) are followed as well as horizontal ones
+(invariant RH).
+
+The starting points are the boundary points of the traces (followed in both x directions). A line that runs into one
+already traced between the same states stops, and starting points on a traced line are skipped. Then, at
+`rh_samples` RH levels, the states of neighbouring traces are compared; a change that no traced line explains is
+located by bisection in x and followed up and down. Finally, line ends at a junction that are closer than `snap` to
+each other are joined at the point nearest (least squares) to their tangent lines, and a single end is extended
+along its tangent to the line it meets.
+
+### 6.6 Convex hull for liquid–liquid equilibrium
 
 For a mixture of neutral components at fixed T and pressure, the equilibrium state of an overall composition z is
 given by the lower convex hull of the molar Gibbs energy of mixing g(x): the hull point above z is a combination of
@@ -319,6 +385,13 @@ phase map of 11–21 compositions with refinement 500–3000 solves (a few minut
 sulfate–nitrate systems with contour fields). Independent traces can be run in parallel processes.
 `ternary_lle` takes 5–15 s.
 
+`trace_boundaries` needs about four solves per point on a straight line and 10–20 per line end. Examples (same
+machine): (NH4)2SO4–NH4NO3, 14 lines, 1400 solves, 3.5 min (the phase map: 2.5 min); UHAERO 2006 Y = 1, 14 lines,
+2600 solves, 33 min; Y = 0.5, 29 lines, 5000 solves, 100 min. About a third of the solves go to the search for
+vertical lines between the traces (`rh_samples`). With two organics the solver is slow and noisy at low RH, and
+tracing a map took 4400 solves (2.2 h) and still missed some short lines near junctions (where a line is missing,
+the regions keep the interpolated colours); use it there with `solve_timeout` and check the result.
+
 ## 8. Limitations
 
 * **Activity model.** Results inherit AIOMFAC's accuracy. Two cases seen in the UHAERO comparisons:
@@ -334,7 +407,9 @@ sulfate–nitrate systems with contour fields). Independent traces can be run in
   al., 2006, Fig. 14) are not supported. Efflorescence is not traced (use `PhaseEquilibrium.drying_path` with
   critical supersaturations).
 * **Grid resolution.** States narrower than the RH grid spacing or the x refinement tolerance can be missed;
-  ternary phase compositions are resolved to `h`.
+  ternary phase compositions are resolved to `h`. `trace_boundaries` finds only the lines that cross a trace or
+  that separate neighbouring traces at one of the `rh_samples` levels; a short line near a junction that does
+  neither is missed.
 
 ## 9. References
 

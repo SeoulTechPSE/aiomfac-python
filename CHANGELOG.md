@@ -11,6 +11,10 @@
   mixtures `binary_mixing_curve`, `ternary_lle` (phase diagram from the lower convex hull of the Gibbs energy of
   mixing) and `plot_ternary`. Manual `docs/phase_diagrams.md`, notebook `notebooks/07_phase_diagrams.ipynb`, and the
   figures of Amundson et al. (2006, 2007) with AIOMFAC (`tools/uhaero2006_figures.py`, `tools/uhaero2007_figures.py`).
+- **Boundary-line continuation** (`diagram.trace_boundaries`, `BoundaryCurves`, `plot_boundary_curves`): every
+  boundary of a phase map is followed in the (x, RH) plane by a predictor (secant) and a corrector (bisection across
+  the line), vertical lines included, so the lines are smooth and meet at the junctions;
+  `plot_phase_map(..., curves=)` draws them and fills the regions between them.
 - **Double salts** (`aiomfac_py.solids`): (NH4)2SO4·2NH4NO3, (NH4)2SO4·3NH4NO3 and NH4HSO4·NH4NO3 as composite
   solids, ln K = sum of the simple salts' ln K (this database, fitted to AIOMFAC) + the solid-state formation reaction
   from Clegg, Brimblecombe and Wexler (1998, Table 2), which does not depend on the solution model.

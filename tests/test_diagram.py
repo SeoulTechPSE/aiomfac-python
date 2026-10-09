@@ -146,3 +146,37 @@ def test_ternary_lle_three_phase_region():
     assert V[:, 0].max() > 0.6 and V[:, 1].max() > 0.15         # an organic-rich and an acid-rich liquid
     eq = td.equilibrium(0.3, 0.1)
     assert eq["n_phases"] == 3 and 0.95 < eq["activities"][0] <= 1.0
+
+
+def test_trace_boundaries_nacl_kcl():
+    """Continuation of the boundary lines: the mutual deliquescence line of NaCl + KCl is horizontal (an invariant
+    RH), the two liquidus lines meet it at the eutonic composition, and the lines agree with the traces."""
+    from aiomfac_py.diagram import _curve_grid, _region_grid, trace_boundaries
+    pe = PhaseEquilibrium([], ["Na+", "K+", "Cl-"], T_K=T0)
+    feed = lambda x: {"Na+": x, "K+": 1.0 - x, "Cl-": 1.0}
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        pm = phase_map(pe, feed, [0.1, 0.5, 0.9], x_label="x(NaCl)", n=12, rh_min=0.6, rh_max=0.95, refine_x=False)
+        bc = trace_boundaries(pe, feed, pm, h_max=0.1)
+    L, H, S = PhaseState(1, ()), "halite", "sylvite"
+    by = {frozenset((c.left, c.right)): c for c in bc.curves}
+    mutual = by[frozenset((PhaseState(0, (H, S)), PhaseState(1, (H,))))]
+    mdrh = pm.traces[1].boundaries[0].rh
+    assert np.ptp(mutual.rh) < 2e-3 and abs(np.mean(mutual.rh) - mdrh) < 2e-3
+    liq_h = by[frozenset((PhaseState(1, (H,)), L))]
+    liq_s = by[frozenset((PhaseState(1, (S,)), L))]
+    # the liquidus lines run from the eutonic point (at the mutual DRH) to the edges of the diagram
+    for c in (liq_h, liq_s):
+        i = int(np.argmin(c.rh))
+        assert abs(c.rh[i] - mdrh) < 3e-3
+    assert abs(liq_h.x[np.argmin(liq_h.rh)] - liq_s.x[np.argmin(liq_s.rh)]) < 0.02
+    # the traced lines pass through the boundary points of the traces
+    for xv, t in zip(pm.x, pm.traces):
+        for b in t.boundaries:
+            c = by[frozenset((b.below, b.above))]
+            assert abs(np.interp(xv, *(np.sort(c.x), c.rh[np.argsort(c.x)])) - b.rh) < 2e-3
+    # region grid from the lines: the state below the mutual line is the dry mixture everywhere
+    states = pm.states()
+    Z, xf, rg, _ = _region_grid(pm, 200, states, 50)
+    Z = _curve_grid(bc, xf, rg, Z, {s: k for k, s in enumerate(states)})
+    assert np.all(Z[rg < mdrh - 0.01] == states.index(PhaseState(0, (H, S))))

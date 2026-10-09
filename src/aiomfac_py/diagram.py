@@ -29,7 +29,8 @@ from .phase_equilibrium import PhaseEquilibrium, PhaseEquilibriumResult
 
 __all__ = ["PhaseState", "Boundary", "Trace", "PhaseMap", "phase_state", "trace", "phase_map", "plot_phase_map",
            "pie_composition", "particle_properties", "rh_profile", "deliquescence_point", "label_regions",
-           "singular_lines", "binary_mixing_curve", "TernaryLLE", "ternary_lle", "plot_ternary"]
+           "singular_lines", "BoundaryCurve", "BoundaryCurves", "trace_boundaries", "plot_boundary_curves",
+           "binary_mixing_curve", "TernaryLLE", "ternary_lle", "plot_ternary"]
 
 
 @dataclass(frozen=True, order=True)
@@ -130,6 +131,31 @@ def _solve(pe: PhaseEquilibrium, feed: dict, rh: float, mode: str, init, solve_k
     if mode == "metastable":
         solids = "none"
     return pe.solve(feed, rh, solids=solids, init=init, **solve_kw)
+
+
+def _solve_limited(pe, feed, rh, mode, init, solve_kw, timeout):
+    """:func:`_solve` that gives up after ``timeout`` seconds (reported as not converged).  Uses SIGALRM, so it applies
+    only in the main thread on POSIX systems; elsewhere the solve is not limited."""
+    import signal
+    import threading
+    if not timeout or not hasattr(signal, "setitimer") or threading.current_thread() is not threading.main_thread():
+        return _solve(pe, feed, rh, mode, init, solve_kw)
+
+    class _Slow(Exception):
+        pass
+
+    def alarm(*_):
+        raise _Slow()
+    old = signal.signal(signal.SIGALRM, alarm)
+    signal.setitimer(signal.ITIMER_REAL, float(timeout))
+    try:
+        return _solve(pe, feed, rh, mode, init, solve_kw)
+    except _Slow:
+        return PhaseEquilibriumResult("not_converged", pe.T, rh, [], {}, {}, float("nan"), {}, 0.0,
+                                      message="time limit")
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0.0)
+        signal.signal(signal.SIGALRM, old)
 
 
 def trace(pe: PhaseEquilibrium, feed: dict, *, rh_min: float = 0.05, rh_max: float = 0.98, n: int = 32,
@@ -379,10 +405,12 @@ def _tex_formula(f: str) -> str:
 
 
 def plot_phase_map(pm: PhaseMap, ax=None, *, colors: dict | None = None, rh_points: int = 400, x_points: int = 300,
-                   legend: bool = True, metastable: PhaseMap | None = None):
+                   legend: bool = True, metastable: PhaseMap | None = None, curves: "BoundaryCurves | None" = None):
     """X--RH diagram: regions coloured by phase state and outlined, states that exist on a single composition only
     as dotted lines, optional metastable boundaries (``metastable``, dotted grey).  ``rh_points`` and ``x_points``
-    set the resolution of the region grid (raise them for zoomed views).  Returns the matplotlib axes."""
+    set the resolution of the region grid (raise them for zoomed views).  With ``curves`` (from
+    :func:`trace_boundaries`) the boundaries are drawn as the traced lines and the regions are filled between them.
+    Returns the matplotlib axes."""
     import matplotlib.pyplot as plt
     from matplotlib.colors import ListedColormap
     from matplotlib.patches import Patch
@@ -397,7 +425,8 @@ def plot_phase_map(pm: PhaseMap, ax=None, *, colors: dict | None = None, rh_poin
     for k, s in enumerate(states):
         colors.setdefault(s, palette[k % len(palette)])
     Z, xf, rg, _ = _region_grid(pm, rh_points, states, x_points)
-    x = pm.x
+    if curves is not None:
+        Z = _curve_grid(curves, xf, rg, Z, {s: k for k, s in enumerate(states)})
     rh_lo, rh_hi = rg[0], rg[-1]
     cmap = ListedColormap([colors[s] for s in states])
     xe = np.concatenate([[xf[0]], 0.5 * (xf[1:] + xf[:-1]), [xf[-1]]]) if len(xf) > 1 else np.array([xf[0] - 0.5,
@@ -407,11 +436,14 @@ def plot_phase_map(pm: PhaseMap, ax=None, *, colors: dict | None = None, rh_poin
 
     # boundaries: outlines of the regions of the grid (horizontal and vertical boundaries alike, consistent with
     # the colours); states that exist on a single composition line only are drawn as dotted lines
-    xc, yc = np.meshgrid(xf, rg)
-    for k in range(len(states)):
-        ind = (Z == k).astype(float)
-        if ind.any() and not ind.all():
-            ax.contour(xc, yc, ind, levels=[0.5], colors="#222222", linewidths=1.3)
+    if curves is not None:
+        plot_boundary_curves(curves, ax)
+    else:
+        xc, yc = np.meshgrid(xf, rg)
+        for k in range(len(states)):
+            ind = (Z == k).astype(float)
+            if ind.any() and not ind.all():
+                ax.contour(xc, yc, ind, levels=[0.5], colors="#222222", linewidths=1.3)
     for xv, a, b, st in singular_lines(pm):
         ax.plot([xv, xv], [a, b], ":", color="#222222", lw=1.3)
     if metastable is not None:
@@ -429,6 +461,436 @@ def plot_phase_map(pm: PhaseMap, ax=None, *, colors: dict | None = None, rh_poin
             return " + ".join(parts) or "empty"
         ax.legend(handles=[Patch(facecolor=colors[s], edgecolor="#999999", label=nice(s)) for s in states],
                   fontsize=7, loc="upper left", bbox_to_anchor=(1.01, 1.0), frameon=False)
+    return ax
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# continuation of the boundary lines in the (x, RH) plane
+# ---------------------------------------------------------------------------------------------------------------
+@dataclass
+class BoundaryCurve:
+    """A boundary line between two phase states, as a polyline in the (x, RH) plane.  ``left`` is the state on the
+    left-hand side of the direction of the points (for points with increasing x: the state at higher RH)."""
+    left: PhaseState
+    right: PhaseState
+    x: np.ndarray
+    rh: np.ndarray
+    ends: tuple = ("", "")                 # how each end stopped: "edge", "junction" or "merged"
+
+    def sides(self, i: int = -1) -> tuple:
+        """(state at lower RH, state at higher RH) at segment ``i`` (default: the middle segment); for a vertical
+        segment (state at lower x, state at higher x)."""
+        n = len(self.x)
+        i = n // 2 - 1 if i == -1 else i
+        i = int(np.clip(i, 0, n - 2))
+        dx, dr = self.x[i + 1] - self.x[i], self.rh[i + 1] - self.rh[i]
+        if abs(dx) >= 1e-12 * max(abs(dr), 1.0) and dx != 0:
+            return (self.right, self.left) if dx > 0 else (self.left, self.right)
+        return (self.left, self.right) if dr > 0 else (self.right, self.left)
+
+    @property
+    def kind(self) -> str:
+        a, b = self.sides()
+        return Boundary(0.0, 0.0, 0.0, a, b).kind
+
+
+@dataclass
+class BoundaryCurves:
+    """Result of :func:`trace_boundaries`: the boundary lines of a phase map, traced in the (x, RH) plane."""
+    curves: list
+    x_range: tuple
+    rh_range: tuple
+    n_solves: int = 0
+    seeds_skipped: int = 0
+
+    def to_records(self) -> list:
+        return [{"left": c.left.label, "right": c.right.label, "kind": c.kind, "ends": list(c.ends),
+                 "x": c.x.tolist(), "rh": c.rh.tolist()} for c in self.curves]
+
+
+class _Tracer:
+    """Continuation of a boundary line by predictor (secant along the line) and corrector (bisection along the
+    normal), in coordinates scaled to the unit square."""
+
+    def __init__(self, pe, feed_of_x, x_range, rh_range, mode, tol, h0, h_min, h_max, delta_max, solve_kw):
+        self.pe, self.feed_of_x, self.mode, self.solve_kw = pe, feed_of_x, mode, solve_kw
+        self.x0, self.x1 = x_range
+        self.r0, self.r1 = rh_range
+        self.tol, self.h0, self.h_min, self.h_max, self.delta_max = tol, h0, h_min, h_max, delta_max
+        self.cache: dict = {}
+        self.n_solves = 0
+        self.debug = False
+        self.timeout = None
+
+    def to_xr(self, p):
+        return self.x0 + p[0] * (self.x1 - self.x0), self.r0 + p[1] * (self.r1 - self.r0)
+
+    def to_unit(self, x, rh):
+        return np.array([(x - self.x0) / (self.x1 - self.x0), (rh - self.r0) / (self.r1 - self.r0)])
+
+    @staticmethod
+    def inside(p, eps=1e-9):
+        return -eps <= p[0] <= 1 + eps and -eps <= p[1] <= 1 + eps
+
+    def state(self, p, init=None):
+        """(PhaseState or None if the solve failed, result) at the unit-square point p."""
+        key = (round(float(p[0]), 10), round(float(p[1]), 10))
+        if key in self.cache:
+            return self.cache[key]
+        x, rh = self.to_xr(np.clip(p, 0.0, 1.0))
+        feed = self.feed_of_x(float(x))
+        res = _solve_limited(self.pe, feed, float(rh), self.mode, init, dict(self.solve_kw), self.timeout)
+        self.n_solves += 1
+        if not _ok(res) and init is not None and res.message != "time limit":
+            res = _solve_limited(self.pe, feed, float(rh), self.mode, None, dict(self.solve_kw), self.timeout)
+            self.n_solves += 1
+        out = (phase_state(res) if _ok(res) else None, res)
+        self.cache[key] = out
+        return out
+
+    def locate(self, q, n, L, R, delta, warm):
+        """Point on the line q + s n where the state changes from R (s < 0) to L (s > 0); None if the bracket
+        holds another state (the boundary ends) or cannot be found within ``delta_max``."""
+        d = delta
+        while True:
+            pp, pm_ = q + d * n, q - d * n
+            if not (self.inside(pp) and self.inside(pm_)):
+                return None
+            sp, rp = self.state(pp, warm.get(L))
+            sm, rm = self.state(pm_, warm.get(R))
+            if sp == L and sm == R:
+                break
+            if (sp is not None and sp not in (L, R)) or (sm is not None and sm not in (L, R)):
+                return None
+            d *= 2.0
+            if d > self.delta_max:
+                return None
+        if rp.liquids:
+            warm[L] = rp
+        if rm.liquids:
+            warm[R] = rm
+        lo, hi = -d, d
+        while hi - lo > self.tol:
+            seen = set()
+            for frac in (0.5, 0.3, 0.7):                    # off-centre retries: a failed solve, or a state that
+                m = lo + frac * (hi - lo)                   # exists on a single line only (e.g. one salt exactly)
+                s, r = self.state(q + m * n, warm.get(L) or warm.get(R))
+                if s in (L, R):
+                    break
+                seen.add(s)
+            if s not in (L, R):
+                if seen == {None}:                          # the bracket cannot be narrowed further
+                    break
+                return None                                 # another state between L and R: the boundary ends
+            if s == L:
+                hi = m
+                if r.liquids:
+                    warm[L] = r
+            elif s == R:
+                lo = m
+                if r.liquids:
+                    warm[R] = r
+            else:
+                return None
+        return q + 0.5 * (lo + hi) * n, 0.5 * (hi - lo)
+
+    def follow(self, p0, t0, L, R, warm, others):
+        """Points from p0 in the direction t0 until the boundary ends (junction), leaves the domain (edge) or runs
+        into an already traced curve between the same states (merged)."""
+        pts = [np.asarray(p0, float)]
+        t = np.asarray(t0, float) / np.linalg.norm(t0)
+        h, corr = self.h0, self.h0 / 4
+        while True:
+            if len(pts) >= 2:
+                t = pts[-1] - pts[-2]
+                t /= np.linalg.norm(t)
+            q = pts[-1] + h * t
+            edge = False
+            if not self.inside(q):                          # shorten the step to end on the domain edge
+                s = min(((0.0 if t[k] < 0 else 1.0) - pts[-1][k]) / t[k] for k in (0, 1) if abs(t[k]) > 1e-14)
+                if s < 0.5 * self.h_min:
+                    return pts, "edge"
+                q, h, edge = pts[-1] + s * t, s, True
+                q = np.clip(q, 0.0, 1.0)
+            n = np.array([-t[1], t[0]])
+            delta = float(np.clip(3.0 * corr, 2.0 * self.tol, max(0.5 * h, 2.0 * self.tol)))
+            r = self.locate(q, n, L, R, delta, warm)
+            ok = r is not None
+            if ok:
+                p_new, _ = r
+                seg = p_new - pts[-1]
+                cos_max = np.cos(np.radians(25 if len(pts) >= 2 else 80))   # the first tangent is only a guess
+                ok = np.linalg.norm(seg) > 0.25 * h and np.dot(seg, t) / np.linalg.norm(seg) > cos_max
+            if not ok:
+                if self.debug:
+                    print(f"    fail h={h:.4f} solves={self.n_solves}", flush=True)
+                if h <= self.h_min * 1.0001:
+                    return pts, "junction"
+                h = max(0.5 * h, self.h_min)
+                continue
+            corr = float(abs(np.dot(p_new - q, n)))
+            pts.append(p_new)
+            if self.debug:
+                xr = self.to_xr(p_new)
+                print(f"    ({xr[0]:.4f}, {xr[1]:.4f}) h={h:.4f} corr={corr:.1e} solves={self.n_solves}", flush=True)
+            for c in others:
+                if {c[0], c[1]} == {L, R} and _dist_to_polyline(p_new, c[2]) < 2.0 * self.h_min:
+                    return pts, "merged"
+            if edge and not self.inside(p_new + 0.5 * self.h_min * t):
+                return pts, "edge"
+            h = min(1.6 * h, self.h_max) if corr < 0.25 * delta else h
+
+    def curve(self, p0, t0, L, R, warm, others):
+        """Both directions from a seed point on the boundary between L (left of t0) and R."""
+        fwd, e1 = self.follow(p0, t0, L, R, dict(warm), others)
+        bwd, e0 = self.follow(p0, -np.asarray(t0, float), R, L, dict(warm), others)
+        pts = np.array(bwd[::-1] + fwd[1:])
+        return pts, (e0, e1)
+
+
+def _dist_to_polyline(p, P) -> float:
+    if len(P) == 1:
+        return float(np.linalg.norm(p - P[0]))
+    a, b = P[:-1], P[1:]
+    ab = b - a
+    w = np.clip(np.einsum("ij,ij->i", p - a, ab) / np.maximum(np.einsum("ij,ij->i", ab, ab), 1e-300), 0.0, 1.0)
+    return float(np.min(np.linalg.norm(a + w[:, None] * ab - p, axis=1)))
+
+
+def _crosses_h(P, xa, xb, y) -> bool:
+    """Does the polyline P cross the horizontal segment from (xa, y) to (xb, y)?"""
+    for (x1, y1), (x2, y2) in zip(P[:-1], P[1:]):
+        if (y1 - y) * (y2 - y) <= 0 and y1 != y2:
+            xc = x1 + (y - y1) / (y2 - y1) * (x2 - x1)
+            if min(xa, xb) - 1e-9 <= xc <= max(xa, xb) + 1e-9:
+                return True
+        elif y1 == y2 == y and max(x1, x2) >= min(xa, xb) and min(x1, x2) <= max(xa, xb):
+            return True
+    return False
+
+
+def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], pm: PhaseMap, *, tol: float = 5.0e-4,
+                     h0: float = 0.02, h_min: float = 0.002, h_max: float = 0.05, delta_max: float = 0.05,
+                     rh_samples: int = 40, snap: float | None = None, solve_timeout: float | None = None,
+                     verbose: bool = False, **solve_kw) -> BoundaryCurves:
+    """Trace every boundary line of the phase map ``pm`` (from :func:`phase_map` with the same ``pe`` and
+    ``feed_of_x``) continuously in the (x, RH) plane.
+
+    Lengths are in units of the diagram (x and RH ranges scaled to 1).  From each boundary point of the traces,
+    the line is followed in both directions: the next point is predicted along the secant of the last two points
+    (step ``h``, adapted between ``h_min`` and ``h_max``) and corrected by bisection along the normal to the line
+    until the bracket is narrower than ``tol``.  So boundaries of any slope, including vertical ones, are traced
+    with the same accuracy, and only points close to the line are solved.  A line ends where the two states no
+    longer meet (a junction with other boundaries, located to within ``h_min``), at the edge of the diagram, or
+    where it runs into a line already traced.  Boundaries that cross no trace (e.g. vertical ones) are seeded by
+    bisection in x between neighbouring traces at ``rh_samples`` RH levels.  Line ends at junctions closer than
+    ``snap`` (default ``2.5 h_min``) are joined.  ``solve_timeout`` [s] stops solves that take longer (counted as
+    not converged; POSIX main thread only), for compositions where the solver is very slow.  Other keywords go to
+    :meth:`PhaseEquilibrium.solve`."""
+    traces, xs = _regular_traces(pm)
+    x_range = (float(pm.x[0]), float(pm.x[-1]))
+    rh_range = (min(t.rh_range[0] if t.rh_range else t.rh[0] for t in pm.traces),
+                max(t.rh_range[1] if t.rh_range else t.rh[-1] for t in pm.traces))
+    tr = _Tracer(pe, feed_of_x, x_range, rh_range, pm.mode, tol, h0, h_min, h_max, delta_max, solve_kw)
+    tr.debug = verbose > 1
+    tr.timeout = solve_timeout
+    done: list = []                                         # (L, R, points)
+    skipped = 0
+
+    def run_seed(p, t0, L, R, warm):
+        nonlocal skipped
+        for c in done:
+            if {c[0], c[1]} == {L, R} and _dist_to_polyline(p, c[2]) < 5.0 * h_min:
+                skipped += 1
+                return True
+        pts, ends = tr.curve(p, t0, L, R, warm, done)
+        if len(pts) < 2:
+            return False
+        done.append((L, R, pts, ends))
+        if verbose:
+            a, b = (tr.to_xr(pts[0]), tr.to_xr(pts[-1]))
+            print(f"{R.label} | {L.label}: {len(pts)} points from ({a[0]:.3f}, {a[1]:.3f}) to "
+                  f"({b[0]:.3f}, {b[1]:.3f}), ends {ends}, {tr.n_solves} solves", flush=True)
+        return True
+
+    # seeds 1: the boundary points of the traces (followed in x)
+    for xv, t in zip(xs, traces):
+        for b in t.boundaries:
+            if not b.resolved and b.rh_hi - b.rh_lo > 1e-2:
+                continue
+            i_lo = int(np.argmin(np.abs(t.rh - b.rh_lo)))
+            i_hi = int(np.argmin(np.abs(t.rh - b.rh_hi)))
+            warm = {b.below: t.results[i_lo], b.above: t.results[i_hi]}
+            run_seed(tr.to_unit(xv, b.rh), np.array([1.0, 0.0]), b.above, b.below, warm)
+
+    # seeds 2: changes of state between neighbouring traces at the same RH that no traced line explains
+    levels = np.linspace(rh_range[0], rh_range[1], rh_samples + 2)[1:-1]
+    for (xa, ta), (xb, tb) in zip(zip(xs[:-1], traces[:-1]), zip(xs[1:], traces[1:])):
+        near = [b.rh for b in ta.boundaries + tb.boundaries]
+        tried: set = set()                                  # (state a, state b) whose line could not be followed
+        for r in levels:
+            if near and min(abs(r - q) for q in near) < 2e-3 * (rh_range[1] - rh_range[0]):
+                continue
+            sa, sb = _state_at(ta, r), _state_at(tb, r)
+            if sa == sb or (sa, sb) in tried:
+                continue
+            ua, ub = tr.to_unit(xa, r), tr.to_unit(xb, r)
+            if any(_crosses_h(c[2], ua[0], ub[0], ua[1]) for c in done):
+                continue
+            lo, hi, s_hi = ua[0], ub[0], sb
+            while hi - lo > tol:
+                for frac in (0.5, 0.3, 0.7):
+                    m = lo + frac * (hi - lo)
+                    s, _ = tr.state(np.array([m, ua[1]]))
+                    if s in (sa, sb):
+                        break
+                if s is None:
+                    break
+                if s == sa:
+                    lo = m
+                else:
+                    hi, s_hi = m, s
+            p = np.array([0.5 * (lo + hi), ua[1]])
+            _, r_lo = tr.state(np.array([lo, ua[1]]))
+            _, r_hi = tr.state(np.array([hi, ua[1]]))
+            if s_hi is None or s_hi == sa:
+                tried.add((sa, sb))
+                continue
+            if not run_seed(p, np.array([0.0, 1.0]), sa, s_hi, {sa: r_lo, s_hi: r_hi}):
+                tried.add((sa, sb))
+
+    polys = _join_junctions([c[2] for c in done], [c[3] for c in done], 2.5 * h_min if snap is None else snap)
+    curves = []
+    for (L, R, _, ends), pts in zip(done, polys):
+        xr = np.array([tr.to_xr(p) for p in pts])
+        curves.append(BoundaryCurve(L, R, xr[:, 0], xr[:, 1], ends))
+    return BoundaryCurves(curves, x_range, rh_range, tr.n_solves, skipped)
+
+
+def _join_junctions(polys: list, ends: list, snap: float) -> list:
+    """Close the gaps (up to ``h_min``) between line ends at junctions: ends that are closer than ``snap`` to each
+    other are joined at the point closest (least squares) to their tangent lines; a single end is extended along its
+    tangent to the nearest line it meets within ``snap`` (or joined to the nearest point of a line)."""
+    polys = [np.asarray(P, float).copy() for P in polys]
+    if snap <= 0:
+        return polys
+    items = [(k, side) for k, e in enumerate(ends) for side in (0, 1) if e[side] == "junction" and len(polys[k]) >= 2]
+
+    def point(k, side):
+        return polys[k][0] if side == 0 else polys[k][-1]
+
+    def outward(k, side):
+        A = polys[k]
+        t = A[0] - A[1] if side == 0 else A[-1] - A[-2]
+        return t / max(np.linalg.norm(t), 1e-300)
+
+    parent = list(range(len(items)))
+
+    def find(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+    for a in range(len(items)):
+        for b in range(a + 1, len(items)):
+            if np.linalg.norm(point(*items[a]) - point(*items[b])) < snap:
+                parent[find(a)] = find(b)
+    groups: dict = {}
+    for a in range(len(items)):
+        groups.setdefault(find(a), []).append(items[a])
+    target: dict = {}
+    for g in groups.values():
+        es = np.array([point(*it) for it in g])
+        if len(g) >= 2:
+            M, v = np.zeros((2, 2)), np.zeros(2)
+            for it, e in zip(g, es):
+                t = outward(*it)
+                n = np.array([-t[1], t[0]])
+                M += np.outer(n, n)
+                v += np.outer(n, n) @ e
+            J = np.linalg.solve(M, v) if np.linalg.cond(M) < 1e6 else es.mean(axis=0)
+            if np.max(np.linalg.norm(es - J, axis=1)) > 1.5 * snap:
+                J = es.mean(axis=0)
+            for it in g:
+                target[it] = J
+            continue
+        k, side = g[0]
+        e, t = es[0], outward(k, side)
+        best = None
+        for j, P in enumerate(polys):                       # extension along the tangent
+            if j == k:
+                continue
+            a, b = P[:-1], P[1:]
+            d = b - a
+            den = t[0] * d[:, 1] - t[1] * d[:, 0]
+            ok = np.abs(den) > 1e-14
+            w = np.where(ok, ((a[:, 0] - e[0]) * d[:, 1] - (a[:, 1] - e[1]) * d[:, 0]) / np.where(ok, den, 1), -1)
+            u = np.where(ok, ((a[:, 0] - e[0]) * t[1] - (a[:, 1] - e[1]) * t[0]) / np.where(ok, den, 1), -1)
+            hit = ok & (w >= 0) & (w <= snap) & (u >= 0) & (u <= 1)
+            if hit.any() and (best is None or w[hit].min() < best[0]):
+                best = (w[hit].min(), e + w[hit].min() * t)
+        if best is None:                                    # nearest point of another line
+            for j, P in enumerate(polys):
+                if j == k:
+                    continue
+                a, b = P[:-1], P[1:]
+                ab = b - a
+                w = np.clip(np.einsum("ij,ij->i", e - a, ab) / np.maximum(np.einsum("ij,ij->i", ab, ab), 1e-300), 0, 1)
+                proj = a + w[:, None] * ab
+                dd = np.linalg.norm(proj - e, axis=1)
+                q = int(np.argmin(dd))
+                if dd[q] < snap and (best is None or dd[q] < best[0]):
+                    best = (dd[q], proj[q])
+        if best is not None:
+            target[(k, side)] = best[1]
+    for (k, side), J in target.items():
+        polys[k] = np.vstack([J, polys[k]]) if side == 0 else np.vstack([polys[k], J])
+    return polys
+
+
+def _state_at(t: Trace, rh: float) -> PhaseState:
+    for a, b, st in t.intervals():
+        if a <= rh <= b:
+            return st
+    return t.intervals()[-1][2]
+
+
+def _curve_grid(bc: BoundaryCurves, xf, rg, Z, idx):
+    """Overwrite the columns of the region grid Z (x grid xf, RH grid rg) that are crossed by boundary lines with the
+    states between the crossings."""
+    sx = bc.x_range[1] - bc.x_range[0]
+    sr = bc.rh_range[1] - bc.rh_range[0]
+    for j, xv in enumerate(xf):
+        cross = []                                          # (rh, state below, state above)
+        for c in bc.curves:
+            if np.ptp(c.x) / sx < 0.01 * max(np.ptp(c.rh) / sr, 1e-12):   # a vertical line: no state below/above
+                continue
+            for i in range(len(c.x) - 1):
+                x1, x2 = c.x[i], c.x[i + 1]
+                if x1 == x2 or not (min(x1, x2) <= xv <= max(x1, x2)):
+                    continue
+                w = (xv - x1) / (x2 - x1)
+                lo, up = c.sides(i)
+                cross.append((c.rh[i] + w * (c.rh[i + 1] - c.rh[i]), lo, up))
+        if not cross:
+            continue
+        cross.sort(key=lambda z: z[0])
+        # the states must match between consecutive crossings; otherwise a line is missing here and the column keeps
+        # the interpolated states
+        if any(a[2] != b[1] for a, b in zip(cross[:-1], cross[1:])):
+            continue
+        bounds = [rg[0] - 1.0] + [z[0] for z in cross] + [rg[-1] + 1.0]
+        sts = [cross[0][1]] + [z[2] for z in cross]
+        for k, st in enumerate(sts):
+            if st in idx:
+                Z[(rg >= bounds[k]) & (rg <= bounds[k + 1]), j] = idx[st]
+    return Z
+
+
+def plot_boundary_curves(bc: BoundaryCurves, ax, *, color: str = "#222222", lw: float = 1.3, **kw):
+    """Draw the traced boundary lines on ``ax``."""
+    for c in bc.curves:
+        ax.plot(c.x, c.rh, "-", color=color, lw=lw, solid_capstyle="round", **kw)
     return ax
 
 
@@ -577,11 +1039,15 @@ def _deliquescence_point_si(pe, feed, rh_max, rh_min, step, tol, solve_kw):
     return None, ()
 
 
-def label_regions(ax, pm: PhaseMap, labels: dict, *, min_cells: int = 40, fontsize: int = 8, rh_points: int = 400):
+def label_regions(ax, pm: PhaseMap, labels: dict, *, min_cells: int = 40, fontsize: int = 8, rh_points: int = 400,
+                  curves: "BoundaryCurves | None" = None):
     """Write a short label in every phase region of ``pm`` drawn on ``ax`` (``labels``: solid key -> letter, e.g.
-    {"ammonium_sulfate": "A"}; a region reads 'L+A+E').  Regions smaller than ``min_cells`` grid cells are skipped."""
+    {"ammonium_sulfate": "A"}; a region reads 'L+A+E').  Regions smaller than ``min_cells`` grid cells are skipped.
+    Pass the ``curves`` used for the plot, if any."""
     states = [st for st in pm.states() if st not in {ln[3] for ln in singular_lines(pm)}]
     Z, xf, rg, states = _region_grid(pm, rh_points, states)
+    if curves is not None:
+        Z = _curve_grid(curves, xf, rg, Z, {s: k for k, s in enumerate(states)})
     for k, st in enumerate(states):
         mask = Z == k
         if mask.sum() < min_cells:
