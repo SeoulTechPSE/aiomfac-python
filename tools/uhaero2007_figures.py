@@ -155,7 +155,16 @@ def run_as(out):
 
 def run_drh(out):
     from aiomfac_py.diagram import deliquescence_point, _solve, _ok
-    alphas = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.95]
+    import signal
+
+    class Slow(Exception):
+        pass
+
+    def alarm(*_):
+        raise Slow()
+
+    signal.signal(signal.SIGALRM, alarm)
+    alphas = [0.0, 0.2, 0.4, 0.6, 0.7, 0.8, 0.9]
     res = {}
     for salt, ions, base in (("AS", ["NH4+", "SO4--"], {"NH4+": 2.0, "SO4--": 1.0}),
                              ("LET", ["NH4+", "H+", "SO4--"], {"NH4+": 3.0, "H+": 1.0, "SO4--": 2.0})):
@@ -164,9 +173,15 @@ def run_drh(out):
             drh, pies = [], {}
             for a in alphas:
                 feed = with_organics(base, o1, o2, f1, a)
-                r, s = deliquescence_point(pe, feed, step=0.04, method="si")
+                signal.alarm(90)                      # a few compositions make the solver very slow: skip them
+                try:
+                    r, s = deliquescence_point(pe, feed, step=0.04, method="si")
+                except Slow:
+                    r = None
+                finally:
+                    signal.alarm(0)
                 drh.append(np.nan if r is None else r)
-                if r is not None and a in (0.1, 0.3, 0.5, 0.7, 0.9):
+                if r is not None and a in (0.2, 0.4, 0.6, 0.7, 0.9):
                     rr = _solve(pe, feed, min(r + 2e-3, 0.99), "equilibrium", None, {})
                     if _ok(rr):
                         pies[a] = phase_pies(rr, o1, o2)
@@ -175,15 +190,45 @@ def run_drh(out):
     pickle.dump(res, open(os.path.join(out, "u07_drh.pkl"), "wb"))
 
 
+def _with_time_limit(pe, seconds=60):
+    """make every solve of ``pe`` give up after ``seconds`` (reported as not converged, so that trace() drops the
+    point): a few compositions with nonacosane make the solver very slow"""
+    import signal
+    from aiomfac_py.phase_equilibrium import PhaseEquilibriumResult
+
+    class Slow(Exception):
+        pass
+
+    def alarm(*_):
+        raise Slow()
+
+    signal.signal(signal.SIGALRM, alarm)
+    solve = pe.solve
+
+    def limited(feed, rh, **kw):
+        signal.alarm(seconds)
+        try:
+            return solve(feed, rh, **kw)
+        except Slow:
+            return PhaseEquilibriumResult("not_converged", pe.T, rh, [], {}, {}, float("nan"), {}, 0.0,
+                                          message="time limit")
+        finally:
+            signal.alarm(0)
+    pe.solve = limited
+    return pe
+
+
 def run_map(Y, pair, out):
     from aiomfac_py.diagram import phase_map
     ions = ["NH4+", "H+", "SO4--"] + (["NO3-"] if Y < 1 else [])
     pe, o1, o2, f1 = org_system(pair, ions)
+    _with_time_limit(pe, 60)
     xs = np.linspace(0.0, 1.0, 11)
     xs[0] = 0.02
     t0 = time.time()
     pm = phase_map(pe, lambda X: with_organics(inorg_feed(X, Y), o1, o2, f1, 0.2), xs,
-                   x_label="Ammonium fraction X", n=20, rh_min=0.02, rh_max=0.85, x_tol=0.025, verbose=True)
+                   x_label="Ammonium fraction X", n=16, rh_min=0.02, rh_max=0.85, x_tol=0.05, refine_x=Y >= 1,
+                   verbose=True)
     print(f"Y = {Y}, pair {pair}: {time.time() - t0:.0f} s", flush=True)
     pickle.dump(pm, open(os.path.join(out, f"u07_map_Y{Y:.2f}_P{pair}.pkl"), "wb"))
 
@@ -314,22 +359,22 @@ def plot_org(out):
 
     f = os.path.join(out, "u07_as.pkl")
     if os.path.exists(f):
+        # panel (b) of the paper (one liquid phase assumed, water activities above 1) cannot be computed at fixed
+        # RH < 1 and is not reproduced
         d = pickle.load(open(f, "rb"))
-        fig = plt.figure(figsize=(12, 9))
-        gs = GridSpec(2, 2, height_ratios=[1.2, 1.0], figure=fig)
-        for c, single in enumerate((False, True)):
-            ax = fig.add_subplot(gs[0, c])
-            for p in (None, 1, 2, 3, 4):
-                r = d[(single, p)]
-                ax.plot(r["rh"], r["wc"], styles[p][0] + styles[p][1], lw=1.3, label=names[p])
-            ax.set_xlim(0.5, 0.98); ax.set_ylim(0, 9)
-            ax.set_xlabel("water activity"); ax.set_ylabel("relative water content b$_{H2O}$/Σb$_{INORG}$")
-            ax.set_title("(a) liquid-liquid equilibria included" if not single else "(b) one liquid phase only",
-                         fontsize=10)
-            ax.legend(fontsize=7, frameon=False); ax.grid(alpha=0.3, ls=":")
-            _pie_rows(fig, gs[1, c], {p: d[(single, p)]["pies"] for p in (1, 2, 3, 4)},
-                      [0.5, 0.6, 0.7, 0.8, 0.9], lambda k: f"a$_w$ = {k}")
-        fig.suptitle("Fig. 11 (AIOMFAC): (NH$_4$)$_2$SO$_4$ with two organics, α = 0.2", fontsize=10)
+        fig = plt.figure(figsize=(7.5, 9))
+        gs = GridSpec(2, 1, height_ratios=[1.2, 1.0], figure=fig)
+        ax = fig.add_subplot(gs[0])
+        for p in (None, 1, 2, 3, 4):
+            r = d[(False, p)]
+            ax.plot(r["rh"], r["wc"], styles[p][0] + styles[p][1], lw=1.3, label=names[p])
+        ax.set_xlim(0.5, 0.98); ax.set_ylim(0, 9)
+        ax.set_xlabel("water activity"); ax.set_ylabel("relative water content b$_{H2O}$/Σb$_{INORG}$")
+        ax.set_title("(a) liquid-liquid equilibria included", fontsize=10)
+        ax.legend(fontsize=7, frameon=False); ax.grid(alpha=0.3, ls=":")
+        _pie_rows(fig, gs[1], {p: d[(False, p)]["pies"] for p in (1, 2, 3, 4)},
+                  [0.5, 0.6, 0.7, 0.8, 0.9], lambda k: f"a$_w$ = {k}")
+        fig.suptitle("Fig. 11a (AIOMFAC): (NH$_4$)$_2$SO$_4$ with two organics, α = 0.2", fontsize=10)
         plt.tight_layout()
         plt.savefig(os.path.join(out, "uhaero07_fig11.png"), dpi=130)
         plt.close(fig)
@@ -351,7 +396,7 @@ def plot_org(out):
                          fontsize=10)
             ax.legend(fontsize=7, frameon=False); ax.grid(alpha=0.3, ls=":")
             _pie_rows(fig, gs[1, c], {p: d[(salt, p)]["pies"] for p in (1, 2, 3, 4)},
-                      [0.1, 0.3, 0.5, 0.7, 0.9], lambda k: f"α = {k}")
+                      [0.2, 0.4, 0.6, 0.7, 0.9], lambda k: f"α = {k}")
         fig.suptitle("Fig. 12 (AIOMFAC): deliquescence RH with two organics", fontsize=10)
         plt.tight_layout()
         plt.savefig(os.path.join(out, "uhaero07_fig12.png"), dpi=130)

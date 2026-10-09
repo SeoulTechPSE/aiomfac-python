@@ -69,12 +69,12 @@ def run_fig1(out):
 def run_map(Y, out):
     pe = system(Y)
     t0 = time.time()
-    xs = np.linspace(0.0, 1.0, 21)
+    xs = np.linspace(0.0, 1.0, 11)
     xs[0] = 0.01
-    pm = phase_map(pe, lambda X: feed(X, Y), xs, x_label="Ammonium fraction X", n=32, rh_min=0.02, rh_max=0.98,
-                   verbose=True)
-    rg = np.linspace(0.02, 0.98, 41)
-    fx = np.linspace(0.0, 1.0, 21)
+    pm = phase_map(pe, lambda X: feed(X, Y), xs, x_label="Ammonium fraction X", n=24, rh_min=0.02, rh_max=0.98,
+                   x_tol=0.02, verbose=True)
+    rg = np.linspace(0.02, 0.98, 33)
+    fx = np.linspace(0.0, 1.0, 15)
     fx[0] = 0.01
     fields = {"x": fx, "rh": rg, "pH": np.full((len(rg), len(fx)), np.nan), "rel_mass": np.full((len(rg), len(fx)), np.nan)}
     for j, X in enumerate(fx):
@@ -110,16 +110,25 @@ def plot_all(out):
                 s = d["first"][i, j]
                 if s:
                     code[i, j] = keys.index(s)
-        # first solid: the solid(s) present just below the full deliquescence RH (regions outlined)
-        ax.contour(d["x"], d["y"], code, levels=np.arange(len(keys)) + 0.5, colors="k", linewidths=1.6)
+        # first solid: the solid(s) present just below the full deliquescence RH; each region is outlined by the
+        # 0.5 contour of its indicator on the computed grid (linear interpolation between grid points)
+        for k in range(len(keys)):
+            ind = (code == k).astype(float)
+            if ind.any():
+                ax.contour(d["x"], d["y"], ind, levels=[0.5], colors="k", linewidths=1.6)
+        none = np.isnan(code)
+        if none.any():
+            ax.contour(d["x"], d["y"], none.astype(float), levels=[0.5], colors="k", linewidths=1.0, linestyles=":")
+            jy, jx = np.nonzero(none)
+            ax.text(np.median(d["x"][jx]), np.median(d["y"][jy]), "no solid", fontsize=8, ha="center", va="center")
         cs = ax.contour(d["x"], d["y"], d["drh"], levels=np.arange(0.05, 0.95, 0.05), colors="#3060a0", linewidths=0.8)
         ax.clabel(cs, fmt=lambda v: f"{100 * v:.0f}", fontsize=7)
-        for k, s in enumerate(keys):
+        for k, sset in enumerate(keys):
             m = code == k
-            if m.sum() >= 3:
-                iy, ix = np.nonzero(m)
-                ax.text(np.median(d["x"][ix]), np.median(d["y"][iy]), "+".join(LETTERS.get(t, t) for t in s),
-                        fontsize=10, weight="bold", ha="center", va="center")
+            if m.sum() >= 1:
+                jy, jx = np.nonzero(m)
+                ax.text(np.median(d["x"][jx]), np.median(d["y"][jy]), "+".join(LETTERS.get(t, t) for t in sset),
+                        fontsize=10 if m.sum() >= 3 else 8, weight="bold", ha="center", va="center")
         ax.set_xlabel("Ammonium fraction X")
         ax.set_ylabel("Sulfate fraction Y")
         ax.set_title("Fig. 1: DRH (%) and first solid, 298.15 K (AIOMFAC)", fontsize=10)
