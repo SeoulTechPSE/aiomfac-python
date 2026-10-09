@@ -672,6 +672,7 @@ def _crosses_h(P, xa, xb, y) -> bool:
 def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], pm: PhaseMap, *, tol: float = 5.0e-4,
                      h0: float = 0.02, h_min: float = 0.002, h_max: float = 0.05, delta_max: float = 0.05,
                      rh_samples: int = 40, snap: float | None = None, solve_timeout: float | None = None,
+                     x_lines: Sequence[float] = (), junction_rounds: int = 2, cache: dict | None = None,
                      verbose: bool = False, **solve_kw) -> BoundaryCurves:
     """Trace every boundary line of the phase map ``pm`` (from :func:`phase_map` with the same ``pe`` and
     ``feed_of_x``) continuously in the (x, RH) plane.
@@ -685,7 +686,14 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
     where it runs into a line already traced.  Boundaries that cross no trace (e.g. vertical ones) are seeded by
     bisection in x between neighbouring traces at ``rh_samples`` RH levels.  Line ends at junctions closer than
     ``snap`` (default ``2.5 h_min``) are joined.  ``solve_timeout`` [s] stops solves that take longer (counted as
-    not converged; POSIX main thread only), for compositions where the solver is very slow.  Other keywords go to
+    not converged; POSIX main thread only), for compositions where the solver is very slow.
+
+    Vertical lines (a boundary at fixed x, e.g. at the stoichiometric composition of a salt) are built from two RH
+    scans just left and right of the line, which also resolves thin states next to it; they are detected among the
+    seeds between traces, and compositions given in ``x_lines`` are scanned in any case.  After the seeds, the states
+    on a small circle around every line end at a junction are checked (``junction_rounds`` times): a change of state
+    that no traced line explains starts a new line (short lines between junctions that cross no trace).  ``cache``:
+    a dict of solves, kept and reused between calls with the same ``pm``.  Other keywords go to
     :meth:`PhaseEquilibrium.solve`."""
     traces, xs = _regular_traces(pm)
     x_range = (float(pm.x[0]), float(pm.x[-1]))
@@ -694,24 +702,102 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
     tr = _Tracer(pe, feed_of_x, x_range, rh_range, pm.mode, tol, h0, h_min, h_max, delta_max, solve_kw)
     tr.debug = verbose > 1
     tr.timeout = solve_timeout
-    done: list = []                                         # (L, R, points)
+    if cache is not None:
+        tr.cache = cache
+    done: list = []                                         # (L, R, points, ends)
     skipped = 0
 
-    def run_seed(p, t0, L, R, warm):
+    def report(L, R, pts, ends, what=""):
+        if verbose:
+            a, b = (tr.to_xr(pts[0]), tr.to_xr(pts[-1]))
+            print(f"{what}{R.label} | {L.label}: {len(pts)} points from ({a[0]:.3f}, {a[1]:.3f}) to "
+                  f"({b[0]:.3f}, {b[1]:.3f}), ends {ends}, {tr.n_solves} solves", flush=True)
+
+    def run_seed(p, t0, L, R, warm, dedupe=5.0):
         nonlocal skipped
         for c in done:
-            if {c[0], c[1]} == {L, R} and _dist_to_polyline(p, c[2]) < 5.0 * h_min:
+            if {c[0], c[1]} == {L, R} and _dist_to_polyline(p, c[2]) < dedupe * h_min:
                 skipped += 1
                 return True
         pts, ends = tr.curve(p, t0, L, R, warm, done)
         if len(pts) < 2:
             return False
         done.append((L, R, pts, ends))
-        if verbose:
-            a, b = (tr.to_xr(pts[0]), tr.to_xr(pts[-1]))
-            print(f"{R.label} | {L.label}: {len(pts)} points from ({a[0]:.3f}, {a[1]:.3f}) to "
-                  f"({b[0]:.3f}, {b[1]:.3f}), ends {ends}, {tr.n_solves} solves", flush=True)
+        report(L, R, pts, ends)
         return True
+
+    def column(xu, n=24):
+        """states along RH at the unit x ``xu``: (state at the bottom, [(v, state below, state above)])"""
+        vs = np.linspace(0.0, 1.0, n)
+        pts = [(v, s) for v in vs for s in [tr.state(np.array([xu, v]))[0]] if s is not None]
+        out = []
+
+        def bis(a, sa, b, sb):
+            if b - a <= tol:
+                out.append((0.5 * (a + b), sa, sb))
+                return
+            m = 0.5 * (a + b)
+            sm = tr.state(np.array([xu, m]))[0]
+            if sm is None:
+                out.append((0.5 * (a + b), sa, sb))
+                return
+            if sm != sa:
+                bis(a, sa, m, sm)
+            if sm != sb:
+                bis(m, sm, b, sb)
+        for (a, sa), (b, sb) in zip(pts[:-1], pts[1:]):
+            if sa != sb:
+                bis(a, sa, b, sb)
+        return (pts[0][1] if pts else None), sorted(out, key=lambda z: z[0])
+
+    def state_in(col, v):
+        st = col[0]
+        for vb, _, above in col[1]:
+            if vb < v:
+                st = above
+        return st
+
+    vertical: list = []
+
+    def vertical_line(xu):
+        """the boundary at the unit x ``xu`` from RH scans just left and right of it"""
+        if any(abs(xu - v) < 3.0 * h_min for v in vertical) or not 0.0 < xu < 1.0:
+            return
+        vertical.append(xu)
+        eps = 2.0 * tol
+        left, right = column(max(xu - eps, 0.0)), column(min(xu + eps, 1.0))
+        cuts = sorted({0.0, 1.0} | {z[0] for z in left[1]} | {z[0] for z in right[1]})
+        segs: list = []                                     # [v0, v1, L, R]
+        for a, b in zip(cuts[:-1], cuts[1:]):
+            m = 0.5 * (a + b)
+            sl, sr = state_in(left, m), state_in(right, m)
+            if sl is None or sr is None or sl == sr:
+                continue
+            if segs and segs[-1][1] == a and segs[-1][2:] == [sl, sr]:
+                segs[-1][1] = b
+            else:
+                segs.append([a, b, sl, sr])
+        for v0, v1, sl, sr in segs:
+            if v1 - v0 < 2.0 * h_min:                       # a sloped line crossing between the two scans
+                continue
+            pts = np.array([[xu, v0], [xu, v1]])
+            ends = ("edge" if v0 <= 0.0 else "junction", "edge" if v1 >= 1.0 else "junction")
+            done.append((sl, sr, pts, ends))                # upwards: the left side is at lower x
+            report(sl, sr, pts, ends, "vertical: ")
+
+    def is_vertical(xu, v):
+        """does the change of state at (xu, v) continue at the same x 0.03 above or below?"""
+        eps = 2.0 * tol
+        for v2 in (v + 0.03, v - 0.03):
+            if 0.0 <= v2 <= 1.0:
+                a = tr.state(np.array([max(xu - eps, 0.0), v2]))[0]
+                b = tr.state(np.array([min(xu + eps, 1.0), v2]))[0]
+                if a is None or b is None or a == b:
+                    return False
+        return True
+
+    for xv in x_lines:
+        vertical_line(float(tr.to_unit(xv, rh_range[0])[0]))
 
     # seeds 1: the boundary points of the traces (followed in x)
     for xv, t in zip(xs, traces):
@@ -756,8 +842,50 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
             if s_hi is None or s_hi == sa:
                 tried.add((sa, sb))
                 continue
+            if is_vertical(p[0], p[1]):
+                vertical_line(p[0])
+                continue
             if not run_seed(p, np.array([0.0, 1.0]), sa, s_hi, {sa: r_lo, s_hi: r_hi}):
                 tried.add((sa, sb))
+
+    # line ends at junctions: a change of state on a small circle around the end that no line explains
+    rho, n_ang = 3.0 * h_min, 16
+    visited: list = []
+    for _ in range(junction_rounds):
+        found = 0
+        ends_pts = [c[2][0 if side == 0 else -1] for c in done for side in (0, 1) if c[3][side] == "junction"]
+        for J in ends_pts:
+            if any(np.linalg.norm(J - q) < 2.5 * h_min for q in visited):
+                continue
+            visited.append(J)
+            ang = 2.0 * np.pi * np.arange(n_ang) / n_ang
+            P = J + rho * np.c_[np.cos(ang), np.sin(ang)]
+            S = [tr.state(q)[0] if tr.inside(q) else None for q in P]
+            for k in range(n_ang):
+                k2 = (k + 1) % n_ang
+                sa, sb = S[k], S[k2]
+                if sa is None or sb is None or sa == sb:
+                    continue
+                if any(_crosses_seg(c[2], P[k], P[k2]) for c in done):
+                    continue
+                a, b = ang[k], ang[k] + 2.0 * np.pi / n_ang
+                s_hi = sb
+                while (b - a) * rho > tol:
+                    m = 0.5 * (a + b)
+                    sm = tr.state(J + rho * np.array([np.cos(m), np.sin(m)]))[0]
+                    if sm is None:
+                        break
+                    if sm == sa:
+                        a = m
+                    else:
+                        b, s_hi = m, sm
+                m = 0.5 * (a + b)
+                B = J + rho * np.array([np.cos(m), np.sin(m)])
+                n0 = len(done)
+                run_seed(B, (B - J) / rho, s_hi, sa, {}, dedupe=1.0)    # outwards: the left side is s_hi
+                found += len(done) - n0
+        if not found:
+            break
 
     polys = _join_junctions([c[2] for c in done], [c[3] for c in done], 2.5 * h_min if snap is None else snap)
     curves = []
@@ -847,6 +975,22 @@ def _join_junctions(polys: list, ends: list, snap: float) -> list:
         polys[k] = np.vstack([J, polys[k]]) if side == 0 else np.vstack([polys[k], J])
     return polys
 
+
+
+def _crosses_seg(P, a, b) -> bool:
+    """Does the polyline P cross the segment from a to b?"""
+    if len(P) < 2:
+        return False
+    p, q = P[:-1], P[1:]
+    d1, d2 = q - p, b - a
+
+    def cross(u, v):
+        return u[..., 0] * v[..., 1] - u[..., 1] * v[..., 0]
+    den = cross(d1, d2)
+    ok = np.abs(den) > 1e-14
+    w = np.where(ok, cross(a - p, d2) / np.where(ok, den, 1.0), -1.0)
+    u = np.where(ok, cross(a - p, d1) / np.where(ok, den, 1.0), -1.0)
+    return bool(np.any(ok & (w >= 0) & (w <= 1) & (u >= 0) & (u <= 1)))
 
 def _state_at(t: Trace, rh: float) -> PhaseState:
     for a, b, st in t.intervals():

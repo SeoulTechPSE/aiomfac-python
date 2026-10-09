@@ -11,6 +11,8 @@ F (NH4)2SO4.3NH4NO3, G NH4HSO4.NH4NO3.
   python tools/uhaero2006_figures.py map Y [out_dir]        Figs. 2, 4, 6, 8, 10: X-RH diagram with pH (a) and
                                                             relative particle mass (b) contours at sulfate fraction Y
   python tools/uhaero2006_figures.py curves Y [out_dir]     Figs. 3, 5, 7, 9, 11: relative particle mass vs RH
+  python tools/uhaero2006_figures.py lines Y [out_dir]      smooth boundary lines for the cached map (trace_boundaries),
+                                                           used by plot when present
   python tools/uhaero2006_figures.py plot [out_dir]         draw all figures from the cached results
 
 The activity model differs from the paper's (AIOMFAC instead of the Pitzer-Simonson-Clegg model), so boundaries
@@ -85,6 +87,16 @@ def run_map(Y, out):
     pickle.dump({"pm": pm, "fields": fields}, open(os.path.join(out, f"map_Y{Y:.2f}.pkl"), "wb"))
 
 
+def run_lines(Y, out):
+    """trace the boundary lines of the cached map continuously (smooth lines meeting at the junctions)"""
+    from aiomfac_py.diagram import trace_boundaries
+    pm = pickle.load(open(os.path.join(out, f"map_Y{Y:.2f}.pkl"), "rb"))["pm"]
+    t0 = time.time()
+    bc = trace_boundaries(system(Y), lambda X: feed(X, Y), pm, solve_timeout=8, verbose=True)
+    print(f"Y = {Y}: lines {time.time() - t0:.0f} s, {bc.n_solves} solves", flush=True)
+    pickle.dump(bc, open(os.path.join(out, f"lines_Y{Y:.2f}.pkl"), "wb"))
+
+
 def run_curves(Y, out):
     pe = system(Y)
     rg = np.round(np.arange(0.02, 0.9801, 0.01), 4)
@@ -141,14 +153,16 @@ def plot_all(out):
         if os.path.exists(fm):
             d = pickle.load(open(fm, "rb"))
             pm, fl = d["pm"], d["fields"]
+            fb = os.path.join(out, f"lines_Y{Y:.2f}.pkl")
+            bc = pickle.load(open(fb, "rb")) if os.path.exists(fb) else None
             fig, axs = plt.subplots(1, 2, figsize=(12.0, 5.0))
             for ax, key, levels, fmt, tag in (
                     (axs[0], "pH", np.arange(-2.0, 6.01, 0.4), "%.1f", "a: pH (mole-fraction scale)"),
                     (axs[1], "rel_mass", [1.2, 1.4, 1.6, 1.8, 2.0, 2.5, 3.0, 4.0, 5.0, 7.0, 10.0], "%.1f",
                      "b: relative particle mass")):
                 plot_phase_map(pm, ax=ax, legend=False, colors={s: "#ffffff" for s in pm.states()}, rh_points=1000,
-                               x_points=800)
-                label_regions(ax, pm, LETTERS, min_cells=150, fontsize=7)
+                               x_points=800, curves=bc)
+                label_regions(ax, pm, LETTERS, min_cells=150, fontsize=7, curves=bc)
                 # pH on the mole-fraction scale used by the paper: a_x = a_m M_w, pH_x = pH_m - log10(0.018015)
                 z = np.ma.masked_invalid(fl[key] - np.log10(0.018015) if key == "pH" else fl[key])
                 cs = ax.contour(fl["x"], fl["rh"], z, levels=levels, colors="#3060a0", linewidths=0.7)
@@ -188,9 +202,9 @@ if __name__ == "__main__":
     if cmd == "fig1":
         out = sys.argv[2] if len(sys.argv) > 2 else "."
         run_fig1(out)
-    elif cmd in ("map", "curves"):
+    elif cmd in ("map", "curves", "lines"):
         Y = float(sys.argv[2])
         out = sys.argv[3] if len(sys.argv) > 3 else "."
-        (run_map if cmd == "map" else run_curves)(Y, out)
+        {"map": run_map, "curves": run_curves, "lines": run_lines}[cmd](Y, out)
     elif cmd == "plot":
         plot_all(sys.argv[2] if len(sys.argv) > 2 else ".")

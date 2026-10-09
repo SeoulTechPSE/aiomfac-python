@@ -164,7 +164,7 @@ range), so that boundaries end close to where they meet (eutonic and peritectic 
 `PhaseMap` attributes and methods: `x`, `traces`, `x_label`, `mode`; `states()` (all states that occur);
 `boundary_lines()` (`{(below, above): (x, rh)}`, for analysis); `to_records()` (flat list of boundaries for CSV/JSON).
 
-#### `trace_boundaries(pe, feed_of_x, pm, *, tol=5e-4, h0=0.02, h_min=0.002, h_max=0.05, delta_max=0.05, rh_samples=40, snap=None, solve_timeout=None, verbose=False, **solve_kw) -> BoundaryCurves`
+#### `trace_boundaries(pe, feed_of_x, pm, *, tol=5e-4, h0=0.02, h_min=0.002, h_max=0.05, delta_max=0.05, rh_samples=40, snap=None, solve_timeout=None, x_lines=(), junction_rounds=2, cache=None, verbose=False, **solve_kw) -> BoundaryCurves`
 
 Traces every boundary line of a phase map continuously in the (x, RH) plane, so that the lines are smooth and meet
 at the junctions (eutonic and peritectic points) instead of being interpolated between the computed compositions.
@@ -179,6 +179,11 @@ Lengths are in units of the diagram (x and RH ranges scaled to 1):
 * `snap` — line ends closer than this (default `2.5 h_min`) are joined at a common junction point;
 * `solve_timeout` — seconds after which a solve is abandoned and counted as not converged (POSIX, main thread), for
   compositions where the solver is very slow;
+* `x_lines` — compositions where a vertical boundary is expected (e.g. the stoichiometric X of a salt); such lines
+  are also detected automatically;
+* `junction_rounds` — rounds of the search for missing lines around the line ends (0 to skip);
+* `cache` — a dict that keeps the solves; pass the same dict again (same `pm`) to reuse them, e.g. after changing
+  options;
 * `verbose=True` prints each line as it is traced (`2` also prints every step).
 
 `BoundaryCurves` holds `curves` (a list of `BoundaryCurve`), `x_range`, `rh_range`, `n_solves` and
@@ -363,7 +368,16 @@ the correction is across the line, vertical boundaries (fixed composition) are f
 The starting points are the boundary points of the traces (followed in both x directions). A line that runs into one
 already traced between the same states stops, and starting points on a traced line are skipped. Then, at
 `rh_samples` RH levels, the states of neighbouring traces are compared; a change that no traced line explains is
-located by bisection in x and followed up and down. Finally, line ends at a junction that are closer than `snap` to
+located by bisection in x and followed up and down. If the change of state is also found at the same x 0.03
+above or below, the boundary is vertical (typically the stoichiometric composition of a salt, where a solid exists
+alone on the line and thin states can lie next to it); it is then built from two RH scans just left and right of the
+line (bisected to `tol`), and each RH interval where the two sides differ becomes a line. Compositions in `x_lines`
+are treated the same way first.
+
+Lines that cross no trace and are not vertical — typically short lines between two junctions — are found by
+checking the states at 16 points on a circle of radius `3 h_min` around every line end at a junction: a change of
+state between two neighbouring points that no traced line crosses is located on the circle by bisection and
+followed outwards. This is repeated (`junction_rounds`) for the ends of the new lines. Finally, line ends at a junction that are closer than `snap` to
 each other are joined at the point nearest (least squares) to their tangent lines, and a single end is extended
 along its tangent to the line it meets.
 

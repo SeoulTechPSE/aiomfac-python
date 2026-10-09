@@ -180,3 +180,23 @@ def test_trace_boundaries_nacl_kcl():
     Z, xf, rg, _ = _region_grid(pm, 200, states, 50)
     Z = _curve_grid(bc, xf, rg, Z, {s: k for k, s in enumerate(states)})
     assert np.all(Z[rg < mdrh - 0.01] == states.index(PhaseState(0, (H, S))))
+
+
+def test_trace_boundaries_vertical_line():
+    """A boundary at fixed composition (letovicite stoichiometry, X = 0.75 in NH4+/H+/SO4--) that crosses no trace
+    is found between the traces, recognised as vertical and built from RH scans beside it."""
+    from aiomfac_py.diagram import trace_boundaries
+    pe = PhaseEquilibrium([], ["NH4+", "H+", "SO4--"], T_K=T0)
+
+    def feed(x):
+        return {"NH4+": x, "H+": 1.0 - x, "SO4--": 0.5}
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        pm = phase_map(pe, feed, [0.6, 0.7, 0.8, 0.9], n=8, rh_min=0.45, rh_max=0.65, refine_x=False)
+        bc = trace_boundaries(pe, feed, pm)
+    assert all(not t.boundaries for t in pm.traces)
+    assert len(bc.curves) == 1
+    c = bc.curves[0]
+    assert np.allclose(c.x, 0.75, atol=2e-3) and c.rh.min() == pytest.approx(0.45) and c.rh.max() == pytest.approx(0.65)
+    assert {c.left, c.right} == {PhaseState(1, ("letovicite",)), PhaseState(0, ("ammonium_sulfate", "letovicite"))}
+    assert c.ends == ("edge", "edge")
