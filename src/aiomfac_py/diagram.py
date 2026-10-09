@@ -546,6 +546,16 @@ class _Tracer:
         if not _ok(res) and init is not None and res.message != "time limit":
             res = _solve_limited(self.pe, feed, float(rh), self.mode, None, dict(self.solve_kw), self.timeout)
             self.n_solves += 1
+        if not _ok(res):                                    # warm start from the nearest converged solves
+            near = sorted(((np.hypot(k[0] - key[0], k[1] - key[1]), v[1]) for k, v in self.cache.items()
+                           if v[0] is not None and v[1].liquids), key=lambda z: z[0])
+            for d, r0 in near[:1]:
+                if d > 0.1 or r0 is init:
+                    break
+                res = _solve_limited(self.pe, feed, float(rh), self.mode, r0, dict(self.solve_kw), self.timeout)
+                self.n_solves += 1
+                if _ok(res):
+                    break
         out = (phase_state(res) if _ok(res) else None, res)
         self.cache[key] = out
         if self.checkpoint is not None and self.n_solves % self.checkpoint_every == 0:
@@ -768,10 +778,10 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
 
     def vertical_line(xu):
         """the boundary at the unit x ``xu`` from RH scans just left and right of it"""
-        if any(abs(xu - v) < 3.0 * h_min for v in vertical) or not 0.0 < xu < 1.0:
-            return
-        vertical.append(xu)
         eps = 2.0 * tol
+        if any(abs(xu - v) < 3.0 * h_min for v in vertical) or not 2.0 * eps < xu < 1.0 - 2.0 * eps:
+            return                                          # (a line on the edge of the diagram is not drawn)
+        vertical.append(xu)
         left, right = column(max(xu - eps, 0.0)), column(min(xu + eps, 1.0))
         cuts = sorted({0.0, 1.0} | {z[0] for z in left[1]} | {z[0] for z in right[1]})
         segs: list = []                                     # [v0, v1, L, R]
