@@ -441,11 +441,12 @@ def plot_org(out):
             fb = os.path.join(out, f"u07_lines_Y{Y:.2f}_P{p}.pkl")
             bc = pickle.load(open(fb, "rb")) if os.path.exists(fb) else None
             plot_phase_map(pm, ax=ax, legend=False, colors={s: c for s, c in zip(
-                pm.states(), ["#ffffff"] * 99)}, curves=bc)
+                pm.states(), ["#ffffff"] * 99)}, curves=bc, show_failed=True)
             label_regions(ax, pm, LETTERS, min_cells=200, fontsize=7, curves=bc)
             ax.set_title(f"({'abcd'[p - 1]}) {names[p][4:]}, α = 0.2", fontsize=10)
             ax.set_ylabel("RH")
-        fig.suptitle(f"Fig. {fno} (AIOMFAC): Y = {Y} with two organics (L1/L2/L3: liquid phases; letters: solids)",
+        fig.suptitle(f"Fig. {fno} (AIOMFAC): Y = {Y} with two organics (L1/L2/L3: liquid phases; letters: solids; "
+                     "grey dots: solver did not converge)",
                      fontsize=10)
         plt.tight_layout()
         plt.savefig(os.path.join(out, f"uhaero07_fig{fno:02d}.png"), dpi=130)

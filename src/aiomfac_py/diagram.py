@@ -428,7 +428,7 @@ def plot_phase_map(pm: PhaseMap, ax=None, *, colors: dict | None = None, rh_poin
         colors.setdefault(s, palette[k % len(palette)])
     Z, xf, rg, _ = _region_grid(pm, rh_points, states, x_points)
     if curves is not None:
-        Z = _curve_grid(curves, xf, rg, Z, {s: k for k, s in enumerate(states)})
+        Z = _curve_grid(curves, xf, rg, Z, {s: k for k, s in enumerate(states)}, pm)
     rh_lo, rh_hi = rg[0], rg[-1]
     cmap = ListedColormap([colors[s] for s in states])
     xe = np.concatenate([[xf[0]], 0.5 * (xf[1:] + xf[:-1]), [xf[-1]]]) if len(xf) > 1 else np.array([xf[0] - 0.5,
@@ -512,6 +512,14 @@ class BoundaryCurves:
     n_solves: int = 0
     seeds_skipped: int = 0
     failed: np.ndarray = field(default_factory=lambda: np.empty((0, 2)))   # (x, rh) of solves that did not converge
+
+    def cleaned(self, min_extent: float = 0.004) -> "BoundaryCurves":
+        """Without the lines whose ends are closer than ``min_extent`` (in diagram units), e.g. small loops left at
+        a junction."""
+        sx, sr = self.x_range[1] - self.x_range[0], self.rh_range[1] - self.rh_range[0]
+        keep = [c for c in self.curves if np.hypot((c.x[-1] - c.x[0]) / sx, (c.rh[-1] - c.rh[0]) / sr) >= min_extent]
+        return BoundaryCurves(keep, self.x_range, self.rh_range, self.n_solves, self.seeds_skipped,
+                              getattr(self, "failed", np.empty((0, 2))))
 
     def to_records(self) -> list:
         return [{"left": c.left.label, "right": c.right.label, "kind": c.kind, "ends": list(c.ends),
@@ -920,7 +928,7 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
         xr = np.array([tr.to_xr(p) for p in pts])
         curves.append(BoundaryCurve(L, R, xr[:, 0], xr[:, 1], ends))
     failed = np.array([tr.to_xr(np.array(k)) for k, v in tr.cache.items() if v[0] is None]).reshape(-1, 2)
-    return BoundaryCurves(curves, x_range, rh_range, tr.n_solves, skipped, failed)
+    return BoundaryCurves(curves, x_range, rh_range, tr.n_solves, skipped, failed).cleaned(2.0 * h_min)
 
 
 def _join_junctions(polys: list, ends: list, snap: float) -> list:
@@ -1027,9 +1035,13 @@ def _state_at(t: Trace, rh: float) -> PhaseState:
     return t.intervals()[-1][2]
 
 
-def _curve_grid(bc: BoundaryCurves, xf, rg, Z, idx):
+def _curve_grid(bc: BoundaryCurves, xf, rg, Z, idx, pm: PhaseMap | None = None):
     """Overwrite the columns of the region grid Z (x grid xf, RH grid rg) that are crossed by boundary lines with the
-    states between the crossings."""
+    states between the crossings (with ``pm``: only where the state above the last crossing is the top state of one
+    of the two neighbouring traces)."""
+    if pm is not None:
+        trs, txs = _regular_traces(pm)
+        tops = [t.intervals()[-1][2] for t in trs]
     sx = bc.x_range[1] - bc.x_range[0]
     sr = bc.rh_range[1] - bc.rh_range[0]
     for j, xv in enumerate(xf):
@@ -1051,6 +1063,10 @@ def _curve_grid(bc: BoundaryCurves, xf, rg, Z, idx):
         # the interpolated states
         if any(a[2] != b[1] for a, b in zip(cross[:-1], cross[1:])):
             continue
+        if pm is not None and len(txs) > 1:
+            k = int(np.clip(np.searchsorted(txs, xv) - 1, 0, len(txs) - 2))
+            if cross[-1][2] not in (tops[k], tops[k + 1]):
+                continue
         bounds = [rg[0] - 1.0] + [z[0] for z in cross] + [rg[-1] + 1.0]
         sts = [cross[0][1]] + [z[2] for z in cross]
         for k, st in enumerate(sts):
@@ -1219,7 +1235,7 @@ def label_regions(ax, pm: PhaseMap, labels: dict, *, min_cells: int = 40, fontsi
     states = [st for st in pm.states() if st not in {ln[3] for ln in singular_lines(pm)}]
     Z, xf, rg, states = _region_grid(pm, rh_points, states)
     if curves is not None:
-        Z = _curve_grid(curves, xf, rg, Z, {s: k for k, s in enumerate(states)})
+        Z = _curve_grid(curves, xf, rg, Z, {s: k for k, s in enumerate(states)}, pm)
     for k, st in enumerate(states):
         mask = Z == k
         if mask.sum() < min_cells:
