@@ -61,6 +61,15 @@ print(res.summary())
 See [`docs/user_manual.md`](docs/user_manual.md) for the case format, the modes, the solver options and the result
 fields.
 
+Phase diagrams built on the same solvers (`aiomfac_py.diagram`, manual [`docs/phase_diagrams.md`](docs/phase_diagrams.md),
+examples in [`notebooks/07_phase_diagrams.ipynb`](notebooks/07_phase_diagrams.ipynb)): the (NH4)2SO4–NH4NO3–H2O
+system at 298.15 K with AIOMFAC and the double salts of Clegg et al. (1998), traced with `phase_map` and drawn with
+`plot_phase_map` (script: [`tools/diagram_as_an.py`](tools/diagram_as_an.py)).
+
+<p align="center">
+  <img src="docs/figs/phase_diagram_as_an.png" alt="(NH4)2SO4-NH4NO3-H2O phase diagram at 298.15 K" width="900">
+</p>
+
 ## Layout
 
 | Path | Purpose |
