@@ -34,6 +34,10 @@ CURVES_X = {1.0: [0.9, 0.73, 0.6, 0.4, 0.3, 0.1], 0.85: [0.98, 0.9, 0.77, 0.74, 
             0.5: [0.95, 0.9, 0.86, 0.84, 0.8, 0.77, 0.75, 0.7], 0.3: [0.98, 0.95, 0.9, 0.87, 0.85, 0.8, 0.77, 0.7],
             0.2: [0.98, 0.93, 0.9, 0.85, 0.83, 0.7, 0.6, 0.3]}
 FIG_NO = {1.0: (2, 3), 0.85: (4, 5), 0.5: (6, 7), 0.3: (8, 9), 0.2: (10, 11)}
+# axis ranges of the deliquescence-curve panels in the paper: ((RH% a), (mass a), (RH% b), (mass b))
+CURVE_AXES = {1.0: ((35, 80), (1, 2.4), (0, 35), (1, 1.8)), 0.85: ((35, 80), (1, 2.4), (25, 70), (1, 1.8)),
+              0.5: ((40, 75), (1, 2.0), (35, 65), (1, 1.6)), 0.3: ((35, 75), (1, 2.0), (0, 60), (1, 1.6)),
+              0.2: ((30, 70), (1, 1.8), (0, 55), (1, 1.6))}
 
 
 def feed(X, Y):
@@ -49,13 +53,13 @@ def system(Y):
 def run_fig1(out):
     pe = PhaseEquilibrium([], ["NH4+", "H+", "SO4--", "NO3-"], T_K=T)
     xs = np.linspace(0.05, 1.0, 20)
-    ys = np.linspace(0.0, 1.0, 21)
+    ys = np.linspace(0.0, 1.0, 11)
     drh = np.full((len(ys), len(xs)), np.nan)
     first = np.empty((len(ys), len(xs)), dtype=object)
     t0 = time.time()
     for i, Y in enumerate(ys):
         for j, X in enumerate(xs):
-            r, s = deliquescence_point(pe, feed(X, Y), step=0.03)
+            r, s = deliquescence_point(pe, feed(X, Y), step=0.05, method="si")
             drh[i, j] = np.nan if r is None else r
             first[i, j] = s
         print(f"Y = {Y:.2f} done ({time.time() - t0:.0f} s)", flush=True)
@@ -90,6 +94,7 @@ def run_curves(Y, out):
 
 def plot_all(out):
     import matplotlib
+    import matplotlib.ticker
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     from aiomfac_py.diagram import label_regions, plot_phase_map
@@ -129,15 +134,18 @@ def plot_all(out):
             pm, fl = d["pm"], d["fields"]
             fig, axs = plt.subplots(1, 2, figsize=(12.0, 5.0))
             for ax, key, levels, fmt, tag in (
-                    (axs[0], "pH", np.arange(-2.0, 6.01, 0.5), "%.1f", "a: pH"),
+                    (axs[0], "pH", np.arange(-2.0, 6.01, 0.4), "%.1f", "a: pH (mole-fraction scale)"),
                     (axs[1], "rel_mass", [1.2, 1.4, 1.6, 1.8, 2.0, 2.5, 3.0, 4.0, 5.0, 7.0, 10.0], "%.1f",
                      "b: relative particle mass")):
                 plot_phase_map(pm, ax=ax, legend=False, colors={s: "#ffffff" for s in pm.states()})
                 label_regions(ax, pm, LETTERS, min_cells=150, fontsize=7)
-                z = np.ma.masked_invalid(fl[key])
+                # pH on the mole-fraction scale used by the paper: a_x = a_m M_w, pH_x = pH_m - log10(0.018015)
+                z = np.ma.masked_invalid(fl[key] - np.log10(0.018015) if key == "pH" else fl[key])
                 cs = ax.contour(fl["x"], fl["rh"], z, levels=levels, colors="#3060a0", linewidths=0.7)
                 ax.clabel(cs, fmt=fmt, fontsize=6)
                 ax.set_title(f"Fig. {fa}{tag[0]}: Y = {Y}, {tag[3:]}", fontsize=10)
+                ax.set_ylabel("RH (%)")
+                ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{100 * v:.0f}"))
             plt.tight_layout()
             plt.savefig(os.path.join(out, f"uhaero06_fig{fa:02d}.png"), dpi=150)
             plt.close(fig)
@@ -146,17 +154,20 @@ def plot_all(out):
             d = pickle.load(open(fcv, "rb"))
             xsel = list(d)
             half = (len(xsel) + 1) // 2
-            fig, axs = plt.subplots(1, 2, figsize=(11.0, 4.4), sharey=True)
-            for ax, group, tag in ((axs[0], xsel[:half], "a"), (axs[1], xsel[half:], "b")):
-                for k, X in enumerate(group):
+            fig, axs = plt.subplots(1, 2, figsize=(11.0, 4.4))
+            ax_rng = CURVE_AXES[Y]
+            for ax, group, tag, xr, yr in ((axs[0], xsel[:half], "a", ax_rng[0], ax_rng[1]),
+                                           (axs[1], xsel[half:], "b", ax_rng[2], ax_rng[3])):
+                for X in group:
                     p = d[X]
-                    ax.plot(p["rh"], p["rel_mass"], lw=1.4, label=f"({xsel.index(X) + 1}) X = {X}")
-                ax.set_xlabel("Relative humidity")
+                    ax.plot(100 * p["rh"], p["rel_mass"], lw=1.4, label=f"({xsel.index(X) + 1}) X = {X}")
+                ax.set_xlabel("RH (%)")
+                ax.set_ylabel("Relative particle mass W$_p$/W$_{dry}$")
                 ax.set_title(f"Fig. {fc}{tag}: Y = {Y}", fontsize=10)
-                ax.legend(fontsize=8, frameon=False)
-                ax.set_xlim(0.0, 0.98)
-            axs[0].set_ylabel("Relative particle mass W$_p$/W$_{dry}$")
-            axs[0].set_ylim(0.9, 6.0)
+                ax.legend(fontsize=8, frameon=False, loc="upper left")
+                ax.set_xlim(*xr)
+                ax.set_ylim(*yr)
+                ax.grid(alpha=0.3, ls=":")
             plt.tight_layout()
             plt.savefig(os.path.join(out, f"uhaero06_fig{fc:02d}.png"), dpi=150)
             plt.close(fig)

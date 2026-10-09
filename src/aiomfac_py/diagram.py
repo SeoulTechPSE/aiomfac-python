@@ -453,10 +453,18 @@ def rh_profile(pe: PhaseEquilibrium, feed: dict, rh_grid: Sequence[float], *, mo
 
 
 def deliquescence_point(pe: PhaseEquilibrium, feed: dict, *, rh_max: float = 0.98, rh_min: float = 0.02,
-                        step: float = 0.03, tol: float = 1.0e-4, **solve_kw):
+                        step: float = 0.03, tol: float = 1.0e-4, method: str = "equilibrium", **solve_kw):
     """Highest RH at which a solid is present (the full deliquescence RH, i.e. the water activity of the saturated
     solution) and the solids just below it.  Returns ``(rh, solids)``, or ``(None, ())`` if the particle is liquid
-    down to ``rh_min``.  RH is scanned downward in steps of ``step`` (warm starts), then bisected to ``tol``."""
+    down to ``rh_min``.
+
+    ``method="equilibrium"``: RH is scanned downward in steps of ``step`` with full equilibrium solves (warm starts),
+    then bisected to ``tol``.  ``method="si"``: the solid-free (metastable) liquid is followed instead, and the RH at
+    which the largest saturation index of the candidate solids reaches zero is located by Brent's method; the solid
+    returned is the one that saturates first.  The two agree when the particle has a single liquid phase above the
+    deliquescence RH (inorganic systems); ``"si"`` is several times faster."""
+    if method == "si":
+        return _deliquescence_point_si(pe, feed, rh_max, rh_min, step, tol, solve_kw)
     hi_res, lo_res, rh = None, None, rh_max
     prev = None
     while rh >= rh_min - 1e-12:
@@ -488,6 +496,40 @@ def deliquescence_point(pe: PhaseEquilibrium, feed: dict, *, rh_max: float = 0.9
         else:
             hi, hi_res = mid, (mid, res)
     return 0.5 * (lo + hi), solids
+
+
+def _deliquescence_point_si(pe, feed, rh_max, rh_min, step, tol, solve_kw):
+    from scipy.optimize import brentq
+    cache = {}
+    prev = [None]
+
+    def max_si(rh):
+        if rh in cache:
+            return cache[rh][0]
+        res = _solve(pe, feed, rh, "metastable", prev[0], dict(solve_kw))
+        if not _ok(res):
+            res = _solve(pe, feed, rh, "metastable", None, dict(solve_kw))
+        if not _ok(res) or not res.si:
+            cache[rh] = (float("nan"), None)
+            return float("nan")
+        key = max(res.si, key=res.si.get)
+        cache[rh] = (float(res.si[key]), key)
+        prev[0] = res if res.liquids else prev[0]
+        return cache[rh][0]
+
+    hi = None
+    rh = rh_max
+    while rh >= rh_min - 1e-12:
+        v = max_si(rh)
+        if np.isfinite(v):
+            if v >= 0.0:
+                if hi is None:
+                    return rh_max, (cache[rh][1],)
+                r = brentq(lambda t: max_si(t) if np.isfinite(max_si(t)) else 0.0, rh, hi, xtol=tol)
+                return float(r), (cache[min(cache, key=lambda k: abs(k - r))][1],)
+            hi = rh
+        rh = round(rh - step, 12)
+    return None, ()
 
 
 def label_regions(ax, pm: PhaseMap, labels: dict, *, min_cells: int = 40, fontsize: int = 8, rh_points: int = 400):
