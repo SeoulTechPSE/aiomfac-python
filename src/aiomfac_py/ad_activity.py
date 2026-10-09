@@ -34,13 +34,30 @@ _MWATER = 0.01801528
 _CACHE: dict = {}
 
 
+def _key(lm, T: float):
+    return (tuple((c.name, tuple(map(tuple, c.subgroups))) for c in lm.organics), tuple(lm.ions), float(T))
+
+
 def jacobian_for(lm, T: float):
     """:func:`build_jacobian` cached by system (organic subgroups, ions) and temperature, so that the solver's child
     systems and repeated solves of the same system reuse one compiled function."""
-    key = (tuple((c.name, tuple(map(tuple, c.subgroups))) for c in lm.organics), tuple(lm.ions), float(T))
+    key = _key(lm, T)
     if key not in _CACHE:
         _CACHE[key] = build_jacobian(lm, T)[0]
     return _CACHE[key]
+
+
+_BATCH: dict = {}
+
+
+def batch_for(lm, T: float):
+    """The jit-compiled, vectorized ``ln_a`` (without the reaction constants c) of the explicit liquid model ``lm`` at
+    temperature ``T``: ``f(n)`` with ``n`` of shape (B, N) returns (B, N).  Cached like :func:`jacobian_for`; a new
+    batch size triggers one recompilation."""
+    key = _key(lm, T)
+    if key not in _BATCH:
+        _BATCH[key] = jax.jit(jax.vmap(build_jacobian(lm, T)[1]))
+    return _BATCH[key]
 
 
 def build_jacobian(lm, T: float):

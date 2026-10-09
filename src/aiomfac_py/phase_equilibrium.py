@@ -598,6 +598,20 @@ class ExplicitLiquidModel(LiquidModel):
             out[self._kco2] = gamma_co2_mr(self._mx, smc, sma) + lg_(n[self._kco2] / solv)
         return out + self._c
 
+    def ln_a_batch(self, n: np.ndarray, T: float) -> np.ndarray:
+        """:meth:`ln_a` for many compositions at one temperature: ``n`` of shape (B, N) -> (B, N).
+
+        Uses the JAX transcription of :mod:`aiomfac_py.ad_activity` (optional ``jax``), compiled once per system,
+        temperature and batch size and vectorized over the batch; it reproduces :meth:`ln_a` to round-off.  For dense
+        evaluation (maps, sensitivity analyses, many states) this removes the per-call overhead of the NumPy code:
+        well below 1 microsecond per composition for small systems, against about 0.1-0.4 ms per :meth:`ln_a` call."""
+        from .ad_activity import batch_for
+        if self._T != float(T):
+            self.set_conditions(T, self._ln_rh)
+        n = np.atleast_2d(np.asarray(n, dtype=float))
+        self.n_eval += len(n)
+        return np.asarray(batch_for(self, T)(n)) + self._c
+
     def hessian_ad(self, n: np.ndarray, T: float, active: np.ndarray | None = None) -> np.ndarray:
         """Exact d ln a_i/d n_j by automatic differentiation (:mod:`aiomfac_py.ad_activity`, needs jax), symmetrized;
         rows and columns of absent species are zero.  The jit-compiled Jacobian is built once per system and temperature."""
