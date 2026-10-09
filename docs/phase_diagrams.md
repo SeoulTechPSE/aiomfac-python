@@ -196,7 +196,7 @@ at higher RH when the points run towards higher x), `x`, `rh` (arrays), `ends` (
 
 Draws the lines of a `BoundaryCurves` on an axes (`plot_phase_map(..., curves=bc)` calls it).
 
-#### `plot_phase_map(pm, ax=None, *, colors=None, rh_points=400, x_points=300, legend=True, metastable=None, curves=None)`
+#### `plot_phase_map(pm, ax=None, *, colors=None, rh_points=400, x_points=300, legend=True, metastable=None, curves=None, show_failed=False)`
 
 Draws the diagram on a matplotlib axes and returns it:
 
@@ -207,7 +207,9 @@ Draws the diagram on a matplotlib axes and returns it:
 * `metastable=` a second `PhaseMap` (mode `"metastable"`) whose boundaries are overlaid in grey;
 * `rh_points`, `x_points` — resolution of the region grid; raise them for zoomed views;
 * `curves=` the result of `trace_boundaries`: the boundaries are drawn as the traced lines and the regions are
-  filled between them.
+  filled between them;
+* `show_failed=True` marks the points where solves did not converge (grey dots; from the traces and, with
+  `curves`, from `BoundaryCurves.failed`), i.e. where the diagram is not resolved.
 
 Without `curves`, the regions between computed compositions are interpolated: each boundary of the nearer trace is interpolated
 linearly in x towards the boundary of the same kind (same states below and above, closest in RH) of the other trace.

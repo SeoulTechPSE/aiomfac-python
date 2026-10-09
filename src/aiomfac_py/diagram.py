@@ -405,12 +405,14 @@ def _tex_formula(f: str) -> str:
 
 
 def plot_phase_map(pm: PhaseMap, ax=None, *, colors: dict | None = None, rh_points: int = 400, x_points: int = 300,
-                   legend: bool = True, metastable: PhaseMap | None = None, curves: "BoundaryCurves | None" = None):
+                   legend: bool = True, metastable: PhaseMap | None = None, curves: "BoundaryCurves | None" = None,
+                   show_failed: bool = False):
     """X--RH diagram: regions coloured by phase state and outlined, states that exist on a single composition only
     as dotted lines, optional metastable boundaries (``metastable``, dotted grey).  ``rh_points`` and ``x_points``
     set the resolution of the region grid (raise them for zoomed views).  With ``curves`` (from
     :func:`trace_boundaries`) the boundaries are drawn as the traced lines and the regions are filled between them.
-    Returns the matplotlib axes."""
+    ``show_failed`` marks the compositions and RH where solves did not converge (grey dots), i.e. where the
+    diagram is not resolved.  Returns the matplotlib axes."""
     import matplotlib.pyplot as plt
     from matplotlib.colors import ListedColormap
     from matplotlib.patches import Patch
@@ -438,6 +440,13 @@ def plot_phase_map(pm: PhaseMap, ax=None, *, colors: dict | None = None, rh_poin
     # the colours); states that exist on a single composition line only are drawn as dotted lines
     if curves is not None:
         plot_boundary_curves(curves, ax)
+    if show_failed:
+        pts = [(float(xv), r) for xv, t in zip(pm.x, pm.traces) for r in t.failed]
+        if curves is not None and len(getattr(curves, "failed", ())):
+            pts += [tuple(q) for q in curves.failed]
+        if pts:
+            q = np.array(pts)
+            ax.plot(q[:, 0], q[:, 1], ".", color="#888888", ms=2.5, zorder=3)
     else:
         xc, yc = np.meshgrid(xf, rg)
         for k in range(len(states)):
@@ -502,6 +511,7 @@ class BoundaryCurves:
     rh_range: tuple
     n_solves: int = 0
     seeds_skipped: int = 0
+    failed: np.ndarray = field(default_factory=lambda: np.empty((0, 2)))   # (x, rh) of solves that did not converge
 
     def to_records(self) -> list:
         return [{"left": c.left.label, "right": c.right.label, "kind": c.kind, "ends": list(c.ends),
@@ -909,7 +919,8 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
     for (L, R, _, ends), pts in zip(done, polys):
         xr = np.array([tr.to_xr(p) for p in pts])
         curves.append(BoundaryCurve(L, R, xr[:, 0], xr[:, 1], ends))
-    return BoundaryCurves(curves, x_range, rh_range, tr.n_solves, skipped)
+    failed = np.array([tr.to_xr(np.array(k)) for k, v in tr.cache.items() if v[0] is None]).reshape(-1, 2)
+    return BoundaryCurves(curves, x_range, rh_range, tr.n_solves, skipped, failed)
 
 
 def _join_junctions(polys: list, ends: list, snap: float) -> list:
