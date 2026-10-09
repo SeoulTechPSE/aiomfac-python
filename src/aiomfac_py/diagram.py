@@ -28,7 +28,7 @@ import numpy as np
 from .phase_equilibrium import PhaseEquilibrium, PhaseEquilibriumResult
 
 __all__ = ["PhaseState", "Boundary", "Trace", "PhaseMap", "phase_state", "trace", "phase_map", "plot_phase_map",
-           "pie_composition"]
+           "pie_composition", "particle_properties", "rh_profile", "deliquescence_point", "label_regions"]
 
 
 @dataclass(frozen=True, order=True)
@@ -295,31 +295,11 @@ def pie_composition(res: PhaseEquilibriumResult, group: Callable[[str], str] | N
     return out
 
 
-def _tex_formula(f: str) -> str:
-    """'(NH4)2SO4' -> '(NH$_4$)$_2$SO$_4$' (digits after an element or a bracket become subscripts)."""
-    import re
-    return re.sub(r"(?<=[A-Za-z)])(\d+)", r"$_{\1}$", f).replace(".", "·")
-
-
-def plot_phase_map(pm: PhaseMap, ax=None, *, colors: dict | None = None, quality_dashed: bool = True,
-                   rh_points: int = 400, legend: bool = True, metastable: PhaseMap | None = None):
-    """X--RH diagram: regions coloured by phase state, boundary lines (dashed where a solid of data quality C is
-    involved), optional metastable boundaries (``metastable``, dotted).  Returns the matplotlib axes."""
-    import matplotlib.pyplot as plt
-    from matplotlib.colors import ListedColormap
-    from matplotlib.patches import Patch
-
-    from .solids import SOLIDS
-
-    if ax is None:
-        _, ax = plt.subplots(figsize=(6.4, 4.8))
-    states = pm.states()
-    palette = ["#f2f0e6", "#d9e7f5", "#cfe8d4", "#f6dcc8", "#e4d6ef", "#f4e7b3", "#d6e9e7", "#ecd1d8", "#e0e0e0"]
-    colors = dict(colors or {})
-    for k, s in enumerate(states):
-        colors.setdefault(s, palette[k % len(palette)])
+def _region_grid(pm: PhaseMap, rh_points: int = 400, states: list | None = None):
+    """State index on a fine (RH, x) grid: boundary RHs interpolated linearly in x between neighbouring traces of the
+    same topology, the nearest trace elsewhere.  Returns (Z, x grid, RH grid, states)."""
+    states = states if states is not None else pm.states()
     idx = {s: k for k, s in enumerate(states)}
-
     x = pm.x
     rh_lo = min(min(t.rh[0], t.rh_range[0]) if t.rh_range else t.rh[0] for t in pm.traces)
     rh_hi = max(max(t.rh[-1], t.rh_range[1]) if t.rh_range else t.rh[-1] for t in pm.traces)
@@ -346,6 +326,35 @@ def plot_phase_map(pm: PhaseMap, ax=None, *, colors: dict | None = None, quality
             ivs = (ta if (len(x) == 1 or xv - x[k] <= x[k + 1] - xv) else tb).intervals()
         for a, b, st in ivs:
             Z[(rg >= a) & (rg <= b), j] = idx[st]
+    return Z, xf, rg, states
+
+
+def _tex_formula(f: str) -> str:
+    """'(NH4)2SO4' -> '(NH$_4$)$_2$SO$_4$' (digits after an element or a bracket become subscripts)."""
+    import re
+    return re.sub(r"(?<=[A-Za-z)])(\d+)", r"$_{\1}$", f).replace(".", "·")
+
+
+def plot_phase_map(pm: PhaseMap, ax=None, *, colors: dict | None = None, quality_dashed: bool = True,
+                   rh_points: int = 400, legend: bool = True, metastable: PhaseMap | None = None):
+    """X--RH diagram: regions coloured by phase state, boundary lines (dashed where a solid of data quality C is
+    involved), optional metastable boundaries (``metastable``, dotted).  Returns the matplotlib axes."""
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import ListedColormap
+    from matplotlib.patches import Patch
+
+    from .solids import SOLIDS
+
+    if ax is None:
+        _, ax = plt.subplots(figsize=(6.4, 4.8))
+    states = pm.states()
+    palette = ["#f2f0e6", "#d9e7f5", "#cfe8d4", "#f6dcc8", "#e4d6ef", "#f4e7b3", "#d6e9e7", "#ecd1d8", "#e0e0e0"]
+    colors = dict(colors or {})
+    for k, s in enumerate(states):
+        colors.setdefault(s, palette[k % len(palette)])
+    Z, xf, rg, _ = _region_grid(pm, rh_points, states)
+    x = pm.x
+    rh_lo, rh_hi = rg[0], rg[-1]
     cmap = ListedColormap([colors[s] for s in states])
     xe = np.concatenate([[xf[0]], 0.5 * (xf[1:] + xf[:-1]), [xf[-1]]]) if len(xf) > 1 else np.array([xf[0] - 0.5,
                                                                                                     xf[0] + 0.5])
@@ -376,3 +385,124 @@ def plot_phase_map(pm: PhaseMap, ax=None, *, colors: dict | None = None, quality
         ax.legend(handles=[Patch(facecolor=colors[s], edgecolor="#999999", label=nice(s)) for s in states],
                   fontsize=7, loc="upper left", bbox_to_anchor=(1.01, 1.0), frameon=False)
     return ax
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# particle properties along RH (deliquescence curves, contour fields)
+# ---------------------------------------------------------------------------------------------------------------
+M_WATER = 18.015                                    # g/mol
+
+
+def _molar_masses(pe: PhaseEquilibrium) -> dict:
+    """g/mol of every component of ``pe`` (water, organics, ions)."""
+    from .params import load_subgroup_params
+    from .solids import ION_REGISTRY
+    sg = load_subgroup_params()
+    out = {"Water": M_WATER}
+    mm = np.asarray(pe.lm._mm, float)                  # neutral molar masses of the liquid model [kg/mol]
+    for k, c in enumerate(pe._organics):
+        out[c.name] = 1000.0 * float(mm[1 + k])
+    for ion in pe._ions:
+        no, z = ION_REGISTRY[ion]
+        out[ion] = float(sg.SMWC[no - 201] if z > 0 else sg.SMWA[no - 241])
+    return out
+
+
+def particle_properties(pe: PhaseEquilibrium, feed: dict, res: PhaseEquilibriumResult) -> dict:
+    """Water content and acidity of an equilibrium state.
+
+    ``rel_mass``: particle mass relative to the dry particle of the same feed, W_p / W_dry = 1 + W_water / W_dry
+    (the 'relative particle mass' of Amundson et al., 2006); ``water_g``: liquid water [g]; ``pH``: -log10 a_H+
+    (molal) in the liquid holding most water (NaN without H+ or liquid); ``n_liquids``; ``solids``."""
+    mm = _molar_masses(pe)
+    w_dry = sum(v * mm[k] for k, v in feed.items())
+    water = sum(float(L.amounts[0]) for L in res.liquids) * M_WATER
+    ph = float("nan")
+    if res.liquids and "H+" in pe.names:
+        L = max(res.liquids, key=lambda L_: float(L_.amounts[0]))
+        ln_a = dict(zip(L.names, L.ln_a)).get("H+")
+        if ln_a is not None and np.isfinite(ln_a):
+            ph = -float(ln_a) / np.log(10.0)
+    return {"rel_mass": 1.0 + water / w_dry, "water_g": water, "pH": ph, "n_liquids": len(res.liquids),
+            "solids": tuple(sorted(res.solids)), "status": res.status}
+
+
+def rh_profile(pe: PhaseEquilibrium, feed: dict, rh_grid: Sequence[float], *, mode: str = "equilibrium",
+               **solve_kw) -> dict:
+    """Properties (:func:`particle_properties`) on ``rh_grid``, solved from high to low RH with warm starts;
+    returned in the order of ``rh_grid`` as arrays (NaN where a solve did not converge)."""
+    rh = np.asarray(rh_grid, float)
+    order = np.argsort(-rh)
+    out = {k: np.full(len(rh), np.nan) for k in ("rel_mass", "water_g", "pH", "n_liquids")}
+    out["solids"] = [()] * len(rh)
+    prev = None
+    for i in order:
+        res = _solve(pe, feed, float(rh[i]), mode, prev, dict(solve_kw))
+        if not _ok(res) and prev is not None:
+            res = _solve(pe, feed, float(rh[i]), mode, None, dict(solve_kw))
+        if _ok(res):
+            p = particle_properties(pe, feed, res)
+            for k in ("rel_mass", "water_g", "pH", "n_liquids"):
+                out[k][i] = p[k]
+            out["solids"][i] = p["solids"]
+            prev = res if res.liquids else None
+        else:
+            prev = None
+    out["rh"] = rh
+    return out
+
+
+def deliquescence_point(pe: PhaseEquilibrium, feed: dict, *, rh_max: float = 0.98, rh_min: float = 0.02,
+                        step: float = 0.03, tol: float = 1.0e-4, **solve_kw):
+    """Highest RH at which a solid is present (the full deliquescence RH, i.e. the water activity of the saturated
+    solution) and the solids just below it.  Returns ``(rh, solids)``, or ``(None, ())`` if the particle is liquid
+    down to ``rh_min``.  RH is scanned downward in steps of ``step`` (warm starts), then bisected to ``tol``."""
+    hi_res, lo_res, rh = None, None, rh_max
+    prev = None
+    while rh >= rh_min - 1e-12:
+        res = _solve(pe, feed, rh, "equilibrium", prev, dict(solve_kw))
+        if not _ok(res) and prev is not None:
+            res = _solve(pe, feed, rh, "equilibrium", None, dict(solve_kw))
+        if _ok(res):
+            if res.solids:
+                lo_res = (rh, res)
+                break
+            hi_res = (rh, res)
+            prev = res if res.liquids else None
+        rh -= step
+    if lo_res is None:
+        return None, ()
+    if hi_res is None:
+        return rh_max, tuple(sorted(lo_res[1].solids))
+    lo, hi = lo_res[0], hi_res[0]
+    solids = tuple(sorted(lo_res[1].solids))
+    while hi - lo > tol:
+        mid = 0.5 * (lo + hi)
+        res = _solve(pe, feed, mid, "equilibrium", hi_res[1], dict(solve_kw))
+        if not _ok(res):
+            res = _solve(pe, feed, mid, "equilibrium", None, dict(solve_kw))
+        if not _ok(res):
+            break
+        if res.solids:
+            lo, solids = mid, tuple(sorted(res.solids))
+        else:
+            hi, hi_res = mid, (mid, res)
+    return 0.5 * (lo + hi), solids
+
+
+def label_regions(ax, pm: PhaseMap, labels: dict, *, min_cells: int = 40, fontsize: int = 8, rh_points: int = 400):
+    """Write a short label in every phase region of ``pm`` drawn on ``ax`` (``labels``: solid key -> letter, e.g.
+    {"ammonium_sulfate": "A"}; a region reads 'L+A+E').  Regions smaller than ``min_cells`` grid cells are skipped."""
+    Z, xf, rg, states = _region_grid(pm, rh_points)
+    for k, st in enumerate(states):
+        mask = Z == k
+        if mask.sum() < min_cells:
+            continue
+        iy, ix = np.nonzero(mask)
+        parts = (["L"] if st.n_liquids == 1 else [f"{st.n_liquids}L"] if st.n_liquids > 1 else [])
+        parts += [labels.get(s, s) for s in st.solids]
+        yc, xc = np.median(rg[iy]), np.median(xf[ix])
+        # move the label to a cell of the region nearest to the median point
+        d = (xf[ix] - xc) ** 2 / max(np.ptp(xf), 1e-12) ** 2 + (rg[iy] - yc) ** 2 / max(np.ptp(rg), 1e-12) ** 2
+        q = int(np.argmin(d))
+        ax.text(xf[ix[q]], rg[iy[q]], "+".join(parts) if parts else "", ha="center", va="center", fontsize=fontsize)

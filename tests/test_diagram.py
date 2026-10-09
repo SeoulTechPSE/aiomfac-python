@@ -100,3 +100,31 @@ def test_ammonium_sulfate_nitrate_double_salts():
             mdrh.append(t.boundaries[0].rh)
             assert t.boundaries[0].below.solids == ("AS_2AN", "ammonium_sulfate")
     assert abs(mdrh[0] - mdrh[1]) < 3e-4
+
+
+def test_deliquescence_point_and_rh_profile():
+    from aiomfac_py.diagram import deliquescence_point, rh_profile
+    pe = PhaseEquilibrium([], ["NH4+", "SO4--"], T_K=T0)
+    feed = {"NH4+": 2.0, "SO4--": 1.0}
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        rh, solids = deliquescence_point(pe, feed, step=0.05)
+        p = rh_profile(pe, feed, [0.95, 0.85, 0.7, 0.5])
+    assert solids == ("ammonium_sulfate",)
+    assert abs(rh - binary_saturation("ammonium_sulfate", T0)["aw"]) < 2e-4
+    # dry below the DRH (relative mass 1), growing water uptake above it
+    assert p["rel_mass"][2] == pytest.approx(1.0) and p["rel_mass"][3] == pytest.approx(1.0)
+    assert p["rel_mass"][0] > p["rel_mass"][1] > 1.5
+    assert p["solids"][3] == ("ammonium_sulfate",) and np.all(np.isnan(p["pH"][2:]))
+
+
+def test_acid_sulfate_ph_and_letovicite():
+    from aiomfac_py.diagram import particle_properties
+    pe = PhaseEquilibrium([], ["NH4+", "H+", "SO4--"], T_K=T0)
+    feed = {"NH4+": 0.6, "H+": 0.4, "SO4--": 0.5}
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        r = pe.solve(feed, 0.5)
+    p = particle_properties(pe, feed, r)
+    assert "letovicite" in p["solids"] and p["n_liquids"] == 1
+    assert -3.0 < p["pH"] < 1.0 and p["rel_mass"] > 1.0
