@@ -137,7 +137,8 @@ def plot_all(out):
                     (axs[0], "pH", np.arange(-2.0, 6.01, 0.4), "%.1f", "a: pH (mole-fraction scale)"),
                     (axs[1], "rel_mass", [1.2, 1.4, 1.6, 1.8, 2.0, 2.5, 3.0, 4.0, 5.0, 7.0, 10.0], "%.1f",
                      "b: relative particle mass")):
-                plot_phase_map(pm, ax=ax, legend=False, colors={s: "#ffffff" for s in pm.states()})
+                plot_phase_map(pm, ax=ax, legend=False, colors={s: "#ffffff" for s in pm.states()}, rh_points=1000,
+                               x_points=800)
                 label_regions(ax, pm, LETTERS, min_cells=150, fontsize=7)
                 # pH on the mole-fraction scale used by the paper: a_x = a_m M_w, pH_x = pH_m - log10(0.018015)
                 z = np.ma.masked_invalid(fl[key] - np.log10(0.018015) if key == "pH" else fl[key])

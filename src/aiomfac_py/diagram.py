@@ -324,7 +324,7 @@ def singular_lines(pm: PhaseMap) -> list:
     return out
 
 
-def _region_grid(pm: PhaseMap, rh_points: int = 400, states: list | None = None):
+def _region_grid(pm: PhaseMap, rh_points: int = 400, states: list | None = None, x_points: int = 300):
     """State index on a fine (RH, x) grid: the boundaries of the nearer of the two neighbouring traces, each
     interpolated linearly in x towards the boundary of the same kind (same states below and above, closest in RH) of
     the other trace when it has one.  Returns (Z, x grid, RH grid, states)."""
@@ -334,7 +334,7 @@ def _region_grid(pm: PhaseMap, rh_points: int = 400, states: list | None = None)
     rh_lo = min(min(t.rh[0], t.rh_range[0]) if t.rh_range else t.rh[0] for t in pm.traces)
     rh_hi = max(max(t.rh[-1], t.rh_range[1]) if t.rh_range else t.rh[-1] for t in pm.traces)
     x0, x1 = float(pm.x[0]), float(pm.x[-1])
-    nx = max(4 * len(x), 300) if len(x) > 1 else 1
+    nx = max(4 * len(x), x_points) if len(x) > 1 else 1
     xf = np.linspace(x0, x1, nx) if len(x) > 1 else x.copy()
     rg = np.linspace(rh_lo, rh_hi, rh_points)
     Z = np.full((rh_points, len(xf)), np.nan)
@@ -377,10 +377,11 @@ def _tex_formula(f: str) -> str:
     return re.sub(r"(?<=[A-Za-z)])(\d+)", r"$_{\1}$", f).replace(".", "·")
 
 
-def plot_phase_map(pm: PhaseMap, ax=None, *, colors: dict | None = None, rh_points: int = 400, legend: bool = True,
-                   metastable: PhaseMap | None = None):
+def plot_phase_map(pm: PhaseMap, ax=None, *, colors: dict | None = None, rh_points: int = 400, x_points: int = 300,
+                   legend: bool = True, metastable: PhaseMap | None = None):
     """X--RH diagram: regions coloured by phase state and outlined, states that exist on a single composition only
-    as dotted lines, optional metastable boundaries (``metastable``, dotted grey).  Returns the matplotlib axes."""
+    as dotted lines, optional metastable boundaries (``metastable``, dotted grey).  ``rh_points`` and ``x_points``
+    set the resolution of the region grid (raise them for zoomed views).  Returns the matplotlib axes."""
     import matplotlib.pyplot as plt
     from matplotlib.colors import ListedColormap
     from matplotlib.patches import Patch
@@ -394,7 +395,7 @@ def plot_phase_map(pm: PhaseMap, ax=None, *, colors: dict | None = None, rh_poin
     colors = dict(colors or {})
     for k, s in enumerate(states):
         colors.setdefault(s, palette[k % len(palette)])
-    Z, xf, rg, _ = _region_grid(pm, rh_points, states)
+    Z, xf, rg, _ = _region_grid(pm, rh_points, states, x_points)
     x = pm.x
     rh_lo, rh_hi = rg[0], rg[-1]
     cmap = ListedColormap([colors[s] for s in states])
