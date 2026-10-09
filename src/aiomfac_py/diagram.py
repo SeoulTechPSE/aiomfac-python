@@ -295,35 +295,77 @@ def pie_composition(res: PhaseEquilibriumResult, group: Callable[[str], str] | N
     return out
 
 
+def _regular_traces(pm: PhaseMap):
+    """Traces used for the region grid: all except interior ones holding a phase state that occurs at no other x
+    (a singular composition, e.g. the exact stoichiometry of a salt, where a solid exists alone on a line)."""
+    count: dict = {}
+    for t in pm.traces:
+        for st in {iv[2] for iv in t.intervals()}:
+            count[st] = count.get(st, 0) + 1
+    keep = [i for i, t in enumerate(pm.traces)
+            if i in (0, len(pm.traces) - 1) or all(count[iv[2]] > 1 for iv in t.intervals())]
+    return [pm.traces[i] for i in keep], pm.x[keep]
+
+
+def singular_lines(pm: PhaseMap) -> list:
+    """[(x, rh_from, rh_to, PhaseState)] of the phase states that occur at a single interior x only (drawn as
+    lines, as in the UHAERO diagrams)."""
+    count: dict = {}
+    for t in pm.traces:
+        for st in {iv[2] for iv in t.intervals()}:
+            count[st] = count.get(st, 0) + 1
+    out = []
+    for i, (xv, t) in enumerate(zip(pm.x, pm.traces)):
+        if i in (0, len(pm.traces) - 1):
+            continue
+        for a, b, st in t.intervals():
+            if count[st] == 1:
+                out.append((float(xv), a, b, st))
+    return out
+
+
 def _region_grid(pm: PhaseMap, rh_points: int = 400, states: list | None = None):
-    """State index on a fine (RH, x) grid: boundary RHs interpolated linearly in x between neighbouring traces of the
-    same topology, the nearest trace elsewhere.  Returns (Z, x grid, RH grid, states)."""
+    """State index on a fine (RH, x) grid: the boundaries of the nearer of the two neighbouring traces, each
+    interpolated linearly in x towards the boundary of the same kind (same states below and above, closest in RH) of
+    the other trace when it has one.  Returns (Z, x grid, RH grid, states)."""
     states = states if states is not None else pm.states()
     idx = {s: k for k, s in enumerate(states)}
-    x = pm.x
+    traces, x = _regular_traces(pm)
     rh_lo = min(min(t.rh[0], t.rh_range[0]) if t.rh_range else t.rh[0] for t in pm.traces)
     rh_hi = max(max(t.rh[-1], t.rh_range[1]) if t.rh_range else t.rh[-1] for t in pm.traces)
-    # fill: between neighbouring traces of the same topology the boundary RHs are interpolated linearly in x, so the
-    # regions follow the boundary lines; elsewhere (within the x refinement tolerance) the nearest trace is used
+    x0, x1 = float(pm.x[0]), float(pm.x[-1])
     nx = max(4 * len(x), 300) if len(x) > 1 else 1
-    xf = np.linspace(x[0], x[-1], nx) if len(x) > 1 else x.copy()
+    xf = np.linspace(x0, x1, nx) if len(x) > 1 else x.copy()
     rg = np.linspace(rh_lo, rh_hi, rh_points)
     Z = np.full((rh_points, len(xf)), np.nan)
     for j, xv in enumerate(xf):
         k = int(np.clip(np.searchsorted(x, xv) - 1, 0, max(len(x) - 2, 0)))
-        ta = pm.traces[k]
-        tb = pm.traces[k + 1] if len(x) > 1 else ta
-        if ta.signature == tb.signature and len(x) > 1:
+        ta = traces[k]
+        tb = traces[k + 1] if len(x) > 1 else ta
+        if len(x) > 1:
             w = (xv - x[k]) / (x[k + 1] - x[k])
+            near, far = (ta, tb) if w <= 0.5 else (tb, ta)
+            # boundaries of the nearer trace; a boundary of the same kind (same states below and above) in the other
+            # trace is interpolated linearly in x, so boundaries stay smooth also where the topology changes
+            far_rh = {}
+            for bb in far.boundaries:
+                far_rh.setdefault((bb.below, bb.above), []).append(bb.rh)
             ivs = []
             lo = rh_lo
-            for ba, bb in zip(ta.boundaries, tb.boundaries):
-                r = (1 - w) * ba.rh + w * bb.rh
-                ivs.append((lo, r, ba.below))
+            wn = w if near is ta else 1.0 - w
+            for bn in near.boundaries:
+                key = (bn.below, bn.above)
+                r = bn.rh
+                cand = far_rh.get(key, [])
+                if cand:                                       # the same kind of boundary closest in RH
+                    q = int(np.argmin([abs(c - bn.rh) for c in cand]))
+                    r = (1 - wn) * bn.rh + wn * cand.pop(q)
+                r = max(r, lo)
+                ivs.append((lo, r, bn.below))
                 lo = r
-            ivs.append((lo, rh_hi, ta.intervals()[-1][2]))
+            ivs.append((lo, rh_hi, near.intervals()[-1][2]))
         else:
-            ivs = (ta if (len(x) == 1 or xv - x[k] <= x[k + 1] - xv) else tb).intervals()
+            ivs = ta.intervals()
         for a, b, st in ivs:
             Z[(rg >= a) & (rg <= b), j] = idx[st]
     return Z, xf, rg, states
@@ -335,10 +377,10 @@ def _tex_formula(f: str) -> str:
     return re.sub(r"(?<=[A-Za-z)])(\d+)", r"$_{\1}$", f).replace(".", "·")
 
 
-def plot_phase_map(pm: PhaseMap, ax=None, *, colors: dict | None = None, quality_dashed: bool = True,
-                   rh_points: int = 400, legend: bool = True, metastable: PhaseMap | None = None):
-    """X--RH diagram: regions coloured by phase state, boundary lines (dashed where a solid of data quality C is
-    involved), optional metastable boundaries (``metastable``, dotted).  Returns the matplotlib axes."""
+def plot_phase_map(pm: PhaseMap, ax=None, *, colors: dict | None = None, rh_points: int = 400, legend: bool = True,
+                   metastable: PhaseMap | None = None):
+    """X--RH diagram: regions coloured by phase state and outlined, states that exist on a single composition only
+    as dotted lines, optional metastable boundaries (``metastable``, dotted grey).  Returns the matplotlib axes."""
     import matplotlib.pyplot as plt
     from matplotlib.colors import ListedColormap
     from matplotlib.patches import Patch
@@ -347,7 +389,7 @@ def plot_phase_map(pm: PhaseMap, ax=None, *, colors: dict | None = None, quality
 
     if ax is None:
         _, ax = plt.subplots(figsize=(6.4, 4.8))
-    states = pm.states()
+    states = [st for st in pm.states() if st not in {ln[3] for ln in singular_lines(pm)}]
     palette = ["#f2f0e6", "#d9e7f5", "#cfe8d4", "#f6dcc8", "#e4d6ef", "#f4e7b3", "#d6e9e7", "#ecd1d8", "#e0e0e0"]
     colors = dict(colors or {})
     for k, s in enumerate(states):
@@ -361,14 +403,15 @@ def plot_phase_map(pm: PhaseMap, ax=None, *, colors: dict | None = None, quality
     ax.pcolormesh(xe, np.concatenate([[rg[0]], 0.5 * (rg[1:] + rg[:-1]), [rg[-1]]]), Z, cmap=cmap,
                   vmin=-0.5, vmax=len(states) - 0.5, shading="flat")
 
-    def low_quality(below, above):
-        changed = set(below.solids) ^ set(above.solids)
-        return any(SOLIDS[k].quality == "C" for k in changed if k in SOLIDS)
-
-    for (below, above), (bx, br) in pm.boundary_lines().items():
-        o = np.argsort(bx)
-        ls = "--" if (quality_dashed and low_quality(below, above)) else "-"
-        ax.plot(bx[o], br[o], ls, color="#222222", lw=1.3, marker="o" if len(bx) == 1 else None, ms=3)
+    # boundaries: outlines of the regions of the grid (horizontal and vertical boundaries alike, consistent with
+    # the colours); states that exist on a single composition line only are drawn as dotted lines
+    xc, yc = np.meshgrid(xf, rg)
+    for k in range(len(states)):
+        ind = (Z == k).astype(float)
+        if ind.any() and not ind.all():
+            ax.contour(xc, yc, ind, levels=[0.5], colors="#222222", linewidths=1.3)
+    for xv, a, b, st in singular_lines(pm):
+        ax.plot([xv, xv], [a, b], ":", color="#222222", lw=1.3)
     if metastable is not None:
         for (below, above), (bx, br) in metastable.boundary_lines().items():
             o = np.argsort(bx)
@@ -535,7 +578,8 @@ def _deliquescence_point_si(pe, feed, rh_max, rh_min, step, tol, solve_kw):
 def label_regions(ax, pm: PhaseMap, labels: dict, *, min_cells: int = 40, fontsize: int = 8, rh_points: int = 400):
     """Write a short label in every phase region of ``pm`` drawn on ``ax`` (``labels``: solid key -> letter, e.g.
     {"ammonium_sulfate": "A"}; a region reads 'L+A+E').  Regions smaller than ``min_cells`` grid cells are skipped."""
-    Z, xf, rg, states = _region_grid(pm, rh_points)
+    states = [st for st in pm.states() if st not in {ln[3] for ln in singular_lines(pm)}]
+    Z, xf, rg, states = _region_grid(pm, rh_points, states)
     for k, st in enumerate(states):
         mask = Z == k
         if mask.sum() < min_cells:
@@ -548,3 +592,6 @@ def label_regions(ax, pm: PhaseMap, labels: dict, *, min_cells: int = 40, fontsi
         d = (xf[ix] - xc) ** 2 / max(np.ptp(xf), 1e-12) ** 2 + (rg[iy] - yc) ** 2 / max(np.ptp(rg), 1e-12) ** 2
         q = int(np.argmin(d))
         ax.text(xf[ix[q]], rg[iy[q]], "+".join(parts) if parts else "", ha="center", va="center", fontsize=fontsize)
+    for xv, a, b, st in singular_lines(pm):
+        parts = (["L"] if st.n_liquids == 1 else []) + [labels.get(t, t) for t in st.solids]
+        ax.text(xv, 0.5 * (a + b), " " + "+".join(parts), ha="left", va="center", fontsize=fontsize - 1)
