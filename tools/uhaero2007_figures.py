@@ -11,6 +11,7 @@ UNIFAC with its own parameters and, through S2AS, alcohol/acid-specific subgroup
   python tools/uhaero2007_figures.py as [out_dir]              Fig. 11: (NH4)2SO4 + organics, water content vs a_w
   python tools/uhaero2007_figures.py drh [out_dir]             Fig. 12: DRH of (NH4)2SO4 and letovicite vs alpha
   python tools/uhaero2007_figures.py map Y P [out_dir]         Figs. 8, 9: X-RH diagram with organic pair P (1-4)
+  python tools/uhaero2007_figures.py lines Y P [out_dir]       smooth boundary lines for that map (used by plot)
   python tools/uhaero2007_figures.py plot [out_dir]            draw the figures from the cached results
 
 Inorganic + organic feeds follow the paper: per mol of cation (NH4+ + H+ = 1), sum of inorganic ions (2+Y)/(1+Y),
@@ -233,6 +234,30 @@ def run_map(Y, pair, out):
     pickle.dump(pm, open(os.path.join(out, f"u07_map_Y{Y:.2f}_P{pair}.pkl"), "wb"))
 
 
+def _save(obj, path):
+    """pickle to a temporary file and rename it (a run killed while writing keeps the previous file)"""
+    pickle.dump(obj, open(path + ".tmp", "wb"))
+    os.replace(path + ".tmp", path)
+
+
+def run_lines(Y, pair, out):
+    """smooth boundary lines for the cached map (trace_boundaries); the solves are cached in lines_cache_*.pkl"""
+    from aiomfac_py.diagram import trace_boundaries
+    ions = ["NH4+", "H+", "SO4--"] + (["NO3-"] if Y < 1 else [])
+    pe, o1, o2, f1 = org_system(pair, ions)
+    pm = pickle.load(open(os.path.join(out, f"u07_map_Y{Y:.2f}_P{pair}.pkl"), "rb"))
+    cf = os.path.join(out, f"lines_cache_Y{Y:.2f}_P{pair}.pkl")
+    cache = pickle.load(open(cf, "rb")) if os.path.exists(cf) else {}
+    t0 = time.time()
+    try:
+        bc = trace_boundaries(pe, lambda X: with_organics(inorg_feed(X, Y), o1, o2, f1, 0.2), pm, solve_timeout=20,
+                              cache=cache, checkpoint=lambda c: _save(c, cf), verbose=True)
+    finally:
+        _save(cache, cf)
+    print(f"Y = {Y}, pair {pair}: lines {time.time() - t0:.0f} s, {bc.n_solves} solves", flush=True)
+    pickle.dump(bc, open(os.path.join(out, f"u07_lines_Y{Y:.2f}_P{pair}.pkl"), "wb"))
+
+
 def plot_all(out):
     import matplotlib
     matplotlib.use("Agg")
@@ -413,9 +438,11 @@ def plot_org(out):
                 ax.axis("off")
                 continue
             pm = pickle.load(open(f, "rb"))
+            fb = os.path.join(out, f"u07_lines_Y{Y:.2f}_P{p}.pkl")
+            bc = pickle.load(open(fb, "rb")) if os.path.exists(fb) else None
             plot_phase_map(pm, ax=ax, legend=False, colors={s: c for s, c in zip(
-                pm.states(), ["#ffffff"] * 99)})
-            label_regions(ax, pm, LETTERS, min_cells=200, fontsize=7)
+                pm.states(), ["#ffffff"] * 99)}, curves=bc)
+            label_regions(ax, pm, LETTERS, min_cells=200, fontsize=7, curves=bc)
             ax.set_title(f"({'abcd'[p - 1]}) {names[p][4:]}, α = 0.2", fontsize=10)
             ax.set_ylabel("RH")
         fig.suptitle(f"Fig. {fno} (AIOMFAC): Y = {Y} with two organics (L1/L2/L3: liquid phases; letters: solids)",
@@ -437,8 +464,9 @@ if __name__ == "__main__":
         run_as(sys.argv[2] if len(sys.argv) > 2 else ".")
     elif cmd == "drh":
         run_drh(sys.argv[2] if len(sys.argv) > 2 else ".")
-    elif cmd == "map":
-        run_map(float(sys.argv[2]), int(sys.argv[3]), sys.argv[4] if len(sys.argv) > 4 else ".")
+    elif cmd in ("map", "lines"):
+        (run_map if cmd == "map" else run_lines)(float(sys.argv[2]), int(sys.argv[3]),
+                                                  sys.argv[4] if len(sys.argv) > 4 else ".")
     elif cmd == "plot":
         plot_all(sys.argv[2] if len(sys.argv) > 2 else ".")
         plot_org(sys.argv[2] if len(sys.argv) > 2 else ".")

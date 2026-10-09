@@ -87,12 +87,22 @@ def run_map(Y, out):
     pickle.dump({"pm": pm, "fields": fields}, open(os.path.join(out, f"map_Y{Y:.2f}.pkl"), "wb"))
 
 
+def _save(obj, path):
+    """pickle to a temporary file and rename it (a run killed while writing keeps the previous file)"""
+    pickle.dump(obj, open(path + ".tmp", "wb"))
+    os.replace(path + ".tmp", path)
+
+
 def run_lines(Y, out):
     """trace the boundary lines of the cached map continuously (smooth lines meeting at the junctions)"""
     from aiomfac_py.diagram import trace_boundaries
     pm = pickle.load(open(os.path.join(out, f"map_Y{Y:.2f}.pkl"), "rb"))["pm"]
+    cf = os.path.join(out, f"lines_cache_Y{Y:.2f}.pkl")
+    cache = pickle.load(open(cf, "rb")) if os.path.exists(cf) else {}
     t0 = time.time()
-    bc = trace_boundaries(system(Y), lambda X: feed(X, Y), pm, solve_timeout=8, verbose=True)
+    bc = trace_boundaries(system(Y), lambda X: feed(X, Y), pm, solve_timeout=8, cache=cache,
+                          checkpoint=lambda c: _save(c, cf), verbose=True)
+    _save(cache, cf)
     print(f"Y = {Y}: lines {time.time() - t0:.0f} s, {bc.n_solves} solves", flush=True)
     pickle.dump(bc, open(os.path.join(out, f"lines_Y{Y:.2f}.pkl"), "wb"))
 

@@ -521,6 +521,8 @@ class _Tracer:
         self.n_solves = 0
         self.debug = False
         self.timeout = None
+        self.checkpoint = None
+        self.checkpoint_every = 200
 
     def to_xr(self, p):
         return self.x0 + p[0] * (self.x1 - self.x0), self.r0 + p[1] * (self.r1 - self.r0)
@@ -546,6 +548,8 @@ class _Tracer:
             self.n_solves += 1
         out = (phase_state(res) if _ok(res) else None, res)
         self.cache[key] = out
+        if self.checkpoint is not None and self.n_solves % self.checkpoint_every == 0:
+            self.checkpoint(self.cache)
         return out
 
     def locate(self, q, n, L, R, delta, warm):
@@ -673,7 +677,8 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
                      h0: float = 0.02, h_min: float = 0.002, h_max: float = 0.05, delta_max: float = 0.05,
                      rh_samples: int = 40, snap: float | None = None, solve_timeout: float | None = None,
                      x_lines: Sequence[float] = (), junction_rounds: int = 2, cache: dict | None = None,
-                     verbose: bool = False, **solve_kw) -> BoundaryCurves:
+                     checkpoint: Callable[[dict], None] | None = None, verbose: bool = False,
+                     **solve_kw) -> BoundaryCurves:
     """Trace every boundary line of the phase map ``pm`` (from :func:`phase_map` with the same ``pe`` and
     ``feed_of_x``) continuously in the (x, RH) plane.
 
@@ -693,7 +698,8 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
     seeds between traces, and compositions given in ``x_lines`` are scanned in any case.  After the seeds, the states
     on a small circle around every line end at a junction are checked (``junction_rounds`` times): a change of state
     that no traced line explains starts a new line (short lines between junctions that cross no trace).  ``cache``:
-    a dict of solves, kept and reused between calls with the same ``pm``.  Other keywords go to
+    a dict of solves, kept and reused between calls with the same ``pm``; ``checkpoint(cache)`` is called every 200
+    solves (e.g. to save the cache of a long run).  Other keywords go to
     :meth:`PhaseEquilibrium.solve`."""
     traces, xs = _regular_traces(pm)
     x_range = (float(pm.x[0]), float(pm.x[-1]))
@@ -704,6 +710,7 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
     tr.timeout = solve_timeout
     if cache is not None:
         tr.cache = cache
+    tr.checkpoint = checkpoint
     done: list = []                                         # (L, R, points, ends)
     skipped = 0
 
