@@ -402,11 +402,12 @@ sulfate–nitrate systems with contour fields). Independent traces can be run in
 `ternary_lle` takes 5–15 s.
 
 `trace_boundaries` needs about four solves per point on a straight line and 10–20 per line end. Examples (same
-machine): (NH4)2SO4–NH4NO3, 14 lines, 1400 solves, 3.5 min (the phase map: 2.5 min); UHAERO 2006 Y = 1, 14 lines,
-2600 solves, 33 min; Y = 0.5, 29 lines, 5000 solves, 100 min. About a third of the solves go to the search for
-vertical lines between the traces (`rh_samples`). With two organics the solver is slow and noisy at low RH, and
-tracing a map took 4400 solves (2.2 h) and still missed some short lines near junctions (where a line is missing,
-the regions keep the interpolated colours); use it there with `solve_timeout` and check the result.
+machine, one process per diagram): (NH4)2SO4–NH4NO3, 14 lines, 1400 solves, 2–3.5 min (the phase map: 2.5 min);
+the UHAERO 2006 diagrams (NH4+/H+/SO4--/NO3-), 14–44 lines, 2600–6000 solves, 35–100 min each (comparable to their
+phase maps); the UHAERO 2007 diagrams with two organics, 3600–4800 solves, about 1.5 h each. Most of the extra cost
+is in compositions where the solver is slow or does not converge (very acidic, nearly dry particles); there
+`solve_timeout` keeps it bounded, and `show_failed=True` shows where the diagram is not resolved. With `cache`, a
+second call with other options only solves the new points (a minute instead of hours).
 
 ## 8. Limitations
 
@@ -423,9 +424,10 @@ the regions keep the interpolated colours); use it there with `solve_timeout` an
   al., 2006, Fig. 14) are not supported. Efflorescence is not traced (use `PhaseEquilibrium.drying_path` with
   critical supersaturations).
 * **Grid resolution.** States narrower than the RH grid spacing or the x refinement tolerance can be missed;
-  ternary phase compositions are resolved to `h`. `trace_boundaries` finds only the lines that cross a trace or
-  that separate neighbouring traces at one of the `rh_samples` levels; a short line near a junction that does
-  neither is missed.
+  ternary phase compositions are resolved to `h`. `trace_boundaries` finds the lines that cross a trace, that
+  separate neighbouring traces at one of the `rh_samples` levels, or that leave a junction; a short line that does
+  none of these is missed, and no line can be traced where the solver does not converge. Where a line is missing,
+  the regions keep the interpolated states.
 
 ## 9. References
 
