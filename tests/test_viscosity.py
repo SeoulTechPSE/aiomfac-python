@@ -296,17 +296,87 @@ class TestOrganicMixtureViscosityGervasi2020:
 
 
 class TestOrganicMixtureViscosityPEG:
-    """Documented model limitation (see organic_mixture_viscosity's docstring): for PEG oligomers (subgroup 154)
-    G2020 Eq. 1-9 give mixture viscosities far above both pure components; a warning is issued."""
+    """PEG oligomers (subgroup 154, see organic_mixture_viscosity's docstring): the published G2020 Eq. 1-9 give
+    mixture viscosities far above both pure components; the default peg_treatment applies the AIOMFAC-web v3.14
+    workaround. Reference values: ln(eta / Pa s) computed by the AIOMFAC-web v3.14 Fortran (github.com/andizuend/
+    AIOMFAC, commit b9cb96d) in SRcalcvisc as sum(lneta_cpn) for the ion-free case, printed (ES24.15) just before
+    SRcalcvisc replaces it by the mole-fraction rule; pure-component ln eta0 of water and organic are the
+    Fortran's own (ln_eta0, printed alongside)."""
 
+    TEG = Component(2, "triethylene glycol", ((150, 2), (153, 2), (154, 2)))
     PEG400 = Component(2, "PEG400", ((150, 2), (153, 2), (154, 8)))
     DEG = Component(2, "diethylene glycol", ((2, 1), (25, 1), (150, 2), (153, 2)))
 
-    def test_peg_oligomer_warns(self):
+    # (component, T_K, ln eta0 water, ln eta0 organic, [(x_org, Fortran ln eta_mix)])
+    FORTRAN_V314 = [
+        (TEG, 293.15, -6.9055815464596826, 9.3000199711121141,
+         [(0.01, -6.8289600157663424), (0.05, -6.361491170038021), (0.1, -5.5802637127052952),
+          (0.3, -1.827748960902275), (0.6, 3.6522489966474181), (0.9, 8.0637239317355007)]),
+        (PEG400, 290.15, -6.8308619020805974, 53.822049878007228,
+         [(0.01, -6.7416033996483451), (0.05, -5.9841031161162581), (0.1, -4.7135543310135422),
+          (0.3, 4.973130239512126), (0.6, 27.658702839187988), (0.9, 48.050948108654637)]),
+    ]
+
+    @pytest.mark.parametrize("component, T_K, ln_eta0_w, ln_eta0_org, points", FORTRAN_V314, ids=["TEG", "PEG400"])
+    def test_default_matches_aiomfac_web_v314(self, component, T_K, ln_eta0_w, ln_eta0_org, points):
+        model = ActivityModel([WATER, component])
+        eta0 = {1: math.exp(ln_eta0_w), 2: math.exp(ln_eta0_org)}
+        for x_org, ln_eta_fortran in points:
+            with pytest.warns(UserWarning, match="v3.14 PEG workaround"):
+                res = organic_mixture_viscosity(model, np.array([1 - x_org, x_org]), T_K, eta0)
+            assert res.ln_eta == pytest.approx(ln_eta_fortran, abs=1e-12)
+
+    def test_default_vs_measured_triethylene_glycol(self):
+        # triethylene glycol + water, 293.15 K, Hoga et al. (2018, J. Chem. Thermodyn. 122, 38-64), via NIST
+        # ThermoML: (x_TEG, eta / Pa s); measured eta0 = 0.04806 Pa s. Mean absolute error 0.107 log10 units
+        # (the published equations, peg_treatment=None: 1.00).
+        data = [(0.025, 0.0018807), (0.0489, 0.0029209), (0.0754, 0.004368), (0.0993, 0.0059885), (0.15, 0.01019),
+                (0.1993, 0.014461), (0.2526, 0.019409), (0.2998, 0.023566), (0.3539, 0.027832), (0.4009, 0.031198),
+                (0.4492, 0.034102), (0.4992, 0.036666), (0.5484, 0.038842), (0.5996, 0.040642), (0.6506, 0.042147),
+                (0.701, 0.043666), (0.7567, 0.044872), (0.8035, 0.045731), (0.8406, 0.046363), (0.8981, 0.046959),
+                (0.9489, 0.047639)]
+        model = ActivityModel([WATER, self.TEG])
+        err = {}
+        for treatment in ("aiomfac_web_v3.14", None):
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                err[treatment] = np.mean([abs(organic_mixture_viscosity(
+                    model, np.array([1 - x, x]), 293.15, {2: 0.04806}, peg_treatment=treatment).log10_eta_pas
+                    - math.log10(eta)) for x, eta in data])
+        assert err["aiomfac_web_v3.14"] == pytest.approx(0.107, abs=0.002)
+        assert err[None] == pytest.approx(1.002, abs=0.002)
+
+    def test_published_equations_diverge_and_warn(self):
         model = ActivityModel([WATER, self.PEG400])
-        with pytest.warns(UserWarning, match="PEG"):
-            res = organic_mixture_viscosity(model, np.array([0.9, 0.1]), 290.15, {2: 0.12})
+        with pytest.warns(UserWarning, match="not valid for PEG"):
+            res = organic_mixture_viscosity(model, np.array([0.9, 0.1]), 290.15, {2: 0.12}, peg_treatment=None)
         assert res.log10_eta_pas > 10.0     # the published model's known divergence, not a physical value
+
+    def test_default_stays_near_pure_component_range(self):
+        # water + PEG-400, 290.15 K, eta0 = 0.12 Pa s: between water and PEG except a weak maximum (-0.856 at
+        # x = 0.6 vs. -0.921 for pure PEG-400), as documented
+        model = ActivityModel([WATER, self.PEG400])
+        with pytest.warns(UserWarning):
+            vals = [organic_mixture_viscosity(model, np.array([1 - x, x]), 290.15, {2: 0.12}).log10_eta_pas
+                    for x in (0.01, 0.1, 0.3, 0.6, 0.9)]
+        assert math.log10(water_viscosity_pas(290.15)) < min(vals)
+        assert max(vals) < math.log10(0.12) + 0.1
+
+    def test_invalid_peg_treatment(self):
+        model = ActivityModel([WATER, self.DEG])
+        with pytest.raises(ValueError):
+            organic_mixture_viscosity(model, np.array([0.5, 0.5]), 293.15, {2: 0.035893}, peg_treatment="v3.13")
+
+    def test_mixing_rules_pass_peg_treatment_on(self):
+        nacl = Component(3, "NaCl", ((202, 1), (242, 1)))
+        model = ActivityModel([WATER, self.PEG400, nacl])
+        res = model.evaluate([0.6, 0.3, 0.1], 290.15, basis="mass")
+        for rule in (aquelec_viscosity, aquorg_viscosity):
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                default = rule(model, res, 290.15, {2: 0.12}).eta_pas
+                published = rule(model, res, 290.15, {2: 0.12}, peg_treatment=None).eta_pas
+            assert default < 1.0 < published
 
     def test_ordinary_ether_does_not_warn_and_stays_between_pure_components(self):
         # diethylene glycol + water, 293.15 K, Hoga et al. (2018, J. Chem. Thermodyn. 122, 38-64): measured

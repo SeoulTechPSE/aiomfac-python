@@ -465,7 +465,7 @@ For **example 0003** specifically: LR and MR of water and of all ions agree to 1
   MR interaction coefficients (a real, active override). Validated against two Fortran cases (`cc07`/`cc08` in
   `tests/reference/ext/`, a PEG oligomer alone and with (NH4)2SO4) to the same ~1e-14 precision as every other
   case. The viscosity-only PEG special cases of the Fortran (`XieR`/`XieC` in `SRgres`/`SRgcomb`, gated by
-  `calcviscosity`) are not ported; see the next item.
+  `calcviscosity`) live in `viscosity.py` (`organic_mixture_viscosity`'s `peg_treatment`); see the next item.
 * **AIOMFAC-VISC organic (`organic_mixture_viscosity`, Gervasi et al., 2020)** is a port of the *published*
   equations (G2020 Eq. 1-9), checked against the paper rather than against the v3.14 output:
   * Up to aiomfac_py 1.3.0 the code had a porting error in G2020 Eq. 5: `N_vis = Q_k ((q_i - r_i)/2 - (1 - r_i)/z)`
@@ -485,13 +485,21 @@ For **example 0003** specifically: LR and MR of water and of all ions agree to 1
     water + PEG-400 (eta0 = 0.12 Pa s, 290 K) gives up to ~1e38 Pa s, water + triethylene glycol up to 1.6 log10
     units above measured values (Hoga et al., 2018). The published equations give this (an older Fortran build
     shows the same), so it is not a porting error. Ordinary ether groups are fine (water + diethylene glycol,
-    MAE 0.24 log10). `organic_mixture_viscosity` warns for components with more than one subgroup 154, and
-    `aquelec_viscosity`/`aquorg_viscosity` inherit both the behaviour and the warning.
-  * AIOMFAC-web v3.14 (the commit above) differs from G2020 in two ways that are **not** ported: for PEG
-    components it sets the residual term to zero and caps `gamma_i^C x_i` at 1, and, for all systems, it reports
-    the mole-fraction mixing rule `ln eta = sum_i x_i ln eta0_i` (with an electrolyte-aware water viscosity in
-    the aquelec case) instead of the G2020 value, which it still computes but overwrites (`SRcalcvisc`). AIOMFAC-web
-    v3.13 and earlier report the G2020 value. Viscosities from this package therefore match the paper, not the
+    MAE 0.24 log10).
+  * **PEG workaround of AIOMFAC-web v3.14, on by default** (`peg_treatment="aiomfac_web_v3.14"` in
+    `organic_mixture_viscosity`, `aquelec_viscosity`, `aquorg_viscosity`): for components with more than one
+    subgroup 154 the residual term is set to zero and `gamma_i^C x_i` in Eq. 2 is capped at 1, as in the v3.14
+    Fortran (`SRgres`/`SRgcomb`). Validated against the v3.14 Fortran's internal G2020 value for water +
+    triethylene glycol and + PEG-400 (x_org = 0.01-0.9) to < 1e-12 in ln eta; water + triethylene glycol is then
+    within 0.107 log10 units (mean absolute) of Hoga et al. (2018) instead of 1.00. The workaround is not
+    published and differs between AIOMFAC versions (v3.10-v3.13 zeroed the residual term of *all* components in
+    a PEG-containing mixture and capped `gamma_i^C` at 100); for PEG-400 it still gives a weak maximum slightly
+    above the pure-PEG viscosity. A `UserWarning` names the components it was applied to; `peg_treatment=None`
+    gives the published equations.
+  * **Not ported:** AIOMFAC-web v3.14 reports as mixture viscosity the mole-fraction mixing rule
+    `ln eta = sum_i x_i ln eta0_i` (with an electrolyte-aware water viscosity in the aquelec case) instead of the
+    G2020 value, which it still computes but overwrites (`SRcalcvisc`). AIOMFAC-web v3.13 and earlier report the
+    G2020 value. Viscosities from this package therefore follow the paper (plus the PEG workaround), not the
     v3.14 web output.
 * **Not ported, and confirmed unreachable through any AIOMFAC-web input file, so not worth porting**: the
   3-parameter temperature dependence (BRR/CRR, `case(500:800, 2000:2434)` in `ModSRunifac.f90`) is gated on a

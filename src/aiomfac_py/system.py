@@ -17,9 +17,8 @@ feature; see completion.py's module docstring for what is and isn't handled end-
 PEG systems (subgroup 154, main group 70 "CH2OCH2[PEG]") use special R/Q values for that subgroup instead of the
 tabulated Bondi (1964) ones (ModSRunifac.f90, ``isPEGsystem`` block in the RS(I)/QS(I) accumulation loop) --
 ported below (``_PEG_R``/``_PEG_Q``). The viscosity-only ``isPEGsystem`` special cases (``XieR``/``XieC``,
-gated by ``calcviscosity``) are not ported: they modify the Gervasi et al. (2020) organic viscosity model
-(``viscosity.organic_mixture_viscosity``), which this package keeps in its published form; see that
-function's docstring for the PEG limitation they work around.
+gated by ``calcviscosity``) belong to the Gervasi et al. (2020) organic viscosity model and are implemented
+there (``viscosity.organic_mixture_viscosity``, keyword ``peg_treatment``).
 """
 from __future__ import annotations
 

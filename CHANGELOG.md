@@ -7,10 +7,14 @@
   change by up to about 0.1 log10 units (e.g. water + sucrose, 10 mol% sucrose: 0.09). After the fix the port
   reproduces the paper's Supplement Table S5 error statistics (new regression test). The glycerol/CRC test now uses a
   log10 tolerance of 0.06 (the corrected model is up to 12 % below those data, as in G2020 Fig. 4a).
-- **PEG limitation documented**: for components with more than one CH2OCH2[PEG] subgroup (154) the published G2020
-  equations give mixture viscosities orders of magnitude above both pure components; a `UserWarning` is now issued.
-  AIOMFAC-web v3.14's PEG workaround and its switch to the mole-fraction mixing rule for reported viscosities are
-  described in the README, not ported.
+- **PEG oligomers** (components with more than one CH2OCH2[PEG] subgroup, 154): the published G2020 equations give
+  mixture viscosities orders of magnitude above both pure components (water + PEG-400: up to ~1e38 Pa s). The
+  AIOMFAC-web v3.14 workaround (residual term zero, `gamma^C x` capped at 1) is now applied by default through the new
+  keyword `peg_treatment="aiomfac_web_v3.14"` of `organic_mixture_viscosity`, `aquelec_viscosity` and
+  `aquorg_viscosity`; it matches the v3.14 Fortran to < 1e-12 and cuts the error for water + triethylene glycol from
+  1.00 to 0.107 log10 units (Hoga et al., 2018). `peg_treatment=None` restores the published equations. A
+  `UserWarning` is issued either way. **Behaviour change** for PEG-containing systems. AIOMFAC-web v3.14's switch to
+  the mole-fraction mixing rule for reported viscosities is described in the README, not ported.
 
 ## v1.3.0 (2026-10)
 
