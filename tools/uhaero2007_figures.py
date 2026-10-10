@@ -250,7 +250,7 @@ def run_lines(Y, pair, out):
     cache = pickle.load(open(cf, "rb")) if os.path.exists(cf) else {}
     t0 = time.time()
     try:
-        bc = trace_boundaries(pe, lambda X: with_organics(inorg_feed(X, Y), o1, o2, f1, 0.2), pm, solve_timeout=20,
+        bc = trace_boundaries(pe, lambda X: with_organics(inorg_feed(X, Y), o1, o2, f1, 0.2), pm, solve_timeout=6,
                               cache=cache, checkpoint=lambda c: _save(c, cf), verbose=True)
     finally:
         _save(cache, cf)
