@@ -573,7 +573,7 @@ class _Tracer:
         if not _ok(res):                                    # warm start from the nearest converged solves
             near = sorted(((np.hypot(k[0] - key[0], k[1] - key[1]), v[1]) for k, v in self.cache.items()
                            if v[0] is not None and v[1].liquids), key=lambda z: z[0])
-            for d, r0 in near[:1]:
+            for d, r0 in near[:2]:
                 if d > 0.1 or r0 is init:
                     break
                 res = _solve_limited(self.pe, feed, float(rh), self.mode, r0, dict(self.solve_kw), self.timeout)
@@ -745,6 +745,12 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
     if cache is not None:
         tr.cache = cache
     tr.checkpoint = checkpoint
+    # the converged solves of the traces (found by continuation in RH) are known states and good warm starts
+    for xv, t in zip(pm.x, pm.traces):
+        for r, res in zip(t.rh, t.results):
+            key = tuple(round(float(v), 10) for v in tr.to_unit(float(xv), float(r)))
+            if _ok(res) and tr.cache.get(key, (None,))[0] is None:
+                tr.cache[key] = (phase_state(res), res)
     done: list = []                                         # (L, R, points, ends)
     skipped = 0
 
