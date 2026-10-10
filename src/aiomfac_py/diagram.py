@@ -411,8 +411,8 @@ def plot_phase_map(pm: PhaseMap, ax=None, *, colors: dict | None = None, rh_poin
     as dotted lines, optional metastable boundaries (``metastable``, dotted grey).  ``rh_points`` and ``x_points``
     set the resolution of the region grid (raise them for zoomed views).  With ``curves`` (from
     :func:`trace_boundaries`) the boundaries are drawn as the traced lines and the regions are filled between them.
-    ``show_failed`` marks the compositions and RH where solves did not converge (grey dots), i.e. where the
-    diagram is not resolved.  Returns the matplotlib axes."""
+    ``show_failed`` marks the compositions and RH where solves did not converge (grey dots; not those within 0.01 of
+    a traced line), i.e. where the diagram is not resolved.  Returns the matplotlib axes."""
     import matplotlib.pyplot as plt
     from matplotlib.colors import ListedColormap
     from matplotlib.patches import Patch
@@ -446,6 +446,12 @@ def plot_phase_map(pm: PhaseMap, ax=None, *, colors: dict | None = None, rh_poin
             pts += [tuple(q) for q in curves.failed]
         if pts:
             q = np.array(pts)
+            if curves is not None and curves.curves:        # failures right at a line (bisection points) are left out
+                sx = curves.x_range[1] - curves.x_range[0]
+                sr = curves.rh_range[1] - curves.rh_range[0]
+                Ps = [np.c_[c.x / sx, c.rh / sr] for c in curves.curves]
+                q = np.array([z for z in q if min(_dist_to_polyline(np.array([z[0] / sx, z[1] / sr]), P)
+                                                  for P in Ps) > 0.01]).reshape(-1, 2)
             ax.plot(q[:, 0], q[:, 1], ".", color="#888888", ms=2.5, zorder=3)
     else:
         xc, yc = np.meshgrid(xf, rg)
