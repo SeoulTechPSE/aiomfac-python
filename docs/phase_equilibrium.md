@@ -651,8 +651,7 @@ failures of the UHAERO 2007 diagrams at RH < 0.1). Water-poor organic phases wit
 ### 6.3 Adding a phase
 
 `max_liquids` (default 4; 3 before 2026-10) caps the number of liquids. Particles with two organics can have four
-liquids: two organic-rich ones and two aqueous ones (e.g. the almost molten second salt liquid of Sect. 9 of the
-diagram report). With a cap of 3 the outer loop stopped with a negative TPD (not converged) in about 10 % of the
+liquids: two organic-rich ones and two aqueous ones (e.g. an almost molten second salt liquid at low RH). With a cap of 3 the outer loop stopped with a negative TPD (not converged) in about 10 % of the
 solves of the 1-hexacosanol/pinic acid and pinonic acid/nonacosane diagrams.
 
 If the most negative TPD is below `−tol_tpd` (1e-7), a new liquid is seeded at the minimizer w. Its non-water part is
