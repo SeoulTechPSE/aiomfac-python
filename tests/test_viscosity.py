@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import dataclasses
 import math
+import warnings
 from types import SimpleNamespace
 
 import numpy as np
@@ -218,7 +219,9 @@ class TestOrganicMixtureViscosityGlycerol:
     293.15 K (Gervasi et al. 2020 Supplement, 'Aqueous Binary Systems/glycerol+water_viscosity_CRCHandbook
     @293K.csv'), using glycerol's own measured pure-component viscosity (1.46 Pa s at 293.15 K, same source) --
     not the VTF/Tg estimate, to isolate the correctness of the Eq. 1-9 mixing engine itself from the separately
-    tested (and, per Gervasi et al. 2020, considerably less certain) VTF pure-component viscosity estimate."""
+    tested (and, per Gervasi et al. 2020, considerably less certain) VTF pure-component viscosity estimate.
+    The model is up to 0.053 log10 units (12 %) below these data at 60-80 wt% glycerol, as in G2020 Fig. 4a;
+    the port itself is checked against G2020's own error statistics in TestOrganicMixtureViscosityGervasi2020."""
 
     ETA0_GLYCEROL_293K = 1.46
 
@@ -229,7 +232,7 @@ class TestOrganicMixtureViscosityGlycerol:
         model = ActivityModel([WATER, GLYCEROL])
         res = model.evaluate([1 - wtf_glycerol, wtf_glycerol], 293.15, basis="mass")
         result = organic_mixture_viscosity(model, res.x, 293.15, {2: self.ETA0_GLYCEROL_293K})
-        assert result.eta_pas == pytest.approx(eta_measured, rel=0.1)
+        assert result.log10_eta_pas == pytest.approx(math.log10(eta_measured), abs=0.06)
 
     def test_vanishing_glycerol_reproduces_water_viscosity(self):
         model = ActivityModel([WATER, GLYCEROL])
@@ -249,6 +252,71 @@ class TestOrganicMixtureViscosityGlycerol:
         res = model.evaluate([0.8, 0.1, 0.1], 293.15, basis="mass")
         with pytest.raises(ValueError):
             organic_mixture_viscosity(model, res.x, 293.15, {2: self.ETA0_GLYCEROL_293K})
+
+
+class TestOrganicMixtureViscosityGervasi2020:
+    """Regression test against Gervasi et al. (2020) Supplement Table S5: mean absolute / mean bias error (log10
+    units, each point weighted by its measurement error delta as in their Eq. S6:
+    log10(y + delta) - log10(x + delta)) of AIOMFAC-VISC with the stated "best" pure-component viscosity, for
+    the Song et al. (2016) aerosol-optical-tweezers data sets. Data (organic mass fraction, measured log10 eta /
+    Pa s, delta / Pa s) are copied from the G2020 Supplement files "Aqueous Binary Systems/<compound>+water_
+    viscosity_Song2016@293K.csv" (CC BY 4.0). Up to aiomfac_py 1.3.0, Eq. 5 lacked the factor Q_k on its second
+    term; that version gives sucrose 1.3396/-0.1342 and erythritol 0.2881/-0.2868 and fails this test."""
+
+    SUCROSE = Component(2, "sucrose", ((4, 1), (26, 3), (150, 3), (151, 5), (153, 8)))
+    ERYTHRITOL = Component(2, "erythritol", ((150, 2), (151, 2), (153, 4)))
+    BUTANETRIOL = Component(2, "1,2,4-butanetriol", ((142, 1), (150, 2), (151, 1), (153, 3)))
+
+    SUCROSE_DATA = [(0.979, 8.526, 2.13796209), (0.962, 6.258, 3.981071706), (0.926, 4.635, 2.187761624),
+                    (0.868, 3.805, 3.548133892), (0.877, 3.751, 2.187761624), (0.872, 2.283, 3.388441561),
+                    (0.836, 1.687, 3.388441561), (0.641, -1.297, 3.311311215)]
+    ERYTHRITOL_DATA = [(0.987, 3.664, 1.9498446), (0.978, 3.362, 1.819700859), (0.936, 1.766, 1.819700859),
+                       (0.848, 0.549, 1.348962883), (0.785, 0.027, 1.023292992), (0.731, -0.987, 2.089296131),
+                       (0.657, -1.48, 1.77827941), (0.482, -2.702, 2.884031503), (0.309, -2.485, 1.174897555),
+                       (0.06, -2.854, 1.230268771)]
+    BUTANETRIOL_DATA = [(0.998, 0.252, 1.047128548), (0.973, -0.102, 1.071519305), (0.941, -0.638, 1.230268771),
+                        (0.905, -0.76, 1.122018454), (0.861, -1.139, 1.047128548), (0.808, -1.117, 1.862087137),
+                        (0.665, -2.577, 2.089296131), (0.531, -2.971, 2.187761624), (0.242, -2.974, 1.148153621)]
+
+    @pytest.mark.parametrize("component, data, log10_eta0, mae, mbe", [
+        (SUCROSE, SUCROSE_DATA, 16.7816, 1.3781, -0.1887),
+        (ERYTHRITOL, ERYTHRITOL_DATA, 2.9287, 0.2921, -0.2915),
+        (BUTANETRIOL, BUTANETRIOL_DATA, 0.2100, 0.0152, 0.0052),
+    ], ids=["sucrose", "erythritol", "1,2,4-butanetriol"])
+    def test_reproduces_table_s5(self, component, data, log10_eta0, mae, mbe):
+        model = ActivityModel([WATER, component])
+        err = []
+        for w_org, log10_meas, delta in data:
+            res = model.evaluate([1 - w_org, w_org], 293.15, basis="mass")
+            y = organic_mixture_viscosity(model, res.x, 293.15, {2: 10.0 ** log10_eta0}).eta_pas
+            err.append(math.log10(y + delta) - math.log10(10.0 ** log10_meas + delta))
+        err = np.array(err)
+        assert np.abs(err).mean() == pytest.approx(mae, abs=1e-3)
+        assert err.mean() == pytest.approx(mbe, abs=1e-3)
+
+
+class TestOrganicMixtureViscosityPEG:
+    """Documented model limitation (see organic_mixture_viscosity's docstring): for PEG oligomers (subgroup 154)
+    G2020 Eq. 1-9 give mixture viscosities far above both pure components; a warning is issued."""
+
+    PEG400 = Component(2, "PEG400", ((150, 2), (153, 2), (154, 8)))
+    DEG = Component(2, "diethylene glycol", ((2, 1), (25, 1), (150, 2), (153, 2)))
+
+    def test_peg_oligomer_warns(self):
+        model = ActivityModel([WATER, self.PEG400])
+        with pytest.warns(UserWarning, match="PEG"):
+            res = organic_mixture_viscosity(model, np.array([0.9, 0.1]), 290.15, {2: 0.12})
+        assert res.log10_eta_pas > 10.0     # the published model's known divergence, not a physical value
+
+    def test_ordinary_ether_does_not_warn_and_stays_between_pure_components(self):
+        # diethylene glycol + water, 293.15 K, Hoga et al. (2018, J. Chem. Thermodyn. 122, 38-64): measured
+        # eta0 = 0.035893 Pa s; at x_DEG = 0.4007 eta = 0.017722 Pa s (log10 -1.751). The model gives -2.12.
+        model = ActivityModel([WATER, self.DEG])
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            res = organic_mixture_viscosity(model, np.array([0.5993, 0.4007]), 293.15, {2: 0.035893})
+        assert math.log10(water_viscosity_pas(293.15)) < res.log10_eta_pas < math.log10(0.035893)
+        assert res.log10_eta_pas == pytest.approx(math.log10(0.017722), abs=0.45)
 
 
 class TestOrganicInorganicMixing:

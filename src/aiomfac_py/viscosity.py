@@ -42,9 +42,9 @@ rules. This module now implements:
 * **G2020's aqueous organic viscosity model itself** (``organic_mixture_viscosity``, ``pure_organic_viscosity_
   vtf``) -- the "GC-UNIMOD"/AIOMFAC-VISC-organic combinatorial-plus-residual mixture viscosity equations
   (G2020 Eq. 1-9). These need no new fitted parameters beyond what this package's existing short-range/UNIFAC
-  machinery (``sr.py``) already has (the subgroup R, Q and interaction tables) -- validated directly against
-  real CRC Handbook water+glycerol viscosity data (``tests/test_viscosity.py``, ~2-8% agreement, matching
-  G2020's own reported accuracy for small, well-characterized molecules).
+  machinery (``sr.py``) already has (the subgroup R, Q and interaction tables). Validated (see
+  ``organic_mixture_viscosity``'s docstring for details and the PEG limitation) against G2020's own published
+  error statistics (Supplement Table S5) and against the Fortran AIOMFAC-VISC organic code.
 * **Two of LZ2022's three mixing rules**, "aquelec" and "aquorg" (``aquelec_viscosity``, ``aquorg_viscosity``;
   LZ2022 Sect. 3.4.1-3.4.2) -- both need only a fixed, non-iterative sequence of calls into the electrolyte and
   organic models above, with ion molalities/mole fractions or organic mole fractions rescaled as LZ2022
@@ -114,6 +114,7 @@ Units: SI throughout (Pa s for viscosity, m^3/mol for molar volumes, mol/kg for 
 from __future__ import annotations
 
 import math
+import warnings
 from dataclasses import dataclass
 from typing import Mapping
 
@@ -432,6 +433,38 @@ def organic_mixture_viscosity(model: ActivityModel, x_neutral, T_K: float,
     computes from the thermodynamic subgroup tables (R, Q, the interaction parameters a_{m,k}, and the
     combinatorial activity coefficients) -- no additional fitted viscosity-specific parameters are needed for
     this part of the model (unlike the per-ion/per-pair coefficients ``electrolyte_viscosity`` uses).
+
+    Validation. G2020 Supplement Table S5 lists, per binary aqueous data set, the mean absolute and mean bias
+    error (log10 units, with each point weighted by its stated measurement error, their Eq. S6) of the model run
+    with fixed pure-component viscosities. Rerun on the G2020 Supplement data with the same eta0, this function
+    reproduces every Song et al. (2016) row whose error weighting can be reconstructed from the supplement files
+    (the mole-fraction mixing-rule column of the same row then also matches) to within 0.004: e.g.
+    1,2,4-butanetriol 0.0152/0.0052 (G2020: 0.0152/0.0052), erythritol 0.2921/-0.2915 (0.2921/-0.2915),
+    sucrose 1.3780/-0.1886 (1.3781/-0.1887), maleic acid 0.0000/0.0000 (0.0000/0.0000), citric acid
+    0.4132/0.2791 (0.4144/0.2829) (``tests/test_viscosity.py::TestOrganicMixtureViscosityGervasi2020``). Against
+    the Fortran AIOMFAC-VISC organic code of AIOMFAC-web v3.14 (``SRgres``/``SRgcomb``/``SRcalcvisc`` in
+    ``ModSRunifac.f90``, the G2020 value ``sum(lneta_cpn)`` printed before ``SRcalcvisc`` overwrites it, see
+    below) for water + glycerol, citric acid, sucrose, diethylene glycol and 1,2-dimethoxyethane (x_org =
+    0.01-0.9, 293.15 K, with the Fortran's own pure-component viscosities), the difference is < 1e-14 log10
+    units. Up to aiomfac_py 1.3.0, Eq. 5 was coded with Q_k multiplying only its first term; that gave
+    differences of 0.01-0.09 log10 units for the same systems.
+
+    Model limitation: PEG oligomers (subgroup 154, CH2OCH2[PEG]). AIOMFAC refits R = 1.381, Q = 3.0 for this
+    subgroup (for activities), so for a PEG chain q_i - r_i is large and positive (PEG-400: q = 27.5, r = 14.4),
+    and the residual term (Eq. 3-5, which scales with q_i - r_i) grows with chain length: G2020 Eq. 1-9 then give
+    unphysical mixture viscosities far above both pure components (water + PEG-400 at 290 K with eta0 = 0.12 Pa s:
+    up to ~1e38 Pa s near x_PEG = 0.1; water + triethylene glycol at 293.15 K: up to 1.6 log10 units above
+    measured values, and above pure triethylene glycol). This is what the published equations give -- the old
+    Fortran code shows the same divergence -- not a porting error; G2020 did not fit or test PEG. Ordinary ether
+    groups are not affected (water + diethylene glycol, subgroups 25/150/153: mean absolute error 0.24 log10
+    against Hoga et al., 2018, J. Chem. Thermodyn. 122, 38-64, at 293.15 K). A ``UserWarning`` is issued for
+    any component with more than one subgroup 154. AIOMFAC-web v3.14 (the reference this package otherwise
+    follows) works around it inside this model by setting xi_R = 0 (mixture and reference) for such components
+    and capping gamma_i^C x_i at 1 in Eq. 2 (with these two changes applied, this function's terms reproduce the
+    v3.14 values for water + triethylene glycol and + PEG-400 to < 1e-14), and in addition reports the
+    mole-fraction mixing rule (``ln eta = sum_i x_i ln eta0_i``, with electrolyte-aware water in the aquelec
+    case) rather than Eq. 1 as its mixture viscosity; AIOMFAC-web v3.13 and earlier report Eq. 1. Neither change
+    is ported: this function stays the published G2020 model.
     """
     sr = model.mixture.sr
     if sr.n_species != sr.n_neutral:
@@ -454,6 +487,12 @@ def organic_mixture_viscosity(model: ActivityModel, x_neutral, T_K: float,
             raise ValueError(f"no pure-component viscosity given for organic component {comp.number} "
                               f"({comp.name!r}) -- pass it in eta0_pas (measured, or via "
                               f"pure_organic_viscosity_vtf with a known/estimated Tg)")
+    peg = [comp.name for comp in components if dict(comp.subgroups).get(154, 0) > 1]
+    if peg:
+        warnings.warn(f"organic_mixture_viscosity: {peg} contain more than one CH2OCH2[PEG] subgroup (154); "
+                      f"Gervasi et al. (2020) Eq. 1-9 are not valid for PEG oligomers and can give mixture "
+                      f"viscosities orders of magnitude above both pure components (see the docstring)",
+                      UserWarning, stacklevel=2)
 
     psi = psi_t(sr, T_K)
     L_mix = _group_residual_L(sr, psi, x)
@@ -470,7 +509,7 @@ def organic_mixture_viscosity(model: ActivityModel, x_neutral, T_K: float,
 
         e_i = np.zeros(nn); e_i[i] = 1.0
         L_ref = _group_residual_L(sr, psi, e_i)                            # pure component i (Eq. 4's "ref")
-        N_vis = Q * (QS[i] - RS[i]) / 2.0 - (1.0 - RS[i]) / Z_COORD        # Eq. 5, vs. group k
+        N_vis = Q * ((QS[i] - RS[i]) / 2.0 - (1.0 - RS[i]) / Z_COORD)      # Eq. 5, vs. group k
         xi_R = Phi[i] * np.sum(SRNY[i] * Q_over_R * N_vis * (L_mix - L_ref))  # Eq. 3-4
 
         ln_eta += xi_C + xi_R

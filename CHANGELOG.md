@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- **Fix, AIOMFAC-VISC organic** (`organic_mixture_viscosity`, and through it `aquelec_viscosity`/`aquorg_viscosity`):
+  Gervasi et al. (2020) Eq. 5 was coded with `Q_k` multiplying only the first of its two terms. Mixture viscosities
+  change by up to about 0.1 log10 units (e.g. water + sucrose, 10 mol% sucrose: 0.09). After the fix the port
+  reproduces the paper's Supplement Table S5 error statistics (new regression test). The glycerol/CRC test now uses a
+  log10 tolerance of 0.06 (the corrected model is up to 12 % below those data, as in G2020 Fig. 4a).
+- **PEG limitation documented**: for components with more than one CH2OCH2[PEG] subgroup (154) the published G2020
+  equations give mixture viscosities orders of magnitude above both pure components; a `UserWarning` is now issued.
+  AIOMFAC-web v3.14's PEG workaround and its switch to the mole-fraction mixing rule for reported viscosities are
+  described in the README, not ported.
+
 ## v1.3.0 (2026-10)
 
 - **Batched activities** (`ExplicitLiquidModel.ln_a_batch`, optional `jax`): `ln_a` for many compositions at one
