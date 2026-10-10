@@ -757,6 +757,10 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
         pts, ends = tr.curve(p, t0, L, R, warm, done)
         if len(pts) < 2:
             return False
+        xm = float(np.median(pts[:, 0]))
+        if len(pts) >= 4 and np.ptp(pts[:, 1]) > 0.05 and np.mean(np.abs(pts[:, 0] - xm) < 2.0 * tol) >= 0.7:
+            vertical_line(xm)                               # a vertical line: rebuilt from RH scans beside it
+            return True
         done.append((L, R, pts, ends))
         report(L, R, pts, ends)
         return True
@@ -793,6 +797,7 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
         return st
 
     vertical: list = []
+    vsegs: list = []                                        # (states, x, v0, v1) of the vertical lines
 
     def vertical_line(xu):
         """the boundary at the unit x ``xu`` from RH scans just left and right of it"""
@@ -815,6 +820,7 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
         for v0, v1, sl, sr in segs:
             if v1 - v0 < 2.0 * h_min:                       # a sloped line crossing between the two scans
                 continue
+            vsegs.append((frozenset((sl, sr)), xu, v0, v1))
             pts = np.array([[xu, v0], [xu, v1]])
             ends = ("edge" if v0 <= 0.0 else "junction", "edge" if v1 >= 1.0 else "junction")
             done.append((sl, sr, pts, ends))                # upwards: the left side is at lower x
@@ -922,6 +928,17 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
         if not found:
             break
 
+    # lines between the same states as a vertical line that stay within 0.03 of it in x (wandering traces of the
+    # vertical line where the solver is noisy) are dropped
+    def near_vertical(c):
+        key = frozenset((c[0], c[1]))
+        for k, xv, v0, v1 in vsegs:
+            P = c[2]
+            if k == key and len(P) > 2 and np.all(np.abs(P[:, 0] - xv) < 0.03) and \
+                    np.all((P[:, 1] > v0 - 0.02) & (P[:, 1] < v1 + 0.02)):
+                return True
+        return False
+    done[:] = [c for c in done if len(c[2]) == 2 and c[2][0, 0] == c[2][1, 0] or not near_vertical(c)]
     polys = _join_junctions([c[2] for c in done], [c[3] for c in done], 2.5 * h_min if snap is None else snap)
     curves = []
     for (L, R, _, ends), pts in zip(done, polys):
