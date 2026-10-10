@@ -419,6 +419,7 @@ def _group_residual_L(sr, psi: np.ndarray, x: np.ndarray) -> np.ndarray:
 
 
 PEG_TREATMENTS = ("aiomfac_web_v3.14", None)
+MIXING_RULES = ("g2020", "mole_fraction")
 
 
 def _peg_components(components) -> list[int]:
@@ -429,7 +430,8 @@ def _peg_components(components) -> list[int]:
 
 def organic_mixture_viscosity(model: ActivityModel, x_neutral, T_K: float,
                                eta0_pas: Mapping[int, float] | None = None, *,
-                               peg_treatment: str | None = "aiomfac_web_v3.14") -> OrganicViscosityResult:
+                               peg_treatment: str | None = "aiomfac_web_v3.14",
+                               mixing: str = "g2020") -> OrganicViscosityResult:
     """AIOMFAC-VISC/"GC-UNIMOD" predicted dynamic viscosity of an **ion-free** aqueous organic mixture (Gervasi,
     Topping and Zuend, 2020, ACP 20, 2987-3008, Eq. 1-9), given an :class:`ActivityModel` built from water plus one
     or more organic components (no electrolytes), the neutral-component mole fractions ``x_neutral`` (need not
@@ -483,12 +485,21 @@ def organic_mixture_viscosity(model: ActivityModel, x_neutral, T_K: float,
     A ``UserWarning`` names the components it was applied to. ``peg_treatment=None`` gives the published
     equations unchanged (and warns that they are not valid for these components).
 
-    Also not ported: AIOMFAC-web v3.14 reports as its mixture viscosity not Eq. 1 but the mole-fraction mixing
-    rule ``ln eta = sum_i x_i ln eta0_i`` (with electrolyte-aware water in the aquelec case); it still computes
-    Eq. 1 internally and overwrites it in ``SRcalcvisc``. AIOMFAC-web v3.13 and earlier report Eq. 1.
+    ``mixing`` (keyword). ``"g2020"`` (default) is Eq. 1-9 above. ``"mole_fraction"`` is the mole-fraction mixing
+    rule ``ln eta = sum_i x_i ln eta0_i`` (``x`` renormalized to sum 1), which is what AIOMFAC-web v3.14 reports
+    as its mixture viscosity: it still computes Eq. 1 but overwrites it with this rule in ``SRcalcvisc``
+    ("modified version of viscosity calculation using simpler mole-fraction-weighted mixing rule"; AIOMFAC-web
+    v3.13 and earlier report Eq. 1). With ``"mole_fraction"`` this function reproduces the v3.14 output for the
+    ion-free systems water + glycerol, citric acid, sucrose, diethylene glycol, 1,2-dimethoxyethane, triethylene
+    glycol and PEG-400 (with the Fortran's own pure-component viscosities) to the printed 6 significant digits.
+    G2020 Supplement Sect. S7 / Table S5 compared the two rules: neither is uniformly better (the mole-fraction
+    rule has a slightly lower summed error over their binary data sets, dominated by sugars). ``peg_treatment``
+    has no effect with ``"mole_fraction"``.
     """
     if peg_treatment not in PEG_TREATMENTS:
         raise ValueError(f"peg_treatment must be one of {PEG_TREATMENTS}, got {peg_treatment!r}")
+    if mixing not in MIXING_RULES:
+        raise ValueError(f"mixing must be one of {MIXING_RULES}, got {mixing!r}")
     sr = model.mixture.sr
     if sr.n_species != sr.n_neutral:
         raise ValueError("organic_mixture_viscosity requires an ion-free mixture (water + organics only); for "
@@ -510,6 +521,10 @@ def organic_mixture_viscosity(model: ActivityModel, x_neutral, T_K: float,
             raise ValueError(f"no pure-component viscosity given for organic component {comp.number} "
                               f"({comp.name!r}) -- pass it in eta0_pas (measured, or via "
                               f"pure_organic_viscosity_vtf with a known/estimated Tg)")
+    if mixing == "mole_fraction":
+        ln_eta = float(np.dot(x / x.sum(), np.log(eta0)))
+        return OrganicViscosityResult(eta_pas=math.exp(ln_eta), log10_eta_pas=ln_eta / math.log(10.0), ln_eta=ln_eta)
+
     peg = _peg_components(components)
     if peg and peg_treatment is None:
         warnings.warn(f"organic_mixture_viscosity: {[components[i].name for i in peg]} contain more than one "
@@ -559,9 +574,20 @@ def _organic_submodel_and_renorm_x(model: ActivityModel, result: ActivityTerms):
     return organic_model, x_neutral / x_neutral.sum()
 
 
+def _ions_lumped_into_water(model: ActivityModel, result: ActivityTerms) -> np.ndarray:
+    """Neutral mole fractions with the ion mole fractions added to water's, renormalized -- the ``Xnew`` of the
+    mole-fraction branch of ``SRcalcvisc`` (AIOMFAC-web v3.14, ``ModSRunifac.f90``)."""
+    nn = model.mixture.sr.n_neutral
+    x = np.asarray(result.x, dtype=float)
+    x_new = x[:nn].copy()
+    x_new[0] += x[nn:].sum()
+    return x_new / x_new.sum()
+
+
 def aquelec_viscosity(model: ActivityModel, result: ActivityTerms, T_K: float,
                        eta0_pas: Mapping[int, float] | None = None, *, cv: float = CV,
-                       peg_treatment: str | None = "aiomfac_web_v3.14") -> OrganicViscosityResult:
+                       peg_treatment: str | None = "aiomfac_web_v3.14",
+                       mixing: str = "g2020") -> OrganicViscosityResult:
     """"aquelec" mixing rule (LZ2022 Sect. 3.4.1): treats inorganic ions as dissolving exclusively in water,
     computes that organic-free electrolyte subsystem's viscosity (rescaling ion molalities/mole fractions to
     exclude the organics, Eq. 20-21), then uses it as an "electrolyte-aware" pseudo-pure-water property in a
@@ -571,6 +597,11 @@ def aquelec_viscosity(model: ActivityModel, result: ActivityTerms, T_K: float,
     ``eta0_pas`` gives pure-component viscosities for the organics exactly as in ``organic_mixture_viscosity``
     (water's own entry, if given, is ignored -- it is always the "electrolyte-aware" value computed here);
     ``peg_treatment`` is passed on to ``organic_mixture_viscosity``.
+
+    ``mixing="mole_fraction"`` replaces step 7 by the mole-fraction rule as AIOMFAC-web v3.14 does (its default,
+    and only, organic-inorganic rule): ``ln eta = x'_w ln eta_aquelec + sum_org x'_j ln eta0_j``, with the ion mole
+    fractions added to water's and the result renormalized (``x'``). Reproduces the v3.14 output for water +
+    glycerol + NaCl to the printed precision (see ``tests/test_viscosity.py``).
     """
     sr = model.mixture.sr
     nn = sr.n_neutral
@@ -583,23 +614,29 @@ def aquelec_viscosity(model: ActivityModel, result: ActivityTerms, T_K: float,
     if ww + worg <= 0.0:
         raise ValueError("water + organic mass fraction is zero")
     lam = ww / (ww + worg)                                               # Eq. 21
+    # LZ2022 defines m_i,aquelec = n_i / W_w (per kg of water) = m_i / lam; their Eq. (20) prints "lam * m_i",
+    # which contradicts that definition. The Fortran (AqueousElecViscosity, ionicstrengthfactor =
+    # sum(wtf(1:nneutral))/wtf(1)) uses m_i / lam, as here. Up to aiomfac_py 1.3.0 this used lam * m_i.
 
     ions = _collect_ions(sr, result, nn)
     denom = float(x[0]) + sum(x_i for _, x_i, _, _, _, _ in ions)
-    ions_aquelec = [(name, x_i / denom, lam * m_i, z_i, lam * a_i_ref, is_cat)
+    ions_aquelec = [(name, x_i / denom, m_i / lam, z_i, a_i_ref / lam, is_cat)
                     for name, x_i, m_i, z_i, a_i_ref, is_cat in ions]     # Eq. 20, step 2-3
     eta1 = _electrolyte_core(float(x[0]) / denom, ions_aquelec, water_viscosity_pas(T_K), cv).eta_pas
 
     organic_model, x_renorm = _organic_submodel_and_renorm_x(model, result)   # step 6
+    if mixing == "mole_fraction":
+        x_renorm = _ions_lumped_into_water(model, result)
     eta0_full = dict(eta0_pas) if eta0_pas else {}
     eta0_full[model.mixture.components[0].number] = eta1                 # step 5: electrolyte-aware water
     return organic_mixture_viscosity(organic_model, x_renorm, T_K, eta0_full,  # step 7
-                                     peg_treatment=peg_treatment)
+                                     peg_treatment=peg_treatment, mixing=mixing)
 
 
 def aquorg_viscosity(model: ActivityModel, result: ActivityTerms, T_K: float,
                       eta0_pas: Mapping[int, float] | None = None, *, cv: float = CV,
-                      peg_treatment: str | None = "aiomfac_web_v3.14") -> ViscosityResult:
+                      peg_treatment: str | None = "aiomfac_web_v3.14",
+                      mixing: str = "g2020") -> ViscosityResult:
     """"aquorg" mixing rule (LZ2022 Sect. 3.4.2): the mirror image of ``aquelec_viscosity`` -- first computes
     the ion-free aqueous organic subsystem's viscosity (ordinary Dehaoui-model water), uses it as an
     "organics-aware" pseudo-pure-water property, folds water and organics into one combined mole-fraction
@@ -607,9 +644,17 @@ def aquorg_viscosity(model: ActivityModel, result: ActivityTerms, T_K: float,
 
     Arguments as in ``aquelec_viscosity``. Returns a :class:`ViscosityResult` (like ``electrolyte_viscosity``),
     since the final step here is the electrolyte model rather than the organic one.
+
+    ``mixing="mole_fraction"`` computes the organics-aware water viscosity (step 1) with the mole-fraction rule
+    instead of G2020, at the neutral mole fractions with the ions added to water's (as in the aquorg branch of
+    AIOMFAC-web v3.14's ``SRcalcvisc``). That branch is not reachable from AIOMFAC-web (its ``aquelec`` switch is
+    a compile-time constant), so this option is not checked against the Fortran.
     """
     organic_model, x_renorm = _organic_submodel_and_renorm_x(model, result)   # step 1
-    eta2 = organic_mixture_viscosity(organic_model, x_renorm, T_K, eta0_pas, peg_treatment=peg_treatment).eta_pas
+    if mixing == "mole_fraction":
+        x_renorm = _ions_lumped_into_water(model, result)
+    eta2 = organic_mixture_viscosity(organic_model, x_renorm, T_K, eta0_pas, peg_treatment=peg_treatment,
+                                     mixing=mixing).eta_pas
 
     sr = model.mixture.sr
     nn = sr.n_neutral

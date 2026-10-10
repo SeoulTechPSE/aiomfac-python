@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **Fix, aquelec mixing rule** (`aquelec_viscosity`): ion molalities were multiplied by
+  `lambda = w_w / (w_w + sum w_org)` as printed in Lilek and Zuend (2022) Eq. (20); the paper's own definition
+  (`m_i,aquelec = n_i / W_w`) and the Fortran need division by lambda. Changes log10 eta by up to 0.022 for water +
+  glycerol + NaCl (more for organic- and salt-rich mixtures); verified against the AIOMFAC-web v3.14 output.
+- **New option `mixing="mole_fraction"`** for `organic_mixture_viscosity`, `aquelec_viscosity`, `aquorg_viscosity`:
+  the mole-fraction mixing rule that AIOMFAC-web v3.14 reports. Default stays `"g2020"`. Reproduces the v3.14 output
+  for seven ion-free binaries and for water + glycerol + NaCl (aquelec).
+
 - **Fix, AIOMFAC-VISC organic** (`organic_mixture_viscosity`, and through it `aquelec_viscosity`/`aquorg_viscosity`):
   Gervasi et al. (2020) Eq. 5 was coded with `Q_k` multiplying only the first of its two terms. Mixture viscosities
   change by up to about 0.1 log10 units (e.g. water + sucrose, 10 mol% sucrose: 0.09). After the fix the port

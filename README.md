@@ -496,11 +496,27 @@ For **example 0003** specifically: LR and MR of water and of all ions agree to 1
     a PEG-containing mixture and capped `gamma_i^C` at 100); for PEG-400 it still gives a weak maximum slightly
     above the pure-PEG viscosity. A `UserWarning` names the components it was applied to; `peg_treatment=None`
     gives the published equations.
-  * **Not ported:** AIOMFAC-web v3.14 reports as mixture viscosity the mole-fraction mixing rule
-    `ln eta = sum_i x_i ln eta0_i` (with an electrolyte-aware water viscosity in the aquelec case) instead of the
-    G2020 value, which it still computes but overwrites (`SRcalcvisc`). AIOMFAC-web v3.13 and earlier report the
-    G2020 value. Viscosities from this package therefore follow the paper (plus the PEG workaround), not the
-    v3.14 web output.
+  * **Mixing rule of the AIOMFAC-web v3.14 output, optional** (`mixing="mole_fraction"`; default `"g2020"`):
+    v3.14 reports as mixture viscosity the mole-fraction rule `ln eta = sum_i x_i ln eta0_i` instead of the G2020
+    value, which it still computes but overwrites (`SRcalcvisc`); AIOMFAC-web v3.13 and earlier report the G2020
+    value. With the option, `organic_mixture_viscosity` reproduces the v3.14 output for water + glycerol, citric
+    acid, sucrose, diethylene glycol, 1,2-dimethoxyethane, triethylene glycol and PEG-400 to the printed 6 digits,
+    and `aquelec_viscosity` (ions added to water's mole fraction, electrolyte-aware water viscosity) reproduces it
+    for water + glycerol + NaCl to < 1e-5 log10 units when the Fortran's water-viscosity exponent is used (see
+    below). For `aquorg_viscosity` the option follows the aquorg branch of `SRcalcvisc`, which AIOMFAC-web cannot
+    reach (`aquelec` is a compile-time constant), so it is not checked against the Fortran. G2020 (Supplement
+    Sect. S7) found neither rule uniformly better.
+* **AIOMFAC-VISC organic-inorganic, `aquelec_viscosity`**: Lilek and Zuend (2022) define the aquelec ion molality
+  per kg of water, `m_i,aquelec = n_i / W_w = m_i / lambda` with `lambda = W_w / (W_w + sum W_org)`, but their
+  Eq. (20) prints `m_i,aquelec = lambda m_i`. Up to aiomfac_py 1.3.0 the code followed the printed equation; it now
+  uses `m_i / lambda`, as the text and the Fortran (`AqueousElecViscosity`, `ionicstrengthfactor`) do. For water +
+  glycerol + NaCl at 293.15 K this changes log10 eta by up to 0.022 (more for organic-rich, salt-rich mixtures).
+  The G2020 branch of `aquelec_viscosity` follows the paper's step 6 (water and organics renormalized without the
+  ions); the older Fortran G2020 aquelec code (v3.13) instead added the ion mole fractions to water's and rescaled
+  the water term, so the two differ slightly; v3.14 no longer uses that branch.
+* **Pure-water viscosity**: `water_viscosity_pas` uses the Dehaoui et al. (2015) exponent 1.6438 as cited by Lilek
+  and Zuend (2022); the Fortran (`ModPureViscosPar.f90`) uses 1.6433, a difference of 2.6e-4 log10 units at
+  293.15 K. Left as is.
 * **Not ported, and confirmed unreachable through any AIOMFAC-web input file, so not worth porting**: the
   3-parameter temperature dependence (BRR/CRR, `case(500:800, 2000:2434)` in `ModSRunifac.f90`) is gated on a
   Fortran variable `nd` ("dataset number") that the web driver hardcodes to `1` at its single call site

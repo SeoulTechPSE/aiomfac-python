@@ -389,6 +389,53 @@ class TestOrganicMixtureViscosityPEG:
         assert res.log10_eta_pas == pytest.approx(math.log10(0.017722), abs=0.45)
 
 
+class TestMixingRuleMoleFraction:
+    """mixing="mole_fraction": the rule AIOMFAC-web v3.14 reports (ln eta = sum_i x_i ln eta0_i). Reference values
+    are the "log10(eta/[Pa.s])" column of the unmodified v3.14 output files (github.com/andizuend/AIOMFAC, commit
+    b9cb96d; 6 significant digits), with the Fortran's own pure-component ln eta0 as in TestOrganicMixtureViscosityPEG
+    (water: -6.9055815464596826 at 293.15 K, -6.8308619020805974 at 290.15 K; glycerol at 293.15 K:
+    -1.113530089726495)."""
+
+    def test_ion_free_matches_aiomfac_web_v314_output(self):
+        reported = {"TEG": [-2.92868, -2.64716, -2.29526, -0.887655, 1.22375, 3.33515],
+                    "PEG400": [-2.70319, -1.64954, -0.332483, 4.93576, 12.8381, 20.7405]}
+        for (component, T_K, ln_eta0_w, ln_eta0_org, points), name in zip(
+                TestOrganicMixtureViscosityPEG.FORTRAN_V314, ("TEG", "PEG400")):
+            model = ActivityModel([WATER, component])
+            eta0 = {1: math.exp(ln_eta0_w), 2: math.exp(ln_eta0_org)}
+            for (x_org, _), log10_f in zip(points, reported[name]):
+                with warnings.catch_warnings():
+                    warnings.simplefilter("error")      # no PEG warning in this mode
+                    res = organic_mixture_viscosity(model, np.array([1 - x_org, x_org]), T_K, eta0,
+                                                    mixing="mole_fraction")
+                assert res.log10_eta_pas == pytest.approx(log10_f, abs=6e-5)
+
+    def test_aquelec_matches_aiomfac_web_v314_output(self, monkeypatch):
+        # water + glycerol + NaCl, 293.15 K, mass fractions (glycerol, NaCl). The v3.14 water viscosity uses
+        # exponent 1.6433 (ModPureViscosPar.f90) instead of this module's 1.6438 (LZ2022/Dehaoui et al., 2015);
+        # it is substituted here so that the comparison isolates the mixing rule (otherwise: up to 2.5e-4).
+        import aiomfac_py.viscosity as visc
+        monkeypatch.setattr(visc, "water_viscosity_pas", lambda T: 1.3788e-4 * (T / 225.66 - 1.0) ** -1.6433)
+        points = [((0.1, 0.05), -2.90438), ((0.3, 0.1), -2.67894), ((0.5, 0.1), -2.39906),
+                  ((0.2, 0.2), -2.63545), ((0.6, 0.05), -2.32065), ((0.05, 0.25), -2.71496)]
+        model = ActivityModel([WATER, GLYCEROL, Component(3, "NaCl", ((202, 1), (242, 1)))])
+        for (w_gly, w_salt), log10_f in points:
+            res = model.evaluate([1 - w_gly - w_salt, w_gly, w_salt], 293.15, basis="mass")
+            out = visc.aquelec_viscosity(model, res, 293.15, {2: math.exp(-1.113530089726495)},
+                                         mixing="mole_fraction")
+            assert out.log10_eta_pas == pytest.approx(log10_f, abs=1e-5)
+
+    def test_default_is_g2020_and_invalid_rule_rejected(self):
+        model = ActivityModel([WATER, GLYCEROL])
+        x = np.array([0.7, 0.3])
+        g = organic_mixture_viscosity(model, x, 293.15, {2: 1.46})
+        assert g.ln_eta == organic_mixture_viscosity(model, x, 293.15, {2: 1.46}, mixing="g2020").ln_eta
+        mf = organic_mixture_viscosity(model, x, 293.15, {2: 1.46}, mixing="mole_fraction")
+        assert mf.ln_eta == pytest.approx(0.7 * math.log(water_viscosity_pas(293.15)) + 0.3 * math.log(1.46))
+        with pytest.raises(ValueError):
+            organic_mixture_viscosity(model, x, 293.15, {2: 1.46}, mixing="zsr")
+
+
 class TestOrganicInorganicMixing:
     """aquelec/aquorg (Lilek and Zuend, 2022, Sect. 3.4.1-3.4.2) for a water + glycerol + NaCl ternary. No
     independent reference value is available for either mixing rule (the paper itself does not single out a
