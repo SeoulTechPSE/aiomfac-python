@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Solver robustness** (`PhaseEquilibrium`): (i) the stability test discards water-free ionic trial phases (AIOMFAC
+  diverges there; `tpd_min_water`), (ii) `max_liquids` defaults to 4 (two organic and two aqueous liquids occur with
+  two organics), (iii) a solve that does not converge is repeated with the `rand` and `barrier` inner methods
+  (`fallback_inner`), which need no active-set exchange next to a boundary between two solids. In the UHAERO 2007
+  diagrams 59 of 60 sampled failures converge; converged states are unchanged.
+
 - **Phase diagrams** (`aiomfac_py.diagram`, extra `plot`): phase-boundary tracing in RH by bisection on
   `PhaseEquilibrium` solves (`trace`; equilibrium and metastable modes; non-converged solves are dropped and listed),
   composition–RH maps with refinement in composition where the boundary topology changes (`phase_map`), plotting with

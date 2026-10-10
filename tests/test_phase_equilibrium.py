@@ -704,3 +704,57 @@ def test_pure_water_liquid_is_dropped():
     r = pe.solve({"oil": 1.0}, 0.99999, solids="none")
     assert r.status == "converged", r.message
     assert r.n_liquids == 1 and r.liquids[0].mole_fractions[1] > 0.99
+
+
+def _uhaero_organic(pair, X, ions=("NH4+", "H+", "SO4--")):
+    """Organic + NH4+/H+/SO4-- particle of Amundson et al. (2007), alpha = 0.2 (molar organic/inorganic ratio)."""
+    from aiomfac_py import Component
+    orgs = {"adipic": Component(2, "adipic acid", ((2, 4), (137, 2))),
+            "glutaraldehyde": Component(3, "glutaraldehyde", ((2, 3), (20, 2))),
+            "pinonic": Component(2, "pinonic acid", ((1, 2), (2, 2), (3, 2), (4, 1), (18, 1), (137, 1))),
+            "nonacosane": Component(3, "nonacosane", ((1, 2), (2, 27))),
+            "hydroxyglutaric": Component(2, "2-hydroxy-glutaric acid", ((2, 2), (137, 2), (151, 1), (153, 1))),
+            "palmitic": Component(3, "palmitic acid", ((1, 1), (2, 14), (137, 1)))}
+    (o1, f1), (o2, f2) = pair
+    pe = PhaseEquilibrium([orgs[o1], orgs[o2]], list(ions), T_K=298.15)
+    Y = 1.0 if "NO3-" not in ions else 0.85
+    feed = {"NH4+": X, "H+": 1.0 - X, "SO4--": Y / (1 + Y)}
+    if "NO3-" in ions:
+        feed["NO3-"] = (1 - Y) / (1 + Y)
+    b = 0.25 * sum(feed.values())                            # alpha / (1 - alpha) with alpha = 0.2
+    feed[orgs[o1].name], feed[orgs[o2].name] = f1 * b, f2 * b
+    return pe, feed
+
+
+def test_fallback_inner_method_supersaturated_solid():
+    """Next to the letovicite/NH4HSO4 boundary the Newton active set refuses NH4HSO4 (SI = +0.011 at its end); the
+    fallback inner method finds both solids, at a lower Gibbs energy."""
+    pe, feed = _uhaero_organic((("adipic", 0.15), ("glutaraldehyde", 0.85)), 0.7334)
+    pe.fallback_inner = ()
+    bad = pe.solve(feed, 0.3719)
+    assert bad.status == "not_converged" and bad.si["ammonium_bisulfate"] > 1e-3
+    pe.fallback_inner = ("rand", "barrier")
+    res = pe.solve(feed, 0.3719)
+    assert res.status == "converged" and set(res.solids) == {"ammonium_bisulfate", "letovicite"}
+    assert res.gibbs < bad.gibbs and max(res.si.values()) < 1e-4
+
+
+def test_three_organic_and_aqueous_liquids_converge():
+    """pinonic acid / nonacosane + (NH4)2SO4: three liquids of very different composition (alkane-rich, acid-rich,
+    aqueous); the Newton line search stalls (a_w residual), the fallback converges."""
+    pe, feed = _uhaero_organic((("pinonic", 0.5), ("nonacosane", 0.5)), 0.992)
+    res = pe.solve(feed, 0.814)
+    assert res.status == "converged" and len(res.liquids) == 3
+    assert max(abs(L.ln_a[0] - np.log(0.814)) for L in res.liquids) < 1e-5
+
+
+def test_water_free_trial_phase_discarded():
+    """At low RH the stability test can run into a water-free NH4NO3 melt, where AIOMFAC's ion terms diverge
+    (ln a ~ 1e17, TPD ~ -1e8); such trial phases are discarded, so the solve converges quickly to a finite state."""
+    import time
+    pe, feed = _uhaero_organic((("hydroxyglutaric", 0.5), ("palmitic", 0.5)), 0.685,
+                               ions=("NH4+", "H+", "SO4--", "NO3-"))
+    t0 = time.time()
+    res = pe.solve(feed, 0.051)
+    assert res.status == "converged" and res.tpd_min > -1.0 and time.time() - t0 < 30
+    assert all(L.mole_fractions[0] > 1e-3 for L in res.liquids)

@@ -802,6 +802,11 @@ class PhaseEquilibrium:
         # "newton" otherwise)
         self.inner_method = "newton"
         self.si_tol = 1.0e-9                         # an inactive solid is added once its SI exceeds this
+        # inner methods tried, in order, when a solve does not converge (see _solve_fallback); () to disable
+        self.fallback_inner = ("rand", "barrier")
+        # a trial phase of the stability test with water below this mole fraction and ions is discarded: AIOMFAC
+        # (molality-based ion terms) diverges as water vanishes, giving meaningless TPD of -1e8 (molten salts)
+        self.tpd_min_water = 1.0e-6
         self.newton_mu0, self.newton_mu_factor, self.newton_mu_min = 1.0e-4, 0.01, 1.0e-14   # liquid barrier: 6 stages
         self.trace_tol = 1.0e-9                     # scaled amount below which a liquid entry is removed
         self._trunc_max = 0.0
@@ -1977,7 +1982,7 @@ class PhaseEquilibrium:
         return out
 
     def solve(self, feed: dict, rh: float, *, solids="all", p_gas: dict | None = None, gas_total: dict | None = None,
-              n_air: float | None = None, P_atm: float = 1.0, max_liquids: int = 3, max_outer: int = 8,
+              n_air: float | None = None, P_atm: float = 1.0, max_liquids: int = 4, max_outer: int = 8,
               verbose: bool = False, init: "PhaseEquilibriumResult | None" = None) -> PhaseEquilibriumResult:
         """See :meth:`_solve`.  A warm-started solve (``init``) that does not converge is repeated from scratch, and
         the cold result is used if it converges (a start from a neighbouring state can be poor, e.g. a small salt
@@ -1990,10 +1995,40 @@ class PhaseEquilibrium:
             if cold.status == "converged":
                 cold.message = ((cold.message + "; ") if cold.message else "") + "warm start discarded (not converged)"
                 return cold
+        if res.status == "not_converged" and self.fallback_inner:
+            res = self._solve_fallback(feed, rh, res, kw)
         return res
 
+    def _solve_fallback(self, feed, rh, res, kw):
+        """Repeat a solve that did not converge with the other inner methods (``fallback_inner``).  The default
+        Newton inner solver adds solids by an active set; next to a boundary between two solids it can refuse a
+        supersaturated solid (the first Newton step drives it negative) and end with SI > 0, and with liquids of very
+        different composition (e.g. an alkane-rich and an aqueous liquid) its line search can stall.  The "rand"
+        (logarithmic amounts) and "barrier" (interior point) methods need no active-set exchange.  The first
+        converged result is returned; otherwise the original one."""
+        own = self.inner_method
+        tried = {own}
+        try:
+            for method in self.fallback_inner:
+                if method in tried or (method == "rand" and np.any(self.lm.free)):
+                    continue
+                tried.add(method)
+                self._set_inner(method)
+                alt = self._solve(feed, rh, init=None, **kw)
+                if alt.status == "converged":
+                    alt.message = ((alt.message + "; ") if alt.message else "") + f"inner method {method} (fallback)"
+                    return alt
+        finally:
+            self._set_inner(own)
+        return res
+
+    def _set_inner(self, method):
+        self.inner_method = method
+        for child in self._children.values():
+            child._set_inner(method)
+
     def _solve(self, feed: dict, rh: float, *, solids="all", p_gas: dict | None = None, gas_total: dict | None = None,
-               n_air: float | None = None, P_atm: float = 1.0, max_liquids: int = 3, max_outer: int = 8,
+               n_air: float | None = None, P_atm: float = 1.0, max_liquids: int = 4, max_outer: int = 8,
                verbose: bool = False, init: "PhaseEquilibriumResult | None" = None) -> PhaseEquilibriumResult:
         """Equilibrium for the non-water ``feed`` [mol] (organic names and ion keys) at relative humidity ``rh``.
 
@@ -2035,6 +2070,7 @@ class PhaseEquilibrium:
                 child.hess_scheme, child.hess_reuse_tol = self.hess_scheme, self.hess_reuse_tol
                 child.tpd_hess_reuse_tol, child.tpd_method = self.tpd_hess_reuse_tol, self.tpd_method
                 child.inner_method, child.si_tol = self.inner_method, self.si_tol
+                child.fallback_inner, child.tpd_min_water = self.fallback_inner, self.tpd_min_water
                 child.seed_method, child.tpd_early_stop = self.seed_method, self.tpd_early_stop
                 child.newton_mu0, child.newton_mu_factor, child.newton_mu_min = (self.newton_mu0, self.newton_mu_factor,
                                                                                   self.newton_mu_min)
@@ -2196,6 +2232,8 @@ class PhaseEquilibrium:
                     continue
                 if not (np.all(np.isfinite(w)) and np.isfinite(t) and np.all(w > 0)):
                     continue
+                if w[0] < self.tpd_min_water * float(np.sum(w)) and float(np.sum(w[nn:])) > 1e-3 * float(np.sum(w)):
+                    continue                                   # water-free ionic trial phase: outside the model
                 dist = min(float(np.max(np.abs(w - L.mole_fractions))) for L in liquids)
                 if dist > 1e-3 and t < -self.tol_tpd:
                     known.append(w)

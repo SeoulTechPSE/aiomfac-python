@@ -435,6 +435,27 @@ Validation against `_barrier_solve`:
 * F can differ by the removed trace amounts (≤ 1e-9 of the feed), for example 6.7e-10 for pinic acid removed from the
   salt-rich liquid in pinic acid + AS + AN at RH 0.6.
 
+### 5.2a Fallback inner methods
+
+A solve that does not converge (also after the cold restart of a warm start) is repeated with the inner methods of
+`fallback_inner` (default `("rand", "barrier")`; `()` disables it), and the first converged result is returned
+with "inner method … (fallback)" in its message; otherwise the original result. Two failures of the active-set
+solver motivate it (UHAERO 2007 diagrams, about 45 000 solves with organics, 8–25 % not converged):
+
+* **Refused solid.** Next to a boundary between two solids (e.g. letovicite and NH4HSO4), the first Newton step after
+  adding a supersaturated solid at zero drives it negative, so it is refused for the rest of the solve, and the solve
+  ends with SI > 0 (`max_si` violated; about half of the failures). The active set has no exchange step that would
+  let another solid leave instead. The rand and barrier methods need no active-set exchange; with them the state has
+  both solids (or the other one) and a lower F.
+* **Line-search stall** with liquids of very different composition (an alkane-rich liquid with nonacosane at mole
+  fraction 0.98 next to an aqueous one): the a_w condition stays violated at 1e-4. The rand method (logarithmic
+  amounts) converges.
+
+On 60 random failed points of the six diagrams, the guard of Sect. 6.2, `max_liquids = 4` and the fallback together
+gave 59 converged states (mean 4 s); on 60 random converged points the state was unchanged in 59 and had a lower F in
+one. Loosening `tol_tpd` to 1e-3 also removed failures but missed a third liquid in converged states (higher F), so
+it was not adopted.
+
 ### 5.3 Logarithmic amounts without a barrier (`inner_method = "rand"`, optional)
 
 The trace handling of Sects. 5.1 and 7 (removal, re-entry, complete evaporation, `trace_tol`) is a consequence of the
@@ -621,9 +642,18 @@ mole-fraction patterns. They do not depend on RH, so close to saturation an "org
 
 The patterns are built in the component basis and made electroneutral (by scaling the anions, or through the proton
 excess). With explicit speciation they are then speciated with the internal model (Sect. 3.4). A minimum counts only if it is
-finite, positive, and at least 1e-3 away (max-norm) from every existing liquid.
+finite, positive, and at least 1e-3 away (max-norm) from every existing liquid. A minimum whose water mole fraction is
+below `tpd_min_water` (1e-6) while ions make up more than 1e-3 of it is discarded: AIOMFAC's ion terms are based on
+molalities and diverge as water vanishes (ln a of order 1e17 and TPD of order −1e8 for a water-free NH4NO3 melt), so
+such a "phase" is outside the model. Seeding it made the inner solve run for tens of seconds and fail (the time-limit
+failures of the UHAERO 2007 diagrams at RH < 0.1). Water-poor organic phases without ions are not affected.
 
 ### 6.3 Adding a phase
+
+`max_liquids` (default 4; 3 before 2026-10) caps the number of liquids. Particles with two organics can have four
+liquids: two organic-rich ones and two aqueous ones (e.g. the almost molten second salt liquid of Sect. 9 of the
+diagram report). With a cap of 3 the outer loop stopped with a negative TPD (not converged) in about 10 % of the
+solves of the 1-hexacosanol/pinic acid and pinonic acid/nonacosane diagrams.
 
 If the most negative TPD is below `−tol_tpd` (1e-7), a new liquid is seeded at the minimizer w. Its non-water part is
 moved out of the liquid that can supply the most of it:
@@ -736,7 +766,7 @@ print(res.summary())
 ```
 
 * `solve(feed, rh, *, solids="all" | "none" | [keys], p_gas=None, gas_total=None, n_air=None, P_atm=1.0,
-  max_liquids=3, max_outer=8, verbose=False)`.
+  max_liquids=4, max_outer=8, verbose=False)`.
   * `feed` maps organic names and ion keys to mol (water excluded) and must be electroneutral.
   * Give either `p_gas` or `gas_total` (with `n_air`), not both.
 * `solve(..., init=previous_result)` starts from a previous result of the same system and feed (warm start, plan
