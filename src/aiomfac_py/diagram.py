@@ -440,6 +440,12 @@ def plot_phase_map(pm: PhaseMap, ax=None, *, colors: dict | None = None, rh_poin
     # the colours); states that exist on a single composition line only are drawn as dotted lines
     if curves is not None:
         plot_boundary_curves(curves, ax)
+    else:
+        xc, yc = np.meshgrid(xf, rg)
+        for k in range(len(states)):
+            ind = (Z == k).astype(float)
+            if ind.any() and not ind.all():
+                ax.contour(xc, yc, ind, levels=[0.5], colors="#222222", linewidths=1.3)
     if show_failed:
         pts = [(float(xv), r) for xv, t in zip(pm.x, pm.traces) for r in t.failed]
         if curves is not None and len(getattr(curves, "failed", ())):
@@ -453,12 +459,6 @@ def plot_phase_map(pm: PhaseMap, ax=None, *, colors: dict | None = None, rh_poin
                 q = np.array([z for z in q if min(_dist_to_polyline(np.array([z[0] / sx, z[1] / sr]), P)
                                                   for P in Ps) > 0.01]).reshape(-1, 2)
             ax.plot(q[:, 0], q[:, 1], ".", color="#888888", ms=2.5, zorder=3)
-    else:
-        xc, yc = np.meshgrid(xf, rg)
-        for k in range(len(states)):
-            ind = (Z == k).astype(float)
-            if ind.any() and not ind.all():
-                ax.contour(xc, yc, ind, levels=[0.5], colors="#222222", linewidths=1.3)
     for xv, a, b, st in singular_lines(pm):
         ax.plot([xv, xv], [a, b], ":", color="#222222", lw=1.3)
     if metastable is not None:

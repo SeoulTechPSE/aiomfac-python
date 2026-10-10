@@ -180,6 +180,15 @@ def test_trace_boundaries_nacl_kcl():
     Z, xf, rg, _ = _region_grid(pm, 200, states, 50)
     Z = _curve_grid(bc, xf, rg, Z, {s: k for k, s in enumerate(states)})
     assert np.all(Z[rg < mdrh - 0.01] == states.index(PhaseState(0, (H, S))))
+    # with traced lines the region outlines (contours) are not drawn; without them they are
+    mpl = pytest.importorskip("matplotlib")
+    mpl.use("Agg")
+    from matplotlib.collections import QuadMesh
+    from aiomfac_py.diagram import plot_phase_map
+    ax = plot_phase_map(pm, curves=bc, legend=False)
+    assert all(isinstance(c, QuadMesh) for c in ax.collections) and len(ax.lines) >= len(bc.curves)
+    ax = plot_phase_map(pm, legend=False, show_failed=True)
+    assert any(not isinstance(c, QuadMesh) for c in ax.collections)
 
 
 def test_trace_boundaries_vertical_line():
