@@ -462,6 +462,7 @@ def plot_org(out):
                      f"red dashed: ionic strength of an ion-containing liquid = {VALIDITY_LIMIT:.0f} mol/kg, "
                      "beyond it (low RH) AIOMFAC extrapolates)", fontsize=10)
         plt.tight_layout()
+        fig.subplots_adjust(right=0.92, wspace=0.28)          # room for the lists of numbered regions
         plt.savefig(os.path.join(out, f"uhaero07_fig{fno:02d}.png"), dpi=130)
         plt.close(fig)
 

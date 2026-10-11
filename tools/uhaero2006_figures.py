@@ -192,6 +192,7 @@ def plot_all(out):
             fig.text(0.01, 0.005, "numbers: small regions (listed right of each panel); red dashed: ionic strength "
                      f"= {VALIDITY_LIMIT:.0f} mol/kg (below it in RH AIOMFAC extrapolates)", fontsize=7, va="bottom")
             plt.tight_layout(rect=(0, 0.03, 1, 1))
+            fig.subplots_adjust(right=0.9, wspace=0.3)          # room for the lists of numbered regions
             plt.savefig(os.path.join(out, f"uhaero06_fig{fa:02d}.png"), dpi=150)
             plt.close(fig)
         fcv = os.path.join(out, f"curves_Y{Y:.2f}.pkl")
