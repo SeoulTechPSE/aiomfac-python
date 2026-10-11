@@ -748,7 +748,12 @@ The status is decided by the **equilibrium conditions of the final state**, not 
 * `"not_converged"`: at least one fails, and `message` names it. A one-liquid solve (`max_liquids=1`) of an unstable
   state is reported as not converged with "stability test still negative", which is intended.
 * `"dry"`: no liquid remains, because all non-water material is crystalline (inorganic systems below their
-  deliquescence RH); `liquids` is then empty.
+  deliquescence RH); `liquids` is then empty. The all-solid state is the minimum of a linear program over the
+  candidate solids. It replaces the iteration's result when its F is lower. It also replaces a result whose liquid has
+  lost nearly all its water but kept ions (water mole fraction below `tpd_min_water`). Such a "molten salt" is
+  outside AIOMFAC: the ion terms diverge (ln a_w ~ +1e9), so its F has no meaning. Without this rule, NH4+/H+/SO4--
+  mixtures between letovicite and (NH4)2SO4 below about 27 % RH ended "not converged" with about 30 % of the ions
+  left in such a liquid.
 * `max_si_all_candidates` also reports supersaturation of solids that were disabled (`solids="none"`, metastable).
 
 If the inner iteration stopped on a failed line search, the `message` says so even when the checks pass.

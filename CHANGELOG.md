@@ -8,7 +8,8 @@
   (`fallback_inner`), which need no active-set exchange next to a boundary between two solids. In the UHAERO 2007
   diagrams 59 of 60 sampled failures converge; converged states are unchanged. (iv) A solve stopped at
   `max_liquids` with a negative TPD is repeated with one more liquid allowed (`liquid_exchange`); the wrong liquid
-  is drained and a different four-liquid state of lower Gibbs energy is found.
+  is drained and a different four-liquid state of lower Gibbs energy is found (v) A liquid dried to a water-free "molten
+  salt" (outside AIOMFAC) is replaced by the all-solid state.
 
 - **Phase diagram labels and validity** (`aiomfac_py.diagram`): `label_regions` labels the areas enclosed by the
   traced lines (state from the solves inside, incl. the `trace_boundaries` cache); regions too small for their label

@@ -2406,7 +2406,14 @@ class PhaseEquilibrium:
             if dry_lp is not None:
                 u_lp, F_lp, si_lp = dry_lp
                 F_now = float(np.dot(x[len(phases) * N:len(phases) * N + S], self._solid_cost_now)) if dry else F
-                if F_lp < F_now - 1e-9 * max(1.0, abs(F_now)):
+                # a liquid that has lost (almost) all its water but kept ions is outside AIOMFAC (the ion terms
+                # diverge, ln a_w ~ +1e9, and F has no meaning): the iteration dried a liquid into a "molten salt"
+                # instead of crystallizing it; the all-solid state is taken if it exists
+                molten = not dry and any(
+                    float(L.amounts[0]) < self.tpd_min_water * float(np.sum(L.amounts))
+                    and float(np.sum(L.amounts[self.lm.n_neutral:])) > 1e-3 * float(np.sum(L.amounts))
+                    for L in liquids)
+                if molten or F_lp < F_now - 1e-9 * max(1.0, abs(F_now)):
                     dry = True
                     F = F_lp
                     solid_amounts = {s_.key: float(v) * scale for s_, v in zip(self._solids_now, u_lp)
