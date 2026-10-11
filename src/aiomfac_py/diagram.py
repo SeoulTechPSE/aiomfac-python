@@ -334,6 +334,16 @@ def _regular_traces(pm: PhaseMap):
     return [pm.traces[i] for i in keep], pm.x[keep]
 
 
+def _singular(pm: PhaseMap, curves=None) -> list:
+    """:func:`singular_lines`, without the states that are on a side of a traced boundary line (``curves``): those
+    are regions that only one trace of a coarse x grid happens to cross."""
+    lines = singular_lines(pm)
+    if curves is None:
+        return lines
+    sides = {c.left for c in curves.curves} | {c.right for c in curves.curves}
+    return [ln for ln in lines if ln[3] not in sides]
+
+
 def singular_lines(pm: PhaseMap) -> list:
     """[(x, rh_from, rh_to, PhaseState)] of the phase states that occur at a single interior x only (drawn as
     lines, as in the UHAERO diagrams)."""
@@ -421,7 +431,8 @@ def plot_phase_map(pm: PhaseMap, ax=None, *, colors: dict | None = None, rh_poin
 
     if ax is None:
         _, ax = plt.subplots(figsize=(6.4, 4.8))
-    states = [st for st in pm.states() if st not in {ln[3] for ln in singular_lines(pm)}]
+    sing = _singular(pm, curves)
+    states = [st for st in pm.states() if st not in {ln[3] for ln in sing}]
     palette = ["#f2f0e6", "#d9e7f5", "#cfe8d4", "#f6dcc8", "#e4d6ef", "#f4e7b3", "#d6e9e7", "#ecd1d8", "#e0e0e0"]
     colors = dict(colors or {})
     for k, s in enumerate(states):
@@ -459,7 +470,7 @@ def plot_phase_map(pm: PhaseMap, ax=None, *, colors: dict | None = None, rh_poin
                 q = np.array([z for z in q if min(_dist_to_polyline(np.array([z[0] / sx, z[1] / sr]), P)
                                                   for P in Ps) > 0.01]).reshape(-1, 2)
             ax.plot(q[:, 0], q[:, 1], ".", color="#888888", ms=2.5, zorder=3)
-    for xv, a, b, st in singular_lines(pm):
+    for xv, a, b, st in sing:
         ax.plot([xv, xv], [a, b], ":", color="#222222", lw=1.3)
     if metastable is not None:
         for (below, above), (bx, br) in metastable.boundary_lines().items():
@@ -1263,7 +1274,8 @@ def label_regions(ax, pm: PhaseMap, labels: dict, *, min_cells: int = 40, fontsi
     """Write a short label in every phase region of ``pm`` drawn on ``ax`` (``labels``: solid key -> letter, e.g.
     {"ammonium_sulfate": "A"}; a region reads 'L+A+E').  Regions smaller than ``min_cells`` grid cells are skipped.
     Pass the ``curves`` used for the plot, if any."""
-    states = [st for st in pm.states() if st not in {ln[3] for ln in singular_lines(pm)}]
+    sing = _singular(pm, curves)
+    states = [st for st in pm.states() if st not in {ln[3] for ln in sing}]
     Z, xf, rg, states = _region_grid(pm, rh_points, states)
     if curves is not None:
         Z = _curve_grid(curves, xf, rg, Z, {s: k for k, s in enumerate(states)}, pm)
@@ -1279,7 +1291,7 @@ def label_regions(ax, pm: PhaseMap, labels: dict, *, min_cells: int = 40, fontsi
         d = (xf[ix] - xc) ** 2 / max(np.ptp(xf), 1e-12) ** 2 + (rg[iy] - yc) ** 2 / max(np.ptp(rg), 1e-12) ** 2
         q = int(np.argmin(d))
         ax.text(xf[ix[q]], rg[iy[q]], "+".join(parts) if parts else "", ha="center", va="center", fontsize=fontsize)
-    for xv, a, b, st in singular_lines(pm):
+    for xv, a, b, st in sing:
         parts = (["L"] if st.n_liquids == 1 else []) + [labels.get(t, t) for t in st.solids]
         ax.text(xv, 0.75 * a + 0.25 * b, "+".join(parts), ha="center", va="center", fontsize=fontsize - 1,
                 rotation=90, bbox={"boxstyle": "square,pad=0.1", "fc": "white", "ec": "none"})
