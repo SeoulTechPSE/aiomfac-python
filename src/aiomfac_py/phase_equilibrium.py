@@ -1330,6 +1330,7 @@ class PhaseEquilibrium:
         changes = 0
         reentries = 0
         dec_prev = math.inf
+        dec, it = math.nan, -1                                   # (for the verbose line of an empty stage)
         while True:
             for it in range(max_newton):
                 F0, gvec = merit(x, rv, mu)
@@ -1418,6 +1419,10 @@ class PhaseEquilibrium:
                 act[k] = True; x[k] = 0.0; changes += 1
                 Z, pos, sol = setup(); converged = True
                 continue
+            # a liquid drying into a water-free melt of ions (outside AIOMFAC; the all-solid state is taken by _solve):
+            # stop here instead of following the vanishing water down through hundreds of barrier stages
+            if self._molten(x, n_liq):
+                return x, False
             # the barrier shifts the potential of entry j by mu / x_j: continue below newton_mu_min until that shift is
             # at most 1e-10 for every entry (explicit H+ or OH- can be traces of 1e-14 and less)
             small = float(np.min(x[pos])) if np.any(pos) else 1.0
@@ -1425,6 +1430,17 @@ class PhaseEquilibrium:
                 break
             mu = max(mu * self.newton_mu_factor, min(self.newton_mu_min, 1.0e-10 * small), 1.0e-300)
         return x, converged
+
+    def _molten(self, x, n_liq) -> bool:
+        """Has a liquid of ``x`` lost (almost) all its water while keeping ions (water below ``tpd_min_water`` of its
+        moles, ions above 1e-3)?"""
+        N, nn = self.N, self.lm.n_neutral
+        for a in range(n_liq):
+            L = np.maximum(x[a * N:(a + 1) * N], 0.0)
+            tot = float(np.sum(L))
+            if tot > 0 and L[0] < self.tpd_min_water * tot and float(np.sum(L[nn:])) > 1e-3 * tot:
+                return True
+        return False
 
     def _rand_solve(self, x, n_liq, ln_rh, *, act=None, max_newton=100, verbose=False):
         """Inner problem in logarithmic amounts (``inner_method = "rand"``; explicit speciation, no sign-free entries).
@@ -2024,7 +2040,8 @@ class PhaseEquilibrium:
         supersaturated solid (the first Newton step drives it negative) and end with SI > 0, and with liquids of very
         different composition (e.g. an alkane-rich and an aqueous liquid) its line search can stall.  The "rand"
         (logarithmic amounts) and "barrier" (interior point) methods need no active-set exchange.  The first
-        converged result is returned; otherwise the original one."""
+        converged (or dry) result is returned; otherwise the original one.  A method that raises a linear-algebra
+        error counts as not converged."""
         own = self.inner_method
         tried = {own}
         try:
@@ -2033,8 +2050,11 @@ class PhaseEquilibrium:
                     continue
                 tried.add(method)
                 self._set_inner(method)
-                alt = self._solve(feed, rh, init=None, **kw)
-                if alt.status == "converged":
+                try:
+                    alt = self._solve(feed, rh, init=None, **kw)
+                except (np.linalg.LinAlgError, FloatingPointError, ValueError):   # e.g. eigh of a non-finite
+                    continue                                                       # Hessian: this method failed
+                if alt.status in ("converged", "dry"):
                     alt.message = ((alt.message + "; ") if alt.message else "") + f"inner method {method} (fallback)"
                     return alt
         finally:
@@ -2240,6 +2260,9 @@ class PhaseEquilibrium:
             if dry:                                            # everything crystallized: no liquid to test
                 tpd_min = 0.0
                 break
+            if self._solids_now and self._gas_mode == "none" and self._molten(x, n_liq):
+                tpd_min = 0.0                                  # a water-free melt: its potentials are meaningless
+                break                                          # for a stability test; the all-solid state is used
             # stability test of the liquid set (potentials of the largest liquid; water at ln RH)
             mu_eq = self._reference_potentials(liquids, ln_rh)
             best = (0.0, None)

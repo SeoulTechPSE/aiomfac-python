@@ -9,7 +9,8 @@
   diagrams 59 of 60 sampled failures converge; converged states are unchanged. (iv) A solve stopped at
   `max_liquids` with a negative TPD is repeated with one more liquid allowed (`liquid_exchange`); the wrong liquid
   is drained and a different four-liquid state of lower Gibbs energy is found (v) A liquid dried to a water-free "molten
-  salt" (outside AIOMFAC) is replaced by the all-solid state.
+  salt" (outside AIOMFAC) is replaced by the all-solid state; the solve stops as soon as the melt forms (about 35 s
+  -> under 1 s). A fallback inner method that raises a linear-algebra error counts as not converged.
 
 - **Phase diagram labels and validity** (`aiomfac_py.diagram`): `label_regions` labels the areas enclosed by the
   traced lines (state from the solves inside, incl. the `trace_boundaries` cache); regions too small for their label

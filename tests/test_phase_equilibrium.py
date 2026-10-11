@@ -783,8 +783,10 @@ def test_dried_liquid_becomes_all_solid():
     """NH4+/H+/SO4-- between letovicite and (NH4)2SO4 at low RH: the iteration can drain the water out of the last
     liquid while it keeps ions (a 'molten salt', x_w ~ 3e-7, where AIOMFAC diverges: ln a_w ~ +2e9).  Such a liquid
     is outside the model; the all-solid state (here the exact stoichiometric mixture of the two salts) is taken."""
+    import time
     pe = PhaseEquilibrium([], ["NH4+", "H+", "SO4--"], T_K=298.15)
+    t0 = time.time()
     res = pe.solve({"NH4+": 0.95, "H+": 0.05, "SO4--": 0.5}, 0.0819)
-    assert res.status == "dry" and not res.liquids
+    assert res.status == "dry" and not res.liquids and time.time() - t0 < 10.0     # (about 35 s before the early stop)
     assert res.solids["ammonium_sulfate"] == pytest.approx(0.4, rel=1e-6)
     assert res.solids["letovicite"] == pytest.approx(0.05, rel=1e-6)
