@@ -103,9 +103,11 @@ def run_lines(Y, out):
     cf = os.path.join(out, f"lines_cache_Y{Y:.2f}.pkl")
     cache = pickle.load(open(cf, "rb")) if os.path.exists(cf) else {}
     t0 = time.time()
-    bc = trace_boundaries(system(Y), lambda X: feed(X, Y), pm, solve_timeout=8, cache=cache,
-                          checkpoint=lambda c: _save(c, cf), verbose=True)
-    _save(cache, cf)
+    try:
+        bc = trace_boundaries(system(Y), lambda X: feed(X, Y), pm, solve_timeout=20, cache=cache,
+                              checkpoint=lambda c: _save(c, cf), checkpoint_every=50, verbose=True)
+    finally:
+        _save(cache, cf)
     print(f"Y = {Y}: lines {time.time() - t0:.0f} s, {bc.n_solves} solves", flush=True)
     pickle.dump(bc, open(os.path.join(out, f"lines_Y{Y:.2f}.pkl"), "wb"))
 
