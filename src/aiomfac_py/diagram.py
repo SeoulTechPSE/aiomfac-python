@@ -711,7 +711,8 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
                      h0: float = 0.02, h_min: float = 0.002, h_max: float = 0.05, delta_max: float = 0.05,
                      rh_samples: int = 40, snap: float | None = None, solve_timeout: float | None = None,
                      x_lines: Sequence[float] = (), junction_rounds: int = 2, cache: dict | None = None,
-                     checkpoint: Callable[[dict], None] | None = None, verbose: bool = False,
+                     checkpoint: Callable[[dict], None] | None = None, checkpoint_every: int = 200,
+                     verbose: bool = False,
                      **solve_kw) -> BoundaryCurves:
     """Trace every boundary line of the phase map ``pm`` (from :func:`phase_map` with the same ``pe`` and
     ``feed_of_x``) continuously in the (x, RH) plane.
@@ -732,8 +733,8 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
     seeds between traces, and compositions given in ``x_lines`` are scanned in any case.  After the seeds, the states
     on a small circle around every line end at a junction are checked (``junction_rounds`` times): a change of state
     that no traced line explains starts a new line (short lines between junctions that cross no trace).  ``cache``:
-    a dict of solves, kept and reused between calls with the same ``pm``; ``checkpoint(cache)`` is called every 200
-    solves (e.g. to save the cache of a long run).  Other keywords go to
+    a dict of solves, kept and reused between calls with the same ``pm``; ``checkpoint(cache)`` is called every
+    ``checkpoint_every`` solves (e.g. to save the cache of a long run).  Other keywords go to
     :meth:`PhaseEquilibrium.solve`."""
     traces, xs = _regular_traces(pm)
     x_range = (float(pm.x[0]), float(pm.x[-1]))
@@ -745,6 +746,7 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
     if cache is not None:
         tr.cache = cache
     tr.checkpoint = checkpoint
+    tr.checkpoint_every = max(1, int(checkpoint_every))
     # the converged solves of the traces (found by continuation in RH) are known states and good warm starts
     for xv, t in zip(pm.x, pm.traces):
         for r, res in zip(t.rh, t.results):

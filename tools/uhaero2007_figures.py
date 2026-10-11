@@ -80,7 +80,7 @@ def inorg_feed(X, Y):
 
 def org_system(pair, ions):
     """PhaseEquilibrium for the organic pair (or the inorganic system for pair None).  The inner solver is "rand"
-    (logarithmic amounts) with Newton and barrier as fallbacks: on the UHAERO 2007 compositions it gives the same states
+    (logarithmic amounts) with Newton as fallback: on the UHAERO 2007 compositions it gives the same states
     as Newton and is about twice as fast, five times next to a liquid-liquid boundary (shallow TPD)."""
     from aiomfac_py.phase_equilibrium import PhaseEquilibrium
     if pair is None:
@@ -88,7 +88,7 @@ def org_system(pair, ions):
     k1, k2, f1 = PAIRS[pair]
     o1, o2 = comp(k1, 2), comp(k2, 3)
     pe = PhaseEquilibrium([o1, o2], ions, T_K=T)
-    pe.inner_method, pe.fallback_inner = "rand", ("newton", "barrier")
+    pe.inner_method, pe.fallback_inner = "rand", ("newton",)
     return pe, o1.name, o2.name, f1
 
 
@@ -255,8 +255,9 @@ def run_lines(Y, pair, out):
     cache = pickle.load(open(cf, "rb")) if os.path.exists(cf) else {}
     t0 = time.time()
     try:
-        bc = trace_boundaries(pe, lambda X: with_organics(inorg_feed(X, Y), o1, o2, f1, 0.2), pm, solve_timeout=45,
-                              cache=cache, checkpoint=lambda c: _save(c, cf), verbose=True)
+        bc = trace_boundaries(pe, lambda X: with_organics(inorg_feed(X, Y), o1, o2, f1, 0.2), pm, solve_timeout=20,
+                              cache=cache, checkpoint=lambda c: _save(c, cf), checkpoint_every=50,
+                              verbose=True)
     finally:
         _save(cache, cf)
     print(f"Y = {Y}, pair {pair}: lines {time.time() - t0:.0f} s, {bc.n_solves} solves", flush=True)
