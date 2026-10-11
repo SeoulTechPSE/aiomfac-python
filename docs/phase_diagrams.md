@@ -214,11 +214,37 @@ Draws the diagram on a matplotlib axes and returns it:
 Without `curves`, the regions between computed compositions are interpolated: each boundary of the nearer trace is interpolated
 linearly in x towards the boundary of the same kind (same states below and above, closest in RH) of the other trace.
 
-#### `label_regions(ax, pm, labels, *, min_cells=40, fontsize=8, rh_points=400, curves=None)`
+#### `label_regions(ax, pm, labels, *, min_cells=40, fontsize=8, rh_points=400, x_points=300, curves=None, legend=True, min_marker_cells=3, cache=None) -> [(number, label)]`
 
 Writes a label in every region (and next to every singular line), built from `labels` = {solid key: short label},
-e.g. `{"ammonium_sulfate": "A", "letovicite": "B"}` → "L+A", "A+B". Regions smaller than `min_cells` grid cells
-are skipped. Pass the same `curves` as to `plot_phase_map`.
+e.g. `{"ammonium_sulfate": "A", "letovicite": "B"}` → "L+A", "A+B". Pass the same `curves` as to `plot_phase_map`,
+and call it after `plot_phase_map` (the label sizes are judged from the size of the axes).
+
+* With `curves`, the regions are the areas enclosed by the drawn lines (on a raster of half a point; gaps of about a
+  point at junctions are closed). The state of an area is the most frequent state among the solves inside it: those
+  of the traces and, with `cache` (the cache dict of `trace_boundaries`), the many solves along the lines.
+  Without `curves`, the regions are the connected parts of each state on the region grid.
+* A label is written inside a region if the region has at least `min_cells` cells and the text fits at the current
+  font size. Otherwise the region gets a number (blue), and the numbers with their labels are listed to the right
+  of the axes (`legend=False`: small regions are not labelled). A state keeps its number in all its small regions.
+* A singular line that lies on a traced vertical boundary is not drawn dotted (it would hide the line); its state is
+  numbered next to the line and listed as "label (line, x = …)".
+
+The return value is the numbered list.
+
+#### `ionic_strength(result) -> float`
+
+Largest molal ionic strength I = ½ Σ m_i z_i² [mol/kg water] among the liquids of a result that contain ions
+(explicit species such as HSO4- included); 0 if there is none.
+
+#### `plot_validity(ax, pm, *, cache=None, limit=100.0, measure=ionic_strength, n=300, color="#c0392b", lw=1.4, points=None, smooth=0.006)`
+
+Draws a dashed line where `measure` (default `ionic_strength`) equals `limit`, i.e. around the part of the diagram
+where the liquids stay within the concentration range of the activity model. The measure is taken from the solves of
+the traces and of `cache` (or `points` from `validity_points(pm, cache, measure)`: an array of (x, RH, value)),
+interpolated linearly in log(1 + value) onto an n × n grid and smoothed. AIOMFAC states no numeric limit of
+validity (Zuend et al., 2008, fit to electrodynamic-balance data of supersaturated solutions; beyond them the curves
+are predictions), so `limit` is a judgement; 100 mol/kg is the default.
 
 #### `singular_lines(pm) -> [(x, rh_from, rh_to, PhaseState)]`
 
@@ -379,7 +405,14 @@ are treated the same way first.
 Lines that cross no trace and are not vertical — typically short lines between two junctions — are found by
 checking the states at 16 points on a circle of radius `3 h_min` around every line end at a junction: a change of
 state between two neighbouring points that no traced line crosses is located on the circle by bisection and
-followed outwards. This is repeated (`junction_rounds`) for the ends of the new lines. Finally, line ends at a junction that are closer than `snap` to
+followed outwards. This is repeated (`junction_rounds`) for the ends of the new lines.
+
+At each of the `rh_samples` levels, the lines already traced that cross the interval between two traces must lead
+from the state of the left trace to that of the right one (the states on the two sides of each crossing are chained);
+where they do not, the line is missing in that sub-interval and is located there. A seed line is treated as vertical
+only if all its points lie within `2 tol` of one x; a line that bends away from a vertical boundary is kept. Lines
+between the same states that run along a longer one (at least 80 % of their length within `2 h_min`, traced twice
+from two seeds) are dropped. Finally, line ends at a junction that are closer than `snap` to
 each other are joined at the point nearest (least squares) to their tangent lines, and a single end is extended
 along its tangent to the line it meets.
 
@@ -423,6 +456,10 @@ second call with other options only solves the new points (a minute instead of h
 * **Fixed RH only.** Water is open; diagrams at fixed water content (the (f_H+, f_NH4+) coordinates of Amundson et
   al., 2006, Fig. 14) are not supported. Efflorescence is not traced (use `PhaseEquilibrium.drying_path` with
   critical supersaturations).
+* **Range of the activity model.** At low RH the liquids become very concentrated (ionic strength of hundreds to
+  thousands of mol/kg in acidic, nearly water-free liquids, or organic-rich liquids with dissolved salt and little
+  water). AIOMFAC was not fitted there, and the phase states there (e.g. four liquids) are extrapolations;
+  `plot_validity` marks this part of a diagram.
 * **Grid resolution.** States narrower than the RH grid spacing or the x refinement tolerance can be missed;
   ternary phase compositions are resolved to `h`. `trace_boundaries` finds the lines that cross a trace, that
   separate neighbouring traces at one of the `rh_samples` levels, or that leave a junction; a short line that does

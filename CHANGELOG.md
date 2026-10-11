@@ -6,7 +6,17 @@
   diverges there; `tpd_min_water`), (ii) `max_liquids` defaults to 4 (two organic and two aqueous liquids occur with
   two organics), (iii) a solve that does not converge is repeated with the `rand` and `barrier` inner methods
   (`fallback_inner`), which need no active-set exchange next to a boundary between two solids. In the UHAERO 2007
-  diagrams 59 of 60 sampled failures converge; converged states are unchanged.
+  diagrams 59 of 60 sampled failures converge; converged states are unchanged. (iv) A solve stopped at
+  `max_liquids` with a negative TPD is repeated with one more liquid allowed (`liquid_exchange`); the wrong liquid
+  is drained and a different four-liquid state of lower Gibbs energy is found.
+
+- **Phase diagram labels and validity** (`aiomfac_py.diagram`): `label_regions` labels the areas enclosed by the
+  traced lines (state from the solves inside, incl. the `trace_boundaries` cache); regions too small for their label
+  get a number listed outside the axes. `ionic_strength`, `validity_points`, `plot_validity`: dashed line at a
+  limiting ionic strength of the ion-containing liquids (default 100 mol/kg), beyond which AIOMFAC extrapolates.
+  `trace_boundaries`: missing lines between traces are found by chaining the states of the crossing lines (a line
+  crossing the interval no longer hides another one), seeds that bend away from a vertical line are kept, and lines
+  traced twice are dropped. Singular lines lying on a traced vertical line are not drawn dotted.
 
 - **Phase diagrams** (`aiomfac_py.diagram`, extra `plot`): phase-boundary tracing in RH by bisection on
   `PhaseEquilibrium` solves (`trace`; equilibrium and metastable modes; non-converged solves are dropped and listed),

@@ -37,6 +37,9 @@ SMILES = {"X1": ("2-hydroxy-glutaric acid", "OC(=O)CCC(O)C(=O)O"), "X2": ("adipi
           "X7": ("pinic acid", "CC1(C)C(CC1CC(=O)O)C(=O)O"), "X8": ("pinonic acid", "CC(=O)C1CC(CC(=O)O)C1(C)C")}
 TERNARY = {2: ("X5", "X7"), 3: ("X2", "X3"), 4: ("X8", "X6"), 5: ("X1", "X4")}     # (s2 on y axis, s3 on x axis)
 WATER = Component(1, "Water", ((16, 1),))
+# largest molal ionic strength [mol/kg] of an ion-containing liquid up to which AIOMFAC is taken as fitted (a
+# judgement: Zuend et al. 2008 give no numeric limit; the EDB data reach strongly supersaturated solutions)
+VALIDITY_LIMIT = 100.0
 PAIRS = {1: ("X5", "X7", 0.5), 2: ("X2", "X3", 0.15), 3: ("X8", "X6", 0.5), 4: ("X1", "X4", 0.5)}
 LETTERS = {"ammonium_sulfate": "A", "letovicite": "B", "ammonium_bisulfate": "C", "ammonium_nitrate": "D",
            "AS_2AN": "E", "AS_3AN": "F", "AHS_AN": "G"}
@@ -433,12 +436,12 @@ def plot_org(out):
         plt.savefig(os.path.join(out, "uhaero07_fig12.png"), dpi=130)
         plt.close(fig)
 
-    from aiomfac_py.diagram import label_regions, plot_phase_map
+    from aiomfac_py.diagram import label_regions, plot_phase_map, plot_validity
     for Y, fno in ((1.0, 8), (0.85, 9)):
         files = [os.path.join(out, f"u07_map_Y{Y:.2f}_P{p}.pkl") for p in (1, 2, 3, 4)]
         if not any(os.path.exists(f) for f in files):
             continue
-        fig, axs = plt.subplots(2, 2, figsize=(12, 10))
+        fig, axs = plt.subplots(2, 2, figsize=(14, 10.5))
         for p, (ax, f) in enumerate(zip(axs.flat, files), start=1):
             if not os.path.exists(f):
                 ax.axis("off")
@@ -446,14 +449,18 @@ def plot_org(out):
             pm = pickle.load(open(f, "rb"))
             fb = os.path.join(out, f"u07_lines_Y{Y:.2f}_P{p}.pkl")
             bc = pickle.load(open(fb, "rb")) if os.path.exists(fb) else None
+            fc = os.path.join(out, f"lines_cache_Y{Y:.2f}_P{p}.pkl")
+            cache = pickle.load(open(fc, "rb")) if os.path.exists(fc) else None
             plot_phase_map(pm, ax=ax, legend=False, colors={s: c for s, c in zip(
                 pm.states(), ["#ffffff"] * 99)}, curves=bc, show_failed=True)
-            label_regions(ax, pm, LETTERS, min_cells=200, fontsize=7, curves=bc)
+            plot_validity(ax, pm, cache=cache, limit=VALIDITY_LIMIT)
+            label_regions(ax, pm, LETTERS, min_cells=200, fontsize=7, curves=bc, cache=cache)
             ax.set_title(f"({'abcd'[p - 1]}) {names[p][4:]}, α = 0.2", fontsize=10)
             ax.set_ylabel("RH")
-        fig.suptitle(f"Fig. {fno} (AIOMFAC): Y = {Y} with two organics (L1/L2/L3: liquid phases; letters: solids; "
-                     "grey dots: solver did not converge)",
-                     fontsize=10)
+        fig.suptitle(f"Fig. {fno} (AIOMFAC): Y = {Y} with two organics (nL: n liquid phases; letters: solids; "
+                     "numbers: small regions, listed right of each panel;\ngrey dots: solver did not converge; "
+                     f"red dashed: ionic strength of an ion-containing liquid = {VALIDITY_LIMIT:.0f} mol/kg, "
+                     "beyond it (low RH) AIOMFAC extrapolates)", fontsize=10)
         plt.tight_layout()
         plt.savefig(os.path.join(out, f"uhaero07_fig{fno:02d}.png"), dpi=130)
         plt.close(fig)

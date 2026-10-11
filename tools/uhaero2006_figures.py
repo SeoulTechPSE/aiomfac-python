@@ -35,6 +35,9 @@ LETTERS = {"ammonium_sulfate": "A", "letovicite": "B", "ammonium_bisulfate": "C"
 CURVES_X = {1.0: [0.9, 0.73, 0.6, 0.4, 0.3, 0.1], 0.85: [0.98, 0.9, 0.77, 0.74, 0.7, 0.6],
             0.5: [0.95, 0.9, 0.86, 0.84, 0.8, 0.77, 0.75, 0.7], 0.3: [0.98, 0.95, 0.9, 0.87, 0.85, 0.8, 0.77, 0.7],
             0.2: [0.98, 0.93, 0.9, 0.85, 0.83, 0.7, 0.6, 0.3]}
+# largest molal ionic strength [mol/kg] of the liquid up to which AIOMFAC is taken as fitted (a judgement: Zuend et
+# al. 2008 give no numeric limit; the EDB data reach strongly supersaturated solutions)
+VALIDITY_LIMIT = 100.0
 FIG_NO = {1.0: (2, 3), 0.85: (4, 5), 0.5: (6, 7), 0.3: (8, 9), 0.2: (10, 11)}
 # axis ranges of the deliquescence-curve panels in the paper: ((RH% a), (mass a), (RH% b), (mass b))
 CURVE_AXES = {1.0: ((35, 80), (1, 2.4), (0, 35), (1, 1.8)), 0.85: ((35, 80), (1, 2.4), (25, 70), (1, 1.8)),
@@ -119,7 +122,7 @@ def plot_all(out):
     import matplotlib.ticker
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    from aiomfac_py.diagram import label_regions, plot_phase_map
+    from aiomfac_py.diagram import label_regions, plot_phase_map, plot_validity
 
     f1 = os.path.join(out, "fig1.pkl")
     if os.path.exists(f1):
@@ -165,14 +168,18 @@ def plot_all(out):
             pm, fl = d["pm"], d["fields"]
             fb = os.path.join(out, f"lines_Y{Y:.2f}.pkl")
             bc = pickle.load(open(fb, "rb")) if os.path.exists(fb) else None
-            fig, axs = plt.subplots(1, 2, figsize=(12.0, 5.0))
+            fcache = os.path.join(out, f"lines_cache_Y{Y:.2f}.pkl")
+            cache = pickle.load(open(fcache, "rb")) if os.path.exists(fcache) else None
+            fig, axs = plt.subplots(1, 2, figsize=(13.5, 5.0))
             for ax, key, levels, fmt, tag in (
                     (axs[0], "pH", np.arange(-2.0, 6.01, 0.4), "%.1f", "a: pH (mole-fraction scale)"),
                     (axs[1], "rel_mass", [1.2, 1.4, 1.6, 1.8, 2.0, 2.5, 3.0, 4.0, 5.0, 7.0, 10.0], "%.1f",
                      "b: relative particle mass")):
                 plot_phase_map(pm, ax=ax, legend=False, colors={s: "#ffffff" for s in pm.states()}, rh_points=1000,
                                x_points=800, curves=bc, show_failed=True)
-                label_regions(ax, pm, LETTERS, min_cells=150, fontsize=7, curves=bc)
+                plot_validity(ax, pm, cache=cache, limit=VALIDITY_LIMIT)
+                label_regions(ax, pm, LETTERS, min_cells=150, fontsize=7, rh_points=1000, x_points=800, curves=bc,
+                              cache=cache)
                 # pH on the mole-fraction scale used by the paper: a_x = a_m M_w, pH_x = pH_m - log10(0.018015)
                 z = np.ma.masked_invalid(fl[key] - np.log10(0.018015) if key == "pH" else fl[key])
                 cs = ax.contour(fl["x"], fl["rh"], z, levels=levels, colors="#3060a0", linewidths=0.7)
@@ -180,7 +187,9 @@ def plot_all(out):
                 ax.set_title(f"Fig. {fa}{tag[0]}: Y = {Y}, {tag[3:]}", fontsize=10)
                 ax.set_ylabel("RH (%)")
                 ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{100 * v:.0f}"))
-            plt.tight_layout()
+            fig.text(0.01, 0.005, "numbers: small regions (listed right of each panel); red dashed: ionic strength "
+                     f"= {VALIDITY_LIMIT:.0f} mol/kg (below it in RH AIOMFAC extrapolates)", fontsize=7, va="bottom")
+            plt.tight_layout(rect=(0, 0.03, 1, 1))
             plt.savefig(os.path.join(out, f"uhaero06_fig{fa:02d}.png"), dpi=150)
             plt.close(fig)
         fcv = os.path.join(out, f"curves_Y{Y:.2f}.pkl")

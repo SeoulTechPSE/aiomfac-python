@@ -189,6 +189,27 @@ def test_trace_boundaries_nacl_kcl():
     assert all(isinstance(c, QuadMesh) for c in ax.collections) and len(ax.lines) >= len(bc.curves)
     ax = plot_phase_map(pm, legend=False, show_failed=True)
     assert any(not isinstance(c, QuadMesh) for c in ax.collections)
+    # labels in the regions enclosed by the lines; a region too small for its label gets a number listed outside
+    import matplotlib.pyplot as plt
+    from aiomfac_py.diagram import ionic_strength, label_regions, plot_validity
+    fig, ax = plt.subplots(figsize=(6.0, 4.5))
+    plot_phase_map(pm, ax=ax, curves=bc, legend=False)
+    items = label_regions(ax, pm, {H: "H", S: "S"}, curves=bc)
+    texts = {t.get_text() for t in ax.texts}
+    assert {"H+S", "L"} <= texts and all(str(n) in texts for n, _ in items)
+    fig2, ax2 = plt.subplots(figsize=(1.6, 1.2))           # small axes, large font: labels do not fit
+    plot_phase_map(pm, ax=ax2, curves=bc, legend=False)
+    items = label_regions(ax2, pm, {H: "H", S: "S"}, curves=bc, fontsize=24)
+    assert "H+S" in {t for _, t in items} and str(items[0][0]) in {t.get_text() for t in ax2.texts}
+    plt.close("all")
+    # validity: ionic strength of the solution (NaCl + KCl, about 2-7 mol/kg at RH 0.8-0.95); no line below 1000
+    res = pm.traces[1].results[-1]
+    assert 1.0 < ionic_strength(res) < 10.0
+    assert ionic_strength(pm.traces[1].results[0]) == 0.0 or pm.traces[1].results[0].liquids
+    _, ax3 = plt.subplots()
+    cs = plot_validity(ax3, pm, limit=1000.0)
+    assert not any(len(p) for p in cs.allsegs[0])
+    plt.close("all")
 
 
 def test_trace_boundaries_vertical_line():

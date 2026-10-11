@@ -758,3 +758,22 @@ def test_water_free_trial_phase_discarded():
     res = pe.solve(feed, 0.051)
     assert res.status == "converged" and res.tpd_min > -1.0 and time.time() - t0 < 30
     assert all(L.mole_fractions[0] > 1e-3 for L in res.liquids)
+
+
+def test_liquid_exchange_at_max_liquids():
+    """1-hexacosanol / pinic acid + NH4HSO4-rich salt at RH 4 %: the solve ends with four liquids (the cap) and a
+    negative stability test, i.e. the wrong set of four; re-solving with one more liquid allowed drains the wrong
+    one and converges to a different four-liquid state."""
+    from aiomfac_py import Component
+    o1 = Component(2, "1-hexacosanol", ((145, 1), (146, 24), (150, 1), (153, 1)))
+    o2 = Component(3, "pinic acid", ((1, 2), (2, 2), (3, 2), (4, 1), (137, 2)))
+    pe = PhaseEquilibrium([o1, o2], ["NH4+", "H+", "SO4--"], T_K=298.15)
+    feed = {"NH4+": 0.124, "H+": 0.876, "SO4--": 0.5}
+    feed[o1.name] = feed[o2.name] = 0.125 * sum(feed.values())
+    pe.liquid_exchange = False
+    bad = pe.solve(feed, 0.041)
+    assert bad.status == "not_converged" and len(bad.liquids) == 4 and bad.tpd_min < -1e-2
+    pe.liquid_exchange = True
+    res = pe.solve(feed, 0.041)
+    assert res.status == "converged" and len(res.liquids) == 4 and "liquid exchange" in res.message
+    assert res.gibbs < bad.gibbs + 1e-9

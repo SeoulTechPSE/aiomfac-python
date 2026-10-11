@@ -804,6 +804,8 @@ class PhaseEquilibrium:
         self.si_tol = 1.0e-9                         # an inactive solid is added once its SI exceeds this
         # inner methods tried, in order, when a solve does not converge (see _solve_fallback); () to disable
         self.fallback_inner = ("rand", "barrier")
+        # retry a solve stopped at max_liquids with a negative TPD with one more liquid allowed (see _solve_exchange)
+        self.liquid_exchange = True
         # a trial phase of the stability test with water below this mole fraction and ions is discarded: AIOMFAC
         # (molality-based ion terms) diverges as water vanishes, giving meaningless TPD of -1e8 (molten salts)
         self.tpd_min_water = 1.0e-6
@@ -1995,8 +1997,25 @@ class PhaseEquilibrium:
             if cold.status == "converged":
                 cold.message = ((cold.message + "; ") if cold.message else "") + "warm start discarded (not converged)"
                 return cold
+        if (res.status == "not_converged" and self.liquid_exchange and 2 <= max_liquids <= len(res.liquids)
+                and res.tpd_min < -self.tol_tpd):
+            res = self._solve_exchange(feed, rh, res, kw)
         if res.status == "not_converged" and self.fallback_inner:
             res = self._solve_fallback(feed, rh, res, kw)
+        return res
+
+    def _solve_exchange(self, feed, rh, res, kw):
+        """Liquid exchange: the solve stopped at ``max_liquids`` liquids with a negative TPD.  At most as many
+        liquids as there are independent components can coexist over an area of the diagram, so the trial phase
+        should replace one of the liquids, not join them.  The outer loop only adds liquids; allowing one more lets
+        it add the trial phase, after which the inner solve drains the liquid that does not belong (it vanishes and
+        is removed).  The result is used if it converges with at most ``max_liquids`` liquids.  Not for
+        ``max_liquids = 1`` (a deliberate one-liquid solve)."""
+        kw2 = dict(kw, max_liquids=kw["max_liquids"] + 1)
+        alt = self._solve(feed, rh, init=None, **kw2)
+        if alt.status == "converged" and len(alt.liquids) <= kw["max_liquids"]:
+            alt.message = ((alt.message + "; ") if alt.message else "") + "liquid exchange"
+            return alt
         return res
 
     def _solve_fallback(self, feed, rh, res, kw):
@@ -2071,6 +2090,7 @@ class PhaseEquilibrium:
                 child.tpd_hess_reuse_tol, child.tpd_method = self.tpd_hess_reuse_tol, self.tpd_method
                 child.inner_method, child.si_tol = self.inner_method, self.si_tol
                 child.fallback_inner, child.tpd_min_water = self.fallback_inner, self.tpd_min_water
+                child.liquid_exchange = self.liquid_exchange
                 child.seed_method, child.tpd_early_stop = self.seed_method, self.tpd_early_stop
                 child.newton_mu0, child.newton_mu_factor, child.newton_mu_min = (self.newton_mu0, self.newton_mu_factor,
                                                                                   self.newton_mu_min)

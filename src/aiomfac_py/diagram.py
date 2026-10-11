@@ -30,7 +30,8 @@ from .phase_equilibrium import PhaseEquilibrium, PhaseEquilibriumResult
 __all__ = ["PhaseState", "Boundary", "Trace", "PhaseMap", "phase_state", "trace", "phase_map", "plot_phase_map",
            "pie_composition", "particle_properties", "rh_profile", "deliquescence_point", "label_regions",
            "singular_lines", "BoundaryCurve", "BoundaryCurves", "trace_boundaries", "plot_boundary_curves",
-           "binary_mixing_curve", "TernaryLLE", "ternary_lle", "plot_ternary"]
+           "binary_mixing_curve", "TernaryLLE", "ternary_lle", "plot_ternary", "ionic_strength", "validity_points",
+           "plot_validity"]
 
 
 @dataclass(frozen=True, order=True)
@@ -344,6 +345,24 @@ def _singular(pm: PhaseMap, curves=None) -> list:
     return [ln for ln in lines if ln[3] not in sides]
 
 
+def _hidden_singular(lines: list, curves=None) -> list:
+    """the single-composition lines (from :func:`singular_lines`) that lie on a traced vertical boundary line (they
+    would hide it and are not drawn; :func:`label_regions` lists their state)"""
+    if curves is None:
+        return []
+    sx = curves.x_range[1] - curves.x_range[0]
+    out = []
+    for ln in lines:
+        xv, a, b, _ = ln
+        for c in curves.curves:
+            near = np.abs(c.x - xv) < 3e-3 * sx
+            if near.sum() >= 2 and np.all(near) and \
+                    min(b, c.rh.max()) - max(a, c.rh.min()) > 0.5 * (b - a):
+                out.append(ln)
+                break
+    return out
+
+
 def singular_lines(pm: PhaseMap) -> list:
     """[(x, rh_from, rh_to, PhaseState)] of the phase states that occur at a single interior x only (drawn as
     lines, as in the UHAERO diagrams)."""
@@ -470,8 +489,10 @@ def plot_phase_map(pm: PhaseMap, ax=None, *, colors: dict | None = None, rh_poin
                 q = np.array([z for z in q if min(_dist_to_polyline(np.array([z[0] / sx, z[1] / sr]), P)
                                                   for P in Ps) > 0.01]).reshape(-1, 2)
             ax.plot(q[:, 0], q[:, 1], ".", color="#888888", ms=2.5, zorder=3)
-    for xv, a, b, st in sing:
-        ax.plot([xv, xv], [a, b], ":", color="#222222", lw=1.3)
+    hidden = _hidden_singular(sing, curves)
+    for ln in sing:
+        if not any(ln is h for h in hidden):
+            ax.plot([ln[0], ln[0]], [ln[1], ln[2]], ":", color="#222222", lw=1.3)
     if metastable is not None:
         for (below, above), (bx, br) in metastable.boundary_lines().items():
             o = np.argsort(bx)
@@ -706,6 +727,31 @@ def _dist_to_polyline(p, P) -> float:
     return float(np.min(np.linalg.norm(a + w[:, None] * ab - p, axis=1)))
 
 
+def _length(P) -> float:
+    return float(np.sum(np.linalg.norm(np.diff(P, axis=0), axis=1))) if len(P) > 1 else 0.0
+
+
+def _resample(P, h) -> np.ndarray:
+    """points along the polyline P, at most h apart"""
+    out = [P[0]]
+    for a, b in zip(P[:-1], P[1:]):
+        n = max(1, int(np.ceil(np.linalg.norm(b - a) / h)))
+        out += [a + (b - a) * k / n for k in range(1, n + 1)]
+    return np.array(out)
+
+
+def _h_crossings(P, L, R, xa, xb, y) -> list:
+    """[(x, state at lower x, state at higher x)] where the polyline P (``L`` on the left of its direction, ``R`` on
+    the right) crosses the horizontal segment from (xa, y) to (xb, y)."""
+    out = []
+    for (x1, y1), (x2, y2) in zip(P[:-1], P[1:]):
+        if min(y1, y2) <= y < max(y1, y2):                 # half-open: a vertex on the level counts once
+            xc = x1 + (y - y1) / (y2 - y1) * (x2 - x1)
+            if min(xa, xb) - 1e-9 <= xc <= max(xa, xb) + 1e-9:
+                out.append((float(xc), L, R) if y2 > y1 else (float(xc), R, L))   # going up: the left is at lower x
+    return out
+
+
 def _crosses_h(P, xa, xb, y) -> bool:
     """Does the polyline P cross the horizontal segment from (xa, y) to (xb, y)?"""
     for (x1, y1), (x2, y2) in zip(P[:-1], P[1:]):
@@ -783,9 +829,9 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
         if len(pts) < 2:
             return False
         xm = float(np.median(pts[:, 0]))
-        if len(pts) >= 4 and np.ptp(pts[:, 1]) > 0.05 and np.mean(np.abs(pts[:, 0] - xm) < 2.0 * tol) >= 0.7:
+        if len(pts) >= 4 and np.ptp(pts[:, 1]) > 0.05 and np.all(np.abs(pts[:, 0] - xm) < 2.0 * tol):
             vertical_line(xm)                               # a vertical line: rebuilt from RH scans beside it
-            return True
+            return True                                     # (a line that bends away from the vertical is kept)
         done.append((L, R, pts, ends))
         report(L, R, pts, ends)
         return True
@@ -887,9 +933,25 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
             if sa == sb or (sa, sb) in tried:
                 continue
             ua, ub = tr.to_unit(xa, r), tr.to_unit(xb, r)
-            if any(_crosses_h(c[2], ua[0], ub[0], ua[1]) for c in done):
+            # the lines crossing the interval must lead from sa to sb; otherwise one is missing in the first
+            # sub-interval where the states do not connect
+            cr = sorted(z for c in done for z in _h_crossings(c[2], c[0], c[1], ua[0], ub[0], ua[1]))
+            cur, xl, gap = sa, ua[0], None
+            for xc, s_lo, s_up in cr:
+                if s_lo != cur:
+                    gap = (xl, xc, s_lo)
+                    break
+                cur, xl = s_up, xc
+            else:
+                if cur != sb:
+                    gap = (xl, ub[0], sb)
+            if gap is None:
                 continue
-            lo, hi, s_hi = ua[0], ub[0], sb
+            lo, hi = gap[0] + (tol if gap[0] > ua[0] else 0.0), gap[1] - (tol if gap[1] < ub[0] else 0.0)
+            if hi - lo <= tol or (cur, gap[2]) in tried:
+                continue
+            sa, sb = cur, gap[2]
+            s_hi = sb
             while hi - lo > tol:
                 for frac in (0.5, 0.3, 0.7):
                     m = lo + frac * (hi - lo)
@@ -964,6 +1026,16 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
                 return True
         return False
     done[:] = [c for c in done if len(c[2]) == 2 and c[2][0, 0] == c[2][1, 0] or not near_vertical(c)]
+    # a line between the same states that runs along a longer one (traced twice from two seeds) is dropped
+    order = sorted(range(len(done)), key=lambda i: -_length(done[i][2]))
+    keep: list = []
+    for i in order:
+        c = done[i]
+        if not any({c[0], c[1]} == {done[j][0], done[j][1]} and
+                   np.mean([_dist_to_polyline(q, done[j][2]) < 2.0 * h_min for q in _resample(c[2], h_min)]) >= 0.8
+                   for j in keep):
+            keep.append(i)
+    done[:] = [done[i] for i in sorted(keep)]
     polys = _join_junctions([c[2] for c in done], [c[3] for c in done], 2.5 * h_min if snap is None else snap)
     curves = []
     for (L, R, _, ends), pts in zip(done, polys):
@@ -1269,32 +1341,225 @@ def _deliquescence_point_si(pe, feed, rh_max, rh_min, step, tol, solve_kw):
     return None, ()
 
 
+def _state_text(st: PhaseState, labels: dict) -> str:
+    parts = (["L"] if st.n_liquids == 1 else [f"{st.n_liquids}L"] if st.n_liquids > 1 else [])
+    parts += [labels.get(s, s) for s in st.solids]
+    return "+".join(parts)
+
+
 def label_regions(ax, pm: PhaseMap, labels: dict, *, min_cells: int = 40, fontsize: int = 8, rh_points: int = 400,
-                  curves: "BoundaryCurves | None" = None):
+                  x_points: int = 300, curves: "BoundaryCurves | None" = None, legend: bool = True,
+                  min_marker_cells: int = 3, cache: dict | None = None) -> list:
     """Write a short label in every phase region of ``pm`` drawn on ``ax`` (``labels``: solid key -> letter, e.g.
-    {"ammonium_sulfate": "A"}; a region reads 'L+A+E').  Regions smaller than ``min_cells`` grid cells are skipped.
-    Pass the ``curves`` used for the plot, if any."""
+    {"ammonium_sulfate": "A"}; a region reads 'L+A+E').  Pass the ``curves`` used for the plot, if any.
+
+    With ``curves`` the regions are the areas enclosed by the drawn lines, and the state of each is the most
+    frequent one among the solves inside it (those of the traces and of ``cache``, the cache of
+    :func:`trace_boundaries`); otherwise the regions are the connected parts of the phase states on the region grid.
+    A label is written in a region if it has at least ``min_cells`` cells (half a point wide with ``curves``) and
+    the text fits inside it at the current size of the axes.  Other regions (down to ``min_marker_cells``
+    cells) get a number, and the numbers are listed with their labels to the right of the axes (``legend``;
+    False: such regions are not labelled).  Single-composition states whose dotted line is hidden by a traced
+    vertical boundary are numbered in the same way.  Call after the axes limits are set (e.g. after
+    :func:`plot_phase_map`).  Returns [(number, label)] of the list."""
+    import matplotlib.patheffects as path_effects
+    from scipy import ndimage
+
     sing = _singular(pm, curves)
+    hidden = _hidden_singular(sing, curves)
     states = [st for st in pm.states() if st not in {ln[3] for ln in sing}]
-    Z, xf, rg, states = _region_grid(pm, rh_points, states)
+    Z, xf, rg, states = _region_grid(pm, rh_points, states, x_points)
     if curves is not None:
         Z = _curve_grid(curves, xf, rg, Z, {s: k for k, s in enumerate(states)}, pm)
-    for k, st in enumerate(states):
-        mask = Z == k
-        if mask.sum() < min_cells:
+    fig = ax.figure
+    bb = ax.get_window_extent()
+    w_pt, h_pt = bb.width * 72.0 / fig.dpi, bb.height * 72.0 / fig.dpi
+    regions = []                                            # (x of the middle, state, mask)
+    if curves is None:
+        for k, st in enumerate(states):
+            lab, n = ndimage.label(Z == k)
+            for j in range(1, n + 1):
+                m = lab == j
+                if m.sum() >= min_marker_cells:
+                    regions.append((float(np.median(xf[np.nonzero(m)[1]])), st, m))
+    else:
+        # the regions as drawn: areas enclosed by the traced lines (and the dotted single-composition lines) on a
+        # raster of half a point; the state of an area is the most frequent state of the solves inside it (traces
+        # of pm and ``cache``), else of the region grid
+        (ax0, ax1), (ay0, ay1) = ax.get_xlim(), ax.get_ylim()
+        nx, ny = max(int(2 * w_pt), 50), max(int(2 * h_pt), 50)
+        gx, gy = np.linspace(ax0, ax1, nx), np.linspace(ay0, ay1, ny)
+
+        def cell(x, y):
+            return (np.clip(np.round((np.asarray(y) - ay0) / (ay1 - ay0) * (ny - 1)), 0, ny - 1).astype(int),
+                    np.clip(np.round((np.asarray(x) - ax0) / (ax1 - ax0) * (nx - 1)), 0, nx - 1).astype(int))
+        wall = np.zeros((ny, nx), bool)
+        polys = [np.c_[c.x, c.rh] for c in curves.curves]
+        polys += [np.array([[ln[0], ln[1]], [ln[0], ln[2]]]) for ln in sing if not any(ln is h for h in hidden)]
+        for P in polys:
+            Q = []
+            for a, b in zip(P[:-1], P[1:]):
+                k = max(2, int(3 * max(abs(b[0] - a[0]) / (ax1 - ax0) * nx, abs(b[1] - a[1]) / (ay1 - ay0) * ny)))
+                Q.append(a + (b - a) * np.linspace(0.0, 1.0, k)[:, None])
+            if Q:
+                Q = np.vstack(Q)
+                wall[cell(Q[:, 0], Q[:, 1])] = True
+        wall = ndimage.binary_dilation(wall, iterations=2)  # closes gaps of about a point at junctions
+        lab, n = ndimage.label(~wall)
+        votes: dict = {}
+        pts = [(float(xv), float(r), phase_state(res)) for xv, t in zip(pm.x, pm.traces)
+               for r, res in zip(t.rh, t.results) if _ok(res)]
+        if cache:
+            (x0, x1), (r0, r1) = _unit_ranges(pm)
+            pts += [(x0 + k[0] * (x1 - x0), r0 + k[1] * (r1 - r0), v[0]) for k, v in cache.items() if v[0] is not None]
+        for x, y, st in pts:
+            if ax0 <= x <= ax1 and ay0 <= y <= ay1:
+                j = lab[cell(x, y)]
+                if j:
+                    votes.setdefault(j, {}).setdefault(st, 0)
+                    votes[j][st] += 1
+        jz = np.clip(np.searchsorted(rg, gy), 0, len(rg) - 1)
+        iz = np.clip(np.searchsorted(xf, gx), 0, len(xf) - 1)
+        Zr = Z[np.ix_(jz, iz)]                              # the region grid on the raster
+        for j in range(1, n + 1):
+            m = lab == j
+            if m.sum() < 4 * min_marker_cells:
+                continue
+            if j in votes:
+                st = max(votes[j].items(), key=lambda z: z[1])[0]
+            else:
+                zz = Zr[m]
+                zz = zz[np.isfinite(zz)].astype(int)
+                if not len(zz):
+                    continue
+                st = states[int(np.bincount(zz).argmax())]
+            regions.append((float(np.median(gx[np.nonzero(m)[1]])), st, m))
+        xf, rg = gx, gy
+    cx, cy = len(xf) / max(w_pt, 1.0), len(rg) / max(h_pt, 1.0)          # grid cells per point
+
+    def spot(mask, text, fs):
+        """the cell nearest to the middle of the region where a box for ``text`` fits; None if it does not fit"""
+        wc = max(1, int(np.ceil((0.6 * fs * len(text) + 3.0) * cx)))
+        hc = max(1, int(np.ceil(1.3 * fs * cy)))
+        er = ndimage.binary_erosion(mask, structure=np.ones((hc, wc), bool), border_value=0)
+        if not er.any():
+            return None
+        iy, ix = np.nonzero(er)
+        my, mx = np.nonzero(mask)
+        yc, xc = np.median(my), np.median(mx)
+        q = int(np.argmin((ix - xc) ** 2 / max(len(xf), 1) ** 2 + (iy - yc) ** 2 / max(len(rg), 1) ** 2))
+        return iy[q], ix[q]
+
+    halo = [path_effects.withStroke(linewidth=2.0, foreground="white")]
+    numbers: dict = {}
+    items: list = []
+
+    def number(text):
+        if text not in numbers:
+            numbers[text] = len(numbers) + 1
+            items.append((numbers[text], text))
+        return numbers[text]
+    for _, st, m in sorted(regions, key=lambda z: z[0]):
+        text = _state_text(st, labels)
+        q = spot(m, text, fontsize) if m.sum() >= min_cells and text else None
+        if q is not None:
+            ax.text(xf[q[1]], rg[q[0]], text, ha="center", va="center", fontsize=fontsize)
             continue
-        iy, ix = np.nonzero(mask)
-        parts = (["L"] if st.n_liquids == 1 else [f"{st.n_liquids}L"] if st.n_liquids > 1 else [])
-        parts += [labels.get(s, s) for s in st.solids]
-        yc, xc = np.median(rg[iy]), np.median(xf[ix])
-        # move the label to a cell of the region nearest to the median point
-        d = (xf[ix] - xc) ** 2 / max(np.ptp(xf), 1e-12) ** 2 + (rg[iy] - yc) ** 2 / max(np.ptp(rg), 1e-12) ** 2
-        q = int(np.argmin(d))
-        ax.text(xf[ix[q]], rg[iy[q]], "+".join(parts) if parts else "", ha="center", va="center", fontsize=fontsize)
-    for xv, a, b, st in sing:
-        parts = (["L"] if st.n_liquids == 1 else []) + [labels.get(t, t) for t in st.solids]
-        ax.text(xv, 0.75 * a + 0.25 * b, "+".join(parts), ha="center", va="center", fontsize=fontsize - 1,
-                rotation=90, bbox={"boxstyle": "square,pad=0.1", "fc": "white", "ec": "none"})
+        if not legend or not text:
+            continue
+        num = str(number(text))
+        q = spot(m, num, fontsize - 1)
+        if q is None:                                       # the most interior cell
+            d = ndimage.distance_transform_edt(m)
+            q = np.unravel_index(int(np.argmax(d)), d.shape)
+        ax.text(xf[q[1]], rg[q[0]], num, ha="center", va="center", fontsize=fontsize - 1, weight="bold",
+                color="#1f4e9a", path_effects=halo)
+    for ln in sing:
+        xv, a, b, st = ln
+        text = _state_text(st, labels)
+        if any(ln is h for h in hidden):
+            if not legend:
+                continue
+            num = number(f"{text} (line, x = {xv:.3g})")
+            ax.annotate(str(num), (xv, 0.75 * a + 0.25 * b), xytext=(4, 0), textcoords="offset points",
+                        ha="left", va="center", fontsize=fontsize - 1, weight="bold", color="#1f4e9a",
+                        path_effects=halo)
+        else:
+            ax.text(xv, 0.75 * a + 0.25 * b, text, ha="center", va="center", fontsize=fontsize - 1,
+                    rotation=90, bbox={"boxstyle": "square,pad=0.1", "fc": "white", "ec": "none"})
+    if legend and items:
+        ax.text(1.02, 1.0, "\n".join(f"{n}: {t}" for n, t in items), transform=ax.transAxes, ha="left", va="top",
+                fontsize=fontsize - 1, color="#1f4e9a", linespacing=1.25)
+    return items
+
+
+def ionic_strength(res: PhaseEquilibriumResult) -> float:
+    """Largest molal ionic strength I = 1/2 sum m_i z_i^2 [mol/kg water] of the liquids of ``res`` that contain
+    ions (explicit species such as HSO4- included; liquids with ions below 0.1 % of their moles are skipped);
+    0 without such a liquid.  A measure of how far a state lies outside the concentration range of the data that
+    AIOMFAC was fitted to (see :func:`plot_validity`)."""
+    def charge(name):
+        core = name.rstrip("+-")
+        k = len(name) - len(core)
+        return k if name.endswith("+") else -k if name.endswith("-") else 0
+    best = 0.0
+    for L in res.liquids:
+        names = L.species_names if L.species_names is not None else L.names
+        amounts = L.species_amounts if L.species_amounts is not None else L.amounts
+        ions = [(float(a), charge(n)) for n, a in zip(names, amounts) if charge(n)]
+        if not ions or sum(a for a, _ in ions) < 1e-3 * float(np.sum(L.amounts)):
+            continue
+        n_w = float(dict(zip(L.names, L.amounts)).get("Water", 0.0))
+        best = max(best, 0.5 * sum(a * z * z for a, z in ions) / max(n_w * M_WATER * 1e-3, 1e-300))
+    return best
+
+
+def _unit_ranges(pm: PhaseMap):
+    """(x range, RH range) of the unit square used by :func:`trace_boundaries` (and the keys of its cache)"""
+    x_range = (float(pm.x[0]), float(pm.x[-1]))
+    rh_range = (min(t.rh_range[0] if t.rh_range else t.rh[0] for t in pm.traces),
+                max(t.rh_range[1] if t.rh_range else t.rh[-1] for t in pm.traces))
+    return x_range, rh_range
+
+
+def validity_points(pm: PhaseMap, cache: dict | None = None, measure: Callable = ionic_strength) -> np.ndarray:
+    """[(x, RH, measure)] of the converged solves of the traces of ``pm`` and of a ``cache`` of
+    :func:`trace_boundaries` (same ``pm``)."""
+    pts = [(float(xv), float(r), measure(res)) for xv, t in zip(pm.x, pm.traces)
+           for r, res in zip(t.rh, t.results) if _ok(res)]
+    if cache:
+        (x0, x1), (r0, r1) = _unit_ranges(pm)
+        pts += [(x0 + k[0] * (x1 - x0), r0 + k[1] * (r1 - r0), measure(v[1])) for k, v in cache.items()
+                if v[0] is not None and v[1] is not None]
+    return np.array(pts, float).reshape(-1, 3)
+
+
+def plot_validity(ax, pm: PhaseMap, *, cache: dict | None = None, limit: float = 100.0,
+                  measure: Callable = ionic_strength, n: int = 300, color: str = "#c0392b", lw: float = 1.4,
+                  points: np.ndarray | None = None, smooth: float = 0.006):
+    """Dashed line around the part of the diagram where the liquids stay within the range of the activity model:
+    the contour ``measure = limit`` (default: largest molal ionic strength of an ion-containing liquid,
+    :func:`ionic_strength`, at 100 mol/kg).  The measure is taken from the solves of the traces of ``pm`` and of a
+    ``cache`` of :func:`trace_boundaries` (or ``points`` from :func:`validity_points`) and interpolated linearly
+    (in log(1 + measure)) onto an ``n`` x ``n`` grid, then smoothed (Gaussian, ``smooth`` in units of the diagram).  AIOMFAC states no numeric limit of validity: the limit is a
+    judgement about where the data used in the fit end (EDB measurements of supersaturated solutions reach high
+    ionic strength; beyond them the model extrapolates).  Returns the contour set."""
+    from scipy.interpolate import griddata
+    P = validity_points(pm, cache, measure) if points is None else np.asarray(points, float)
+    (x0, x1), (r0, r1) = _unit_ranges(pm)
+    U = np.c_[(P[:, 0] - x0) / (x1 - x0), (P[:, 1] - r0) / (r1 - r0)]
+    U, iu = np.unique(np.round(U, 9), axis=0, return_index=True)
+    v = np.log10(1.0 + np.maximum(P[iu, 2], 0.0))
+    gx, gy = np.meshgrid(np.linspace(0.0, 1.0, n), np.linspace(0.0, 1.0, n))
+    G = griddata(U, v, (gx, gy), method="linear")
+    if smooth > 0:                                          # Gaussian smoothing of the defined part of the grid
+        from scipy.ndimage import gaussian_filter
+        ok = np.isfinite(G)
+        num = gaussian_filter(np.where(ok, G, 0.0), smooth * n)
+        den = gaussian_filter(ok.astype(float), smooth * n)
+        G = np.where(ok, num / np.maximum(den, 1e-12), np.nan)
+    return ax.contour(x0 + gx * (x1 - x0), r0 + gy * (r1 - r0), G, levels=[np.log10(1.0 + limit)], colors=color,
+                      linewidths=lw, linestyles="--")
 
 
 # ---------------------------------------------------------------------------------------------------------------

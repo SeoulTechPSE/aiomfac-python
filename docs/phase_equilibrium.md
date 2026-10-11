@@ -31,7 +31,7 @@ liquid–liquid split, and the two have to adjust at the same time.
 | Carbonate | CO3-- (total carbonate) and H+ (proton excess, either sign) | HCO3-, OH-, CO2(aq) are explicit species (Sect. 3.4); `speciation="internal"`: Sect. 3.3 |
 | Solids | all database solids whose ions are present, or a user list | hydrates through the hydrate water h |
 | Gases | NH3, HNO3, HCl, CO2 | open (`p_gas`) or closed (`gas_total`, `n_air`) |
-| Liquid phases | up to `max_liquids` (default 3) | added by a tangent-plane stability test |
+| Liquid phases | up to `max_liquids` (default 4) | added by a tangent-plane stability test |
 | Modes | equilibrium (`solids="all"`), metastable (`"none"`), explicit list, drying path with critical supersaturation | |
 
 ### Why a new solver
@@ -653,6 +653,14 @@ failures of the UHAERO 2007 diagrams at RH < 0.1). Water-poor organic phases wit
 `max_liquids` (default 4; 3 before 2026-10) caps the number of liquids. Particles with two organics can have four
 liquids: two organic-rich ones and two aqueous ones (e.g. an almost molten second salt liquid at low RH). With a cap of 3 the outer loop stopped with a negative TPD (not converged) in about 10 % of the
 solves of the 1-hexacosanol/pinic acid and pinonic acid/nonacosane diagrams.
+
+**Liquid exchange.** At the cap a negative TPD means the solve holds the wrong set of liquids (with 5 components at
+fixed T, p and a_w, at most four phases coexist over an area of a composition–RH map). With `liquid_exchange = True`
+(default) such a solve is repeated from scratch with `max_liquids + 1`: the extra liquid is seeded at the TPD minimizer
+and the inner minimization drains the liquid that does not belong; the result is used only if it converges with
+at most `max_liquids` liquids. A solve with `max_liquids = 1` (a deliberate one-liquid state, Sect. 11) is not exchanged. The message then ends with "liquid exchange". In the 1-hexacosanol/pinic acid diagram at RH 2–5 % all such
+failures converge to a different four-liquid state of lower Gibbs energy. The exchange runs before the inner-method
+fallback.
 
 If the most negative TPD is below `−tol_tpd` (1e-7), a new liquid is seeded at the minimizer w. Its non-water part is
 moved out of the liquid that can supply the most of it:
