@@ -1654,12 +1654,16 @@ def label_regions(ax, pm: PhaseMap, labels: dict, *, min_cells: int = 40, fontsi
         trans, inv = ax.transData, ax.transData.inverted()
         placed: list = []                                   # (state, display point)
         sing_states = {ln[3] for ln in sing}
+        disp = {id(c): trans.transform(np.c_[c.x, c.rh]) for c in curves.curves}
+        vert = {id(c): np.ptp(disp[id(c)][:, 0]) < 1.0 for c in curves.curves}
+        on_any = {st for c in curves.curves for st in (c.left, c.right)}
+        only_vertical = {st for st in on_any if all(vert[id(c)] for c in curves.curves if st in (c.left, c.right))}
         for c in sorted(curves.curves, key=lambda c_: -len(c_.x)):
             if len(c.x) < 2:
                 continue
             D = trans.transform(np.c_[c.x, c.rh])
             seg = np.linalg.norm(np.diff(D, axis=0), axis=1)
-            if seg.sum() < 12.0 * fig.dpi / 72.0:          # lines shorter than 12 points: junction pieces
+            if seg.sum() < 30.0 * fig.dpi / 72.0:          # lines shorter than 30 points: junction pieces
                 continue
             i = int(np.argmax(np.cumsum(seg) >= 0.5 * seg.sum()))
             d = (D[i + 1] - D[i]) / max(seg[i], 1e-9)
@@ -1671,9 +1675,14 @@ def label_regions(ax, pm: PhaseMap, labels: dict, *, min_cells: int = 40, fontsi
                 xq, yq = inv.transform(mid + 3.0 * fig.dpi / 72.0 * nrm)
                 if not (ax0 <= xq <= ax1 and ay0 <= yq <= ay1):
                     continue
-                if comp_state.get(int(lab[cell(xq, yq)])) == st:
+                if comp_state.get(int(lab[cell(xq, yq)])) == st or st in only_vertical:
                     continue
-                if any(s0 == st and np.linalg.norm(p0 - mid) < 40.0 * fig.dpi / 72.0 for s0, p0 in placed):
+                # thin: another line with the same state on a side runs within 5 points of the probe
+                probe = mid + 3.0 * fig.dpi / 72.0 * nrm
+                if not any(c2 is not c and st in (c2.left, c2.right) and
+                           _dist_to_polyline(probe, disp[id(c2)]) < 5.0 * fig.dpi / 72.0 for c2 in curves.curves):
+                    continue
+                if any(s0 == st and np.linalg.norm(p0 - mid) < 150.0 * fig.dpi / 72.0 for s0, p0 in placed):
                     continue
                 placed.append((st, mid))
                 num = number(_state_text(st, labels))
