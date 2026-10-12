@@ -13,6 +13,8 @@
   -> under 1 s). A fallback inner method that raises a linear-algebra error counts as not converged. (vi) The stability test also starts from a very
   concentrated salt composition (water : ions = 0.2): a concentrated acid-sulfate liquid next to NH4HSO4 was missed,
   leaving a local minimum with the solid (2L + NH4HSO4 instead of 3L in the adipic acid/glutaraldehyde diagram).
+- `trace_boundaries`: a line end that no other line reaches is extended along its tangent to the first line or edge
+  within 12 `h_min`; `label_regions`: a region thinner than the drawn lines is numbered beside its line.
 - `rh_profile(..., refine=tol)`: deliquescence steps located by bisection (drawn vertically); `ionic_strength` in
   the output.
 - `trace_boundaries`: line ends that no other line reaches are probed on wider circles (`dangling_rounds`); at a

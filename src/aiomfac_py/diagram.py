@@ -580,6 +580,7 @@ class _Tracer:
         self.checkpoint = None
         self.checkpoint_every = 200
         self.checked: set = set()                          # (point, result) pairs of state_min already solved
+        self._last_checkpoint = 0
         self.n_replaced = 0
 
     def to_xr(self, p):
@@ -616,9 +617,13 @@ class _Tracer:
                     break
         out = (phase_state(res) if _ok(res) else None, res)
         self.cache[key] = out
-        if self.checkpoint is not None and self.n_solves % self.checkpoint_every == 0:
-            self.checkpoint(self.cache)
+        self._maybe_checkpoint()
         return out
+
+    def _maybe_checkpoint(self):
+        if self.checkpoint is not None and self.n_solves - self._last_checkpoint >= self.checkpoint_every:
+            self._last_checkpoint = self.n_solves
+            self.checkpoint(self.cache)
 
     def state_min(self, p, others):
         """:meth:`state`, checked against the phase states of the results in ``others``: the point is re-solved
@@ -656,6 +661,7 @@ class _Tracer:
                     out = (phase_state(res), res)
                     self.cache[key] = out
                     self.n_replaced += 1
+        self._maybe_checkpoint()
         return out
 
     def locate(self, q, n, L, R, delta, warm):
@@ -663,9 +669,9 @@ class _Tracer:
         holds another state (the boundary ends) or cannot be found within ``delta_max``."""
         d = delta
         # two states that differ by more than one phase cannot meet on a line (law of adjoining phase regions) unless
-        # the line is invariant (horizontal) or a single composition: each solve of the bracket is also started from
-        # the other side's state, and the lower Gibbs energy decides
-        far = _phase_distance(L, R) >= 2
+        # the line is invariant (horizontal) or a single composition (vertical): on a sloped line each solve of the
+        # bracket is also started from the other side's state, and the lower Gibbs energy decides
+        far = _phase_distance(L, R) >= 2 and 0.2 < abs(float(n[0])) < 0.98   # not on invariant/vertical lines
         st = (lambda p, own: self.state_min(p, [warm.get(L), warm.get(R)])) if far else self.state
         while True:
             pp, pm_ = q + d * n, q - d * n
@@ -1126,6 +1132,7 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
             keep.append(i)
     done[:] = [done[i] for i in sorted(keep)]
     polys = _join_junctions([c[2] for c in done], [c[3] for c in done], 2.5 * h_min if snap is None else snap)
+    polys = _extend_to_edge(polys, 12.0 * h_min, 2.5 * h_min)
     curves = []
     for (L, R, _, ends), pts in zip(done, polys):
         xr = np.array([tr.to_xr(p) for p in pts])
@@ -1214,6 +1221,46 @@ def _join_junctions(polys: list, ends: list, snap: float) -> list:
         polys[k] = np.vstack([J, polys[k]]) if side == 0 else np.vstack([polys[k], J])
     return polys
 
+
+
+def _extend_to_edge(polys: list, reach: float, snap: float) -> list:
+    """A line end that no other line reaches (within ``snap``) is extended along its tangent to the first line or
+    edge of the unit square it meets within ``reach``: a boundary line ends on the edge or at a junction, never inside
+    the diagram (an end left short, e.g. by a solve that did not converge or a gap between two pieces of a vertical
+    line)."""
+    polys = [np.asarray(P, float).copy() for P in polys]
+    for k in range(len(polys)):
+        P = polys[k]
+        if len(P) < 2:
+            continue
+        for side in (0, 1):
+            e = P[0] if side == 0 else P[-1]
+            t = (P[0] - P[1]) if side == 0 else (P[-1] - P[-2])
+            nt = np.linalg.norm(t)
+            if nt == 0 or min(e[0], e[1], 1.0 - e[0], 1.0 - e[1]) < 1e-6:
+                continue
+            if any(j != k and _dist_to_polyline(e, Q) < snap for j, Q in enumerate(polys)):
+                continue
+            t = t / nt
+            ds = [((0.0 if t[i] < 0 else 1.0) - e[i]) / t[i] for i in (0, 1) if abs(t[i]) > 1e-12]
+            best = min([v for v in ds if v >= 0] or [np.inf])
+            for j, Q in enumerate(polys):                  # first crossing with another line along the tangent
+                if j == k or len(Q) < 2:
+                    continue
+                a, b = Q[:-1], Q[1:]
+                d = b - a
+                den = t[0] * d[:, 1] - t[1] * d[:, 0]
+                ok = np.abs(den) > 1e-14
+                w = np.where(ok, ((a[:, 0] - e[0]) * d[:, 1] - (a[:, 1] - e[1]) * d[:, 0]) / np.where(ok, den, 1), -1)
+                u = np.where(ok, ((a[:, 0] - e[0]) * t[1] - (a[:, 1] - e[1]) * t[0]) / np.where(ok, den, 1), -1)
+                hit = ok & (w > 1e-9) & (u >= 0) & (u <= 1)
+                if hit.any():
+                    best = min(best, float(w[hit].min()))
+            if best <= reach:
+                q = np.clip(e + best * t, 0.0, 1.0)
+                P = np.vstack([q, P]) if side == 0 else np.vstack([P, q])
+        polys[k] = P
+    return polys
 
 
 def _crosses_seg(P, a, b) -> bool:
@@ -1496,6 +1543,8 @@ def label_regions(ax, pm: PhaseMap, labels: dict, *, min_cells: int = 40, fontsi
     bb = ax.get_window_extent()
     w_pt, h_pt = bb.width * 72.0 / fig.dpi, bb.height * 72.0 / fig.dpi
     regions = []                                            # (x of the middle, state, mask)
+    comp_state: dict = {}                                   # raster area -> state (with curves)
+    lab = cell = None
     if curves is None:
         for k, st in enumerate(states):
             lab, n = ndimage.label(Z == k)
@@ -1555,6 +1604,7 @@ def label_regions(ax, pm: PhaseMap, labels: dict, *, min_cells: int = 40, fontsi
                     continue
                 st = states[int(np.bincount(zz).argmax())]
             regions.append((float(np.median(gx[np.nonzero(m)[1]])), st, m))
+            comp_state[j] = st
         xf, rg = gx, gy
     cx, cy = len(xf) / max(w_pt, 1.0), len(rg) / max(h_pt, 1.0)          # grid cells per point
 
@@ -1580,14 +1630,17 @@ def label_regions(ax, pm: PhaseMap, labels: dict, *, min_cells: int = 40, fontsi
             numbers[text] = len(numbers) + 1
             items.append((numbers[text], text))
         return numbers[text]
+    shown: set = set()
     for _, st, m in sorted(regions, key=lambda z: z[0]):
         text = _state_text(st, labels)
         q = spot(m, text, fontsize) if m.sum() >= min_cells and text else None
         if q is not None:
             ax.text(xf[q[1]], rg[q[0]], text, ha="center", va="center", fontsize=fontsize)
+            shown.add(st)
             continue
         if not legend or not text:
             continue
+        shown.add(st)
         num = str(number(text))
         q = spot(m, num, fontsize - 1)
         if q is None:                                       # the most interior cell
@@ -1595,6 +1648,38 @@ def label_regions(ax, pm: PhaseMap, labels: dict, *, min_cells: int = 40, fontsi
             q = np.unravel_index(int(np.argmax(d)), d.shape)
         ax.text(xf[q[1]], rg[q[0]], num, ha="center", va="center", fontsize=fontsize - 1, weight="bold",
                 color="#1f4e9a", path_effects=halo)
+    # a region thinner than the drawn lines (two nearly coinciding lines) has no area of its own on the raster: where
+    # the area 3 points beside the middle of a line does not hold the state of that side, the state is numbered there
+    if curves is not None and legend and lab is not None:
+        trans, inv = ax.transData, ax.transData.inverted()
+        placed: list = []                                   # (state, display point)
+        sing_states = {ln[3] for ln in sing}
+        for c in sorted(curves.curves, key=lambda c_: -len(c_.x)):
+            if len(c.x) < 2:
+                continue
+            D = trans.transform(np.c_[c.x, c.rh])
+            seg = np.linalg.norm(np.diff(D, axis=0), axis=1)
+            if seg.sum() < 12.0 * fig.dpi / 72.0:          # lines shorter than 12 points: junction pieces
+                continue
+            i = int(np.argmax(np.cumsum(seg) >= 0.5 * seg.sum()))
+            d = (D[i + 1] - D[i]) / max(seg[i], 1e-9)
+            mid = 0.5 * (D[i] + D[i + 1])
+            for st, sgn in ((c.left, 1.0), (c.right, -1.0)):
+                if st in sing_states or not _state_text(st, labels):
+                    continue
+                nrm = sgn * np.array([-d[1], d[0]])
+                xq, yq = inv.transform(mid + 3.0 * fig.dpi / 72.0 * nrm)
+                if not (ax0 <= xq <= ax1 and ay0 <= yq <= ay1):
+                    continue
+                if comp_state.get(int(lab[cell(xq, yq)])) == st:
+                    continue
+                if any(s0 == st and np.linalg.norm(p0 - mid) < 40.0 * fig.dpi / 72.0 for s0, p0 in placed):
+                    continue
+                placed.append((st, mid))
+                num = number(_state_text(st, labels))
+                ax.annotate(str(num), tuple(inv.transform(mid)), xytext=(6.0 * nrm[0], 6.0 * nrm[1]),
+                            textcoords="offset points", ha="center", va="center", fontsize=fontsize - 1,
+                            weight="bold", color="#1f4e9a", path_effects=halo)
     for ln in sing:
         xv, a, b, st = ln
         text = _state_text(st, labels)
