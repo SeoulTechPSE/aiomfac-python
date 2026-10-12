@@ -164,7 +164,7 @@ range), so that boundaries end close to where they meet (eutonic and peritectic 
 `PhaseMap` attributes and methods: `x`, `traces`, `x_label`, `mode`; `states()` (all states that occur);
 `boundary_lines()` (`{(below, above): (x, rh)}`, for analysis); `to_records()` (flat list of boundaries for CSV/JSON).
 
-#### `trace_boundaries(pe, feed_of_x, pm, *, tol=5e-4, h0=0.02, h_min=0.002, h_max=0.05, delta_max=0.05, rh_samples=40, snap=None, solve_timeout=None, x_lines=(), junction_rounds=2, cache=None, verbose=False, **solve_kw) -> BoundaryCurves`
+#### `trace_boundaries(pe, feed_of_x, pm, *, tol=5e-4, h0=0.02, h_min=0.002, h_max=0.05, delta_max=0.05, rh_samples=40, snap=None, solve_timeout=None, x_lines=(), junction_rounds=2, dangling_rounds=2, cache=None, checkpoint=None, checkpoint_every=200, verbose=False, **solve_kw) -> BoundaryCurves`
 
 Traces every boundary line of a phase map continuously in the (x, RH) plane, so that the lines are smooth and meet
 at the junctions (eutonic and peritectic points) instead of being interpolated between the computed compositions.
@@ -182,6 +182,8 @@ Lengths are in units of the diagram (x and RH ranges scaled to 1):
 * `x_lines` — compositions where a vertical boundary is expected (e.g. the stoichiometric X of a salt); such lines
   are also detected automatically;
 * `junction_rounds` — rounds of the search for missing lines around the line ends (0 to skip);
+* `dangling_rounds` — rounds of the search around line ends that no other line reaches (circles of 3, 6 and
+  12 `h_min`; 0 to skip);
 * `cache` — a dict that keeps the solves; pass the same dict again (same `pm`) to reuse them, e.g. after changing
   options;
 * `verbose=True` prints each line as it is traced (`2` also prints every step).
@@ -412,7 +414,22 @@ from the state of the left trace to that of the right one (the states on the two
 where they do not, the line is missing in that sub-interval and is located there. A seed line is treated as vertical
 only if all its points lie within `2 tol` of one x; a line that bends away from a vertical boundary is kept. Lines
 between the same states that run along a longer one (at least 80 % of their length within `2 h_min`, traced twice
-from two seeds) are dropped. Finally, line ends at a junction that are closer than `snap` to
+from two seeds) are dropped.
+
+The tracing uses two rules of phase-diagram topology:
+
+* **Law of adjoining phase regions** (Palatnik and Landau; Rhines). In a two-dimensional section, the phase states
+  on the two sides of a boundary line differ by exactly one phase. The exceptions are degenerate lines: an invariant
+  RH (horizontal line, where a third state exists only on the line) and a single composition (vertical line of a
+  singular state). Where a line separates states that differ by two or more phases, either a thin region between
+  them has been missed, or one side is a local minimum. A converged solve can still be a local minimum when the
+  stability test misses a phase. So at such a bracket every solve is also started from the other side's state, and
+  the result with the lower Gibbs energy is kept (`_Tracer.state_min`).
+* **A boundary line cannot end inside the diagram.** It ends on the edge, or at a junction where other lines meet.
+  After the junction rounds, every line end that no other line reaches is probed on circles of 3, 6 and 12 `h_min`
+  (24 points), and a change of state that no line between those two states crosses starts a new line
+  (`dangling_rounds`). Here and around junctions, a change between two probe points counts as explained only by a
+  line between the same two states. Finally, line ends at a junction that are closer than `snap` to
 each other are joined at the point nearest (least squares) to their tangent lines, and a single end is extended
 along its tangent to the line it meets.
 

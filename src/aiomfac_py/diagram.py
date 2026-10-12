@@ -579,6 +579,8 @@ class _Tracer:
         self.timeout = None
         self.checkpoint = None
         self.checkpoint_every = 200
+        self.checked: set = set()                          # (point, result) pairs of state_min already solved
+        self.n_replaced = 0
 
     def to_xr(self, p):
         return self.x0 + p[0] * (self.x1 - self.x0), self.r0 + p[1] * (self.r1 - self.r0)
@@ -618,16 +620,59 @@ class _Tracer:
             self.checkpoint(self.cache)
         return out
 
+    def state_min(self, p, others):
+        """:meth:`state`, checked against the phase states of the results in ``others``: the point is re-solved
+        (i) starting from each of those results and (ii) with the solids restricted to that state's solids, then
+        without restriction starting from the restricted result.  The converged result of lowest Gibbs energy is kept
+        (a restricted result only if no excluded solid is supersaturated).  A converged solve can be a local minimum
+        when the stability test misses a phase (e.g. a third liquid next to a solid); the equilibrium is the global
+        minimum."""
+        out = self.state(p)
+        key = (round(float(p[0]), 10), round(float(p[1]), 10))
+        x, rh = self.to_xr(np.clip(p, 0.0, 1.0))
+        feed = self.feed_of_x(float(x))
+
+        def better(res):
+            return _ok(res) and (out[0] is None or res.gibbs < out[1].gibbs - 1e-9 * max(1.0, abs(out[1].gibbs)))
+        for r0 in others:
+            if r0 is None or not _ok(r0):
+                continue
+            s0 = phase_state(r0)
+            if (key, s0) in self.checked or (out[0] is not None and s0 == out[0]):
+                continue
+            self.checked.add((key, s0))
+            cands = [_solve_limited(self.pe, feed, float(rh), self.mode, r0, dict(self.solve_kw), self.timeout)]
+            if self.mode != "metastable":
+                kw = dict(self.solve_kw, solids=list(s0.solids) if s0.solids else "none")
+                rr = _solve_limited(self.pe, feed, float(rh), self.mode, r0, kw, self.timeout)
+                if _ok(rr):
+                    if max([v for k, v in rr.si.items() if k not in s0.solids] or [0.0]) <= 1e-6:
+                        cands.append(rr)
+                    cands.append(_solve_limited(self.pe, feed, float(rh), self.mode, rr, dict(self.solve_kw),
+                                                self.timeout))
+            self.n_solves += len(cands)
+            for res in cands:
+                if better(res):
+                    out = (phase_state(res), res)
+                    self.cache[key] = out
+                    self.n_replaced += 1
+        return out
+
     def locate(self, q, n, L, R, delta, warm):
         """Point on the line q + s n where the state changes from R (s < 0) to L (s > 0); None if the bracket
         holds another state (the boundary ends) or cannot be found within ``delta_max``."""
         d = delta
+        # two states that differ by more than one phase cannot meet on a line (law of adjoining phase regions) unless
+        # the line is invariant (horizontal) or a single composition: each solve of the bracket is also started from
+        # the other side's state, and the lower Gibbs energy decides
+        far = _phase_distance(L, R) >= 2
+        st = (lambda p, own: self.state_min(p, [warm.get(L), warm.get(R)])) if far else self.state
         while True:
             pp, pm_ = q + d * n, q - d * n
             if not (self.inside(pp) and self.inside(pm_)):
                 return None
-            sp, rp = self.state(pp, warm.get(L))
-            sm, rm = self.state(pm_, warm.get(R))
+            sp, rp = st(pp, warm.get(L))
+            sm, rm = st(pm_, warm.get(R))
             if sp == L and sm == R:
                 break
             if (sp is not None and sp not in (L, R)) or (sm is not None and sm not in (L, R)):
@@ -644,7 +689,7 @@ class _Tracer:
             seen = set()
             for frac in (0.5, 0.3, 0.7):                    # off-centre retries: a failed solve, or a state that
                 m = lo + frac * (hi - lo)                   # exists on a single line only (e.g. one salt exactly)
-                s, r = self.state(q + m * n, warm.get(L) or warm.get(R))
+                s, r = st(q + m * n, warm.get(L) or warm.get(R))
                 if s in (L, R):
                     break
                 seen.add(s)
@@ -718,6 +763,11 @@ class _Tracer:
         return pts, (e0, e1)
 
 
+def _phase_distance(a: PhaseState, b: PhaseState) -> int:
+    """number of phases that appear or disappear between two phase states (liquids counted by number)"""
+    return abs(a.n_liquids - b.n_liquids) + len(set(a.solids) ^ set(b.solids))
+
+
 def _dist_to_polyline(p, P) -> float:
     if len(P) == 1:
         return float(np.linalg.norm(p - P[0]))
@@ -767,7 +817,8 @@ def _crosses_h(P, xa, xb, y) -> bool:
 def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], pm: PhaseMap, *, tol: float = 5.0e-4,
                      h0: float = 0.02, h_min: float = 0.002, h_max: float = 0.05, delta_max: float = 0.05,
                      rh_samples: int = 40, snap: float | None = None, solve_timeout: float | None = None,
-                     x_lines: Sequence[float] = (), junction_rounds: int = 2, cache: dict | None = None,
+                     x_lines: Sequence[float] = (), junction_rounds: int = 2, dangling_rounds: int = 2,
+                     cache: dict | None = None,
                      checkpoint: Callable[[dict], None] | None = None, checkpoint_every: int = 200,
                      verbose: bool = False,
                      **solve_kw) -> BoundaryCurves:
@@ -789,7 +840,12 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
     scans just left and right of the line, which also resolves thin states next to it; they are detected among the
     seeds between traces, and compositions given in ``x_lines`` are scanned in any case.  After the seeds, the states
     on a small circle around every line end at a junction are checked (``junction_rounds`` times): a change of state
-    that no traced line explains starts a new line (short lines between junctions that cross no trace).  ``cache``:
+    that no traced line explains starts a new line (short lines between junctions that cross no trace).  A line end
+    that no other line reaches (a line cannot end inside the diagram) is probed in the same way on wider circles
+    (``dangling_rounds`` times).  Where the two sides of a line differ by two or more phases (allowed only on
+    invariant and single-composition lines), each solve of the bracket is also started from the other side's state
+    and the lower Gibbs energy is kept, so that a local minimum missed by the stability test does not make a false
+    line.  ``cache``:
     a dict of solves, kept and reused between calls with the same ``pm``; ``checkpoint(cache)`` is called every
     ``checkpoint_every`` solves (e.g. to save the cache of a long run).  Other keywords go to
     :meth:`PhaseEquilibrium.solve`."""
@@ -977,7 +1033,38 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
                 tried.add((sa, sb))
 
     # line ends at junctions: a change of state on a small circle around the end that no line explains
-    rho, n_ang = 3.0 * h_min, 16
+    def probe(J, rho, n_ang):
+        """states on a circle of radius rho around J: a change between neighbouring points that no traced line between
+        those two states crosses starts a new line (located on the circle by bisection, followed outwards)"""
+        ang = 2.0 * np.pi * np.arange(n_ang) / n_ang
+        P = J + rho * np.c_[np.cos(ang), np.sin(ang)]
+        S = [tr.state(q)[0] if tr.inside(q) else None for q in P]
+        found = 0
+        for k in range(n_ang):
+            k2 = (k + 1) % n_ang
+            sa, sb = S[k], S[k2]
+            if sa is None or sb is None or sa == sb:
+                continue
+            if any({c[0], c[1]} == {sa, sb} and _crosses_seg(c[2], P[k], P[k2]) for c in done):
+                continue
+            a, b = ang[k], ang[k] + 2.0 * np.pi / n_ang
+            s_hi = sb
+            while (b - a) * rho > tol:
+                m = 0.5 * (a + b)
+                sm = tr.state(J + rho * np.array([np.cos(m), np.sin(m)]))[0]
+                if sm is None:
+                    break
+                if sm == sa:
+                    a = m
+                else:
+                    b, s_hi = m, sm
+            m = 0.5 * (a + b)
+            B = J + rho * np.array([np.cos(m), np.sin(m)])
+            n0 = len(done)
+            run_seed(B, (B - J) / rho, s_hi, sa, {}, dedupe=1.0)    # outwards: the left side is s_hi
+            found += len(done) - n0
+        return found
+
     visited: list = []
     for _ in range(junction_rounds):
         found = 0
@@ -986,32 +1073,34 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
             if any(np.linalg.norm(J - q) < 2.5 * h_min for q in visited):
                 continue
             visited.append(J)
-            ang = 2.0 * np.pi * np.arange(n_ang) / n_ang
-            P = J + rho * np.c_[np.cos(ang), np.sin(ang)]
-            S = [tr.state(q)[0] if tr.inside(q) else None for q in P]
-            for k in range(n_ang):
-                k2 = (k + 1) % n_ang
-                sa, sb = S[k], S[k2]
-                if sa is None or sb is None or sa == sb:
+            found += probe(J, 3.0 * h_min, 16)
+        if not found:
+            break
+
+    # a boundary line cannot end inside the diagram (each end lies on the edge or where other lines meet): around an
+    # end that no other line reaches, the states are probed on wider circles until the missing line is found
+    def dangling():
+        out = []
+        for i, c in enumerate(done):
+            for side in (0, 1):
+                J = c[2][0 if side == 0 else -1]
+                if min(J[0], J[1], 1.0 - J[0], 1.0 - J[1]) < 2.0 * h_min:
                     continue
-                if any(_crosses_seg(c[2], P[k], P[k2]) for c in done):
-                    continue
-                a, b = ang[k], ang[k] + 2.0 * np.pi / n_ang
-                s_hi = sb
-                while (b - a) * rho > tol:
-                    m = 0.5 * (a + b)
-                    sm = tr.state(J + rho * np.array([np.cos(m), np.sin(m)]))[0]
-                    if sm is None:
-                        break
-                    if sm == sa:
-                        a = m
-                    else:
-                        b, s_hi = m, sm
-                m = 0.5 * (a + b)
-                B = J + rho * np.array([np.cos(m), np.sin(m)])
-                n0 = len(done)
-                run_seed(B, (B - J) / rho, s_hi, sa, {}, dedupe=1.0)    # outwards: the left side is s_hi
-                found += len(done) - n0
+                if not any(j != i and _dist_to_polyline(J, d[2]) < 2.5 * h_min for j, d in enumerate(done)):
+                    out.append(J)
+        return out
+    tried_d: list = []
+    for _ in range(dangling_rounds):
+        found = 0
+        for J in dangling():
+            if any(np.linalg.norm(J - q) < h_min for q in tried_d):
+                continue
+            tried_d.append(J)
+            for rho in (3.0 * h_min, 6.0 * h_min, 12.0 * h_min):
+                f = probe(J, rho, 24)
+                found += f
+                if f:
+                    break
         if not found:
             break
 

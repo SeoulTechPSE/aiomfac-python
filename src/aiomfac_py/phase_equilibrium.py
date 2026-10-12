@@ -1916,7 +1916,8 @@ class PhaseEquilibrium:
         """Electroneutral trial compositions (sum 1) for the stability test.  Compositions are fixed mole-fraction
         patterns of the components, independent of RH (an RH-scaled water content would make "organic-rich" trials
         water-rich close to saturation): each organic at x = 0.3, 0.7 and 0.95 in water; all organics in feed
-        proportion at x = 0.5 and 0.9; salt solutions at two water-to-ion ratios; dilute water; plus perturbed copies
+        proportion at x = 0.5 and 0.9; salt solutions at water-to-ion ratios 0.2, 2 and 10 (single salts at 2 and 10);
+        dilute water; plus perturbed copies
         of the current liquids.  With explicit speciation the component patterns are speciated with the internal model
         (a pattern with all acid as free H+ starts far from any minimum and misses, e.g., a third, sulfate-rich liquid
         of DLT + NaCl + H2SO4)."""
@@ -1946,7 +1947,9 @@ class PhaseEquilibrium:
             for xo in (0.5, 0.9):
                 comp_trials.append(make(1.0 - xo, xo * org_fr, eps * ion_fr))
         if ion_fr[nn:].sum() > 0:
-            for water in (2.0, 10.0):                                # concentrated and moderate salt solutions
+            # very concentrated (water : ions = 0.2, e.g. the acid-sulfate melt-like liquid that coexists with
+            # NH4HSO4 at low RH), concentrated and moderate salt solutions
+            for water in (0.2, 2.0, 10.0):
                 comp_trials.append(make(water, eps * org_fr, ion_fr))
             # single-salt solutions of every cation-anion pair present: a liquid enriched in one salt (e.g. the
             # Na2SO4-rich third liquid of DLT + NaCl + H2SO4) is otherwise reached only by chance

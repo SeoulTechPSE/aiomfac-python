@@ -790,3 +790,15 @@ def test_dried_liquid_becomes_all_solid():
     assert res.status == "dry" and not res.liquids and time.time() - t0 < 10.0     # (about 35 s before the early stop)
     assert res.solids["ammonium_sulfate"] == pytest.approx(0.4, rel=1e-6)
     assert res.solids["letovicite"] == pytest.approx(0.05, rel=1e-6)
+
+
+def test_concentrated_acid_sulfate_trial_liquid():
+    """Adipic acid/glutaraldehyde + NH4+/H+/SO4-- (X = 0.28) at RH 0.16: the equilibrium has three liquids, one of
+    them a concentrated acid-sulfate liquid (water : ions about 0.18).  Without a trial composition that
+    concentrated, the stability test missed it and the solve ended in a local minimum with solid NH4HSO4 (F higher by
+    0.02)."""
+    pe, feed = _uhaero_organic((("adipic", 0.15), ("glutaraldehyde", 0.85)), 0.2809)
+    res = pe.solve(feed, 0.16)
+    ref = pe.solve(feed, 0.16, solids="none")
+    assert res.status == "converged" and len(res.liquids) == 3 and not res.solids
+    assert res.gibbs == pytest.approx(ref.gibbs, abs=1e-8)

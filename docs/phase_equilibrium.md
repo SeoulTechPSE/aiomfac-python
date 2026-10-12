@@ -632,7 +632,10 @@ mole-fraction patterns. They do not depend on RH, so close to saturation an "org
 
 * each organic at x = 0.3, 0.7 and 0.95 in water, with traces of the ions;
 * all organics in feed proportion at x = 0.5 and 0.9 (if there are two or more organics);
-* the feed ions at water-to-ion ratios 2 and 10 (concentrated and moderate salt solutions);
+* the feed ions at water-to-ion ratios 0.2, 2 and 10 (very concentrated, concentrated and moderate salt solutions).
+  The ratio 0.2 was added in 2026-10. Without it, a concentrated acid-sulfate liquid (water : ions about 0.18) next
+  to NH4HSO4 was missed: adipic acid/glutaraldehyde + NH4+/H+/SO4-- at X = 0.28, RH 0.16 then ended as 2L + NH4HSO4,
+  with F higher by 0.02 than the three-liquid equilibrium;
 * single-salt solutions of every cation–anion pair in the feed, at the same two water-to-ion ratios. Without them, a
   liquid enriched in one salt was reached only by the random perturbations below. An example is the Na2SO4-rich third
   liquid of DLT + NaCl + H2SO4 (r = 0.75–3, RH 0.3–0.4). Earlier versions missed it at some states and reported two
