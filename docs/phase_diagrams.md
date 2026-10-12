@@ -126,11 +126,13 @@ A state that exists only in an RH interval narrower than the grid spacing can be
 | `state_at(rh)` | state of the nearest solve |
 | `signature` | tuple of `(below, above)` of all boundaries: equal signatures = same topology |
 
-#### `rh_profile(pe, feed, rh_grid, *, mode="equilibrium", **solve_kw) -> dict`
+#### `rh_profile(pe, feed, rh_grid, *, mode="equilibrium", refine=None, **solve_kw) -> dict`
 
-Particle properties on an RH grid (warm-started from high RH): arrays `rh`, `rel_mass`, `water_g`, `pH`,
-`n_liquids` and the list `solids`, in the order of `rh_grid`, NaN where a solve did not converge. Use it for
-deliquescence curves and contour fields.
+Properties of the equilibrium states along RH (`particle_properties` and `ionic_strength`), solved from high to low
+RH with warm starts. Without `refine` the arrays follow `rh_grid`, with NaN where a solve did not converge. With
+`refine` (an RH tolerance, e.g. 1e-4), each change of phase state between neighbouring grid points is located by
+bisection, and the states just below and above it are added. The arrays are then sorted by RH and hold only
+converged states, so a deliquescence step is drawn as a vertical jump at its RH.
 
 #### `particle_properties(pe, feed, result) -> dict`
 

@@ -1326,27 +1326,59 @@ def particle_properties(pe: PhaseEquilibrium, feed: dict, res: PhaseEquilibriumR
 
 
 def rh_profile(pe: PhaseEquilibrium, feed: dict, rh_grid: Sequence[float], *, mode: str = "equilibrium",
-               **solve_kw) -> dict:
-    """Properties (:func:`particle_properties`) on ``rh_grid``, solved from high to low RH with warm starts;
-    returned in the order of ``rh_grid`` as arrays (NaN where a solve did not converge)."""
+               refine: float | None = None, **solve_kw) -> dict:
+    """Properties (:func:`particle_properties`, plus ``ionic_strength``, :func:`ionic_strength`) on ``rh_grid``,
+    solved from high to low RH with warm starts; returned in increasing RH as arrays (NaN where a solve did not
+    converge).  With ``refine`` (an RH tolerance, e.g. 1e-4), each change of phase state between neighbouring grid
+    points is located by bisection and the states just below and above it are added, so that a deliquescence step
+    is drawn vertically at its RH."""
     rh = np.asarray(rh_grid, float)
-    order = np.argsort(-rh)
-    out = {k: np.full(len(rh), np.nan) for k in ("rel_mass", "water_g", "pH", "n_liquids")}
-    out["solids"] = [()] * len(rh)
-    prev = None
-    for i in order:
-        res = _solve(pe, feed, float(rh[i]), mode, prev, dict(solve_kw))
+    keys = ("rel_mass", "water_g", "pH", "n_liquids", "ionic_strength")
+    pts: dict = {}                                          # rh -> (state, properties)
+
+    def solve(r, prev):
+        res = _solve(pe, feed, float(r), mode, prev, dict(solve_kw))
         if not _ok(res) and prev is not None:
-            res = _solve(pe, feed, float(rh[i]), mode, None, dict(solve_kw))
-        if _ok(res):
-            p = particle_properties(pe, feed, res)
-            for k in ("rel_mass", "water_g", "pH", "n_liquids"):
-                out[k][i] = p[k]
-            out["solids"][i] = p["solids"]
-            prev = res if res.liquids else None
-        else:
-            prev = None
-    out["rh"] = rh
+            res = _solve(pe, feed, float(r), mode, None, dict(solve_kw))
+        if not _ok(res):
+            return None, None
+        p = particle_properties(pe, feed, res)
+        p["ionic_strength"] = ionic_strength(res)
+        pts[float(r)] = (phase_state(res), p)
+        return res, phase_state(res)
+    prev = None
+    for r in sorted(rh, reverse=True):
+        res, _ = solve(r, prev)
+        prev = res if res is not None and res.liquids else None
+    if refine:
+        grid = sorted(pts)
+        for a, b in zip(grid[:-1], grid[1:]):
+            sa, sb = pts[a][0], pts[b][0]
+            lo, hi = a, b
+            while sa != sb and hi - lo > refine:
+                m = 0.5 * (lo + hi)
+                _, sm = solve(m, None)
+                if sm is None:
+                    break
+                if sm == sa:
+                    lo = m
+                else:
+                    hi, sb = m, sm
+    rs = np.array(sorted(pts))
+    out = {k: np.array([pts[r][1][k] for r in rs], float) for k in keys}
+    out["solids"] = [pts[r][1]["solids"] for r in rs]
+    if not refine:                                          # on the grid, NaN where a solve failed
+        full = {k: np.full(len(rh), np.nan) for k in keys}
+        sol = [()] * len(rh)
+        idx = {float(r): i for i, r in enumerate(rh)}
+        for j, r in enumerate(rs):
+            i = idx[float(r)]
+            for k in keys:
+                full[k][i] = out[k][j]
+            sol[i] = out["solids"][j]
+        full["solids"], full["rh"] = sol, rh
+        return full
+    out["rh"] = rs
     return out
 
 

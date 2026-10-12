@@ -115,7 +115,7 @@ def run_lines(Y, out):
 def run_curves(Y, out):
     pe = system(Y)
     rg = np.round(np.arange(0.02, 0.9801, 0.01), 4)
-    res = {X: rh_profile(pe, feed(X, Y), rg) for X in CURVES_X[Y]}
+    res = {X: rh_profile(pe, feed(X, Y), rg, refine=1e-4) for X in CURVES_X[Y]}   # vertical deliquescence steps
     pickle.dump(res, open(os.path.join(out, f"curves_Y{Y:.2f}.pkl"), "wb"))
 
 
@@ -206,10 +206,16 @@ def plot_all(out):
                                            (axs[1], xsel[half:], "b", ax_rng[2], ax_rng[3])):
                 for X in group:
                     p = d[X]
-                    ax.plot(100 * p["rh"], p["rel_mass"], lw=1.4, label=f"({xsel.index(X) + 1}) X = {X}")
+                    ln, = ax.plot(100 * p["rh"], p["rel_mass"], lw=1.4, label=f"({xsel.index(X) + 1}) X = {X}")
+                    if "ionic_strength" in p:           # beyond the validity limit: red dashed over the curve
+                        bad = np.asarray(p["ionic_strength"]) > VALIDITY_LIMIT
+                        seg = bad | np.r_[bad[1:], False]
+                        ax.plot(100 * np.where(seg, p["rh"], np.nan), np.where(seg, p["rel_mass"], np.nan), "--",
+                                color="#c0392b", lw=1.6)
                 ax.set_xlabel("RH (%)")
                 ax.set_ylabel("Relative particle mass W$_p$/W$_{dry}$")
-                ax.set_title(f"Fig. {fc}{tag}: Y = {Y}", fontsize=10)
+                ax.set_title(f"Fig. {fc}{tag}: Y = {Y} (red dashed: ionic strength > {VALIDITY_LIMIT:.0f} mol/kg)",
+                             fontsize=10)
                 ax.legend(fontsize=8, frameon=False, loc="upper left")
                 ax.set_xlim(*xr)
                 ax.set_ylim(*yr)

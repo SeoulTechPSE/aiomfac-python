@@ -116,6 +116,14 @@ def test_deliquescence_point_and_rh_profile():
     assert p["rel_mass"][2] == pytest.approx(1.0) and p["rel_mass"][3] == pytest.approx(1.0)
     assert p["rel_mass"][0] > p["rel_mass"][1] > 1.5
     assert p["solids"][3] == ("ammonium_sulfate",) and np.all(np.isnan(p["pH"][2:]))
+    # refined: the step is located to 1e-4, so the curve rises vertically from 1 at the DRH
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        q = rh_profile(pe, feed, [0.95, 0.85, 0.7, 0.5], refine=1e-4)
+    k = int(np.argmax(q["rel_mass"] > 1.0 + 1e-9))
+    assert q["rel_mass"][k - 1] == pytest.approx(1.0) and q["rel_mass"][k] > 1.5
+    assert q["rh"][k] - q["rh"][k - 1] <= 1e-4 and abs(q["rh"][k] - rh) < 2e-4
+    assert np.all(np.diff(q["rh"]) > 0) and np.all(q["ionic_strength"][q["rel_mass"] > 1.0] > 0)
 
 
 def test_acid_sulfate_ph_and_letovicite():
