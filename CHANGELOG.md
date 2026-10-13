@@ -15,6 +15,9 @@
   leaving a local minimum with the solid (2L + NH4HSO4 instead of 3L in the adipic acid/glutaraldehyde diagram).
 - `trace_boundaries`: a line end that no other line reaches is extended along its tangent to the first line or edge
   within 12 `h_min`; `label_regions`: a region thinner than the drawn lines is numbered beside its line.
+- `trace_boundaries`: local refinement (`refine_rounds`, `refine_at`, ...) where the topology rules are violated;
+  new and short lines are checked by fresh solves (minimum Gibbs energy across the line); tips of closed regions are
+  joined; a seed along an existing vertical line keeps the part the vertical line does not cover.
 - `rh_profile(..., refine=tol)`: deliquescence steps located by bisection (drawn vertically); `ionic_strength` in
   the output.
 - `trace_boundaries`: line ends that no other line reaches are probed on wider circles (`dangling_rounds`); at a

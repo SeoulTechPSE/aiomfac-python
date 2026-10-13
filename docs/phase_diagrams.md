@@ -166,7 +166,7 @@ range), so that boundaries end close to where they meet (eutonic and peritectic 
 `PhaseMap` attributes and methods: `x`, `traces`, `x_label`, `mode`; `states()` (all states that occur);
 `boundary_lines()` (`{(below, above): (x, rh)}`, for analysis); `to_records()` (flat list of boundaries for CSV/JSON).
 
-#### `trace_boundaries(pe, feed_of_x, pm, *, tol=5e-4, h0=0.02, h_min=0.002, h_max=0.05, delta_max=0.05, rh_samples=40, snap=None, solve_timeout=None, x_lines=(), junction_rounds=2, dangling_rounds=2, cache=None, checkpoint=None, checkpoint_every=200, verbose=False, **solve_kw) -> BoundaryCurves`
+#### `trace_boundaries(pe, feed_of_x, pm, *, tol=5e-4, h0=0.02, h_min=0.002, h_max=0.05, delta_max=0.05, rh_samples=40, snap=None, solve_timeout=None, x_lines=(), junction_rounds=2, dangling_rounds=2, refine_rounds=1, refine_at=(), refine_n=13, refine_size=0.03, cache=None, checkpoint=None, checkpoint_every=200, verbose=False, **solve_kw) -> BoundaryCurves`
 
 Traces every boundary line of a phase map continuously in the (x, RH) plane, so that the lines are smooth and meet
 at the junctions (eutonic and peritectic points) instead of being interpolated between the computed compositions.
@@ -186,6 +186,10 @@ Lengths are in units of the diagram (x and RH ranges scaled to 1):
 * `junction_rounds` — rounds of the search for missing lines around the line ends (0 to skip);
 * `dangling_rounds` — rounds of the search around line ends that no other line reaches (circles of 3, 6 and
   12 `h_min`; 0 to skip);
+* `refine_rounds`, `refine_at`, `refine_n`, `refine_size` — local refinement where the topology rules are still
+  violated, and at the points `refine_at` [(x, RH)]: a `refine_n` × `refine_n` grid of half-width `refine_size`
+  (unit square) is scanned, and every change of state that no line explains is traced with half the step and
+  tolerance;
 * `cache` — a dict that keeps the solves; pass the same dict again (same `pm`) to reuse them, e.g. after changing
   options;
 * `verbose=True` prints each line as it is traced (`2` also prints every step).
@@ -431,7 +435,17 @@ The tracing uses two rules of phase-diagram topology:
   After the junction rounds, every line end that no other line reaches is probed on circles of 3, 6 and 12 `h_min`
   (24 points), and a change of state that no line between those two states crosses starts a new line
   (`dangling_rounds`). Here and around junctions, a change between two probe points counts as explained only by a
-  line between the same two states. Finally, line ends at a junction that are closer than `snap` to
+  line between the same two states.
+* **Local refinement.** Where these rules are still violated after the probes, or at points given in
+  `refine_at`, the states are scanned on a local grid, and every unexplained change of state between neighbouring
+  grid points is traced with half the step and tolerance. The lines found this way, and all short lines (3–6
+  points, typically from the probes), are checked with fresh solves across them at a quarter, half and three
+  quarters of their length. Each side is also started from the other side's result, and the lower Gibbs energy
+  decides. A line is kept only if the two sides differ at most of these points. This removes lines made by a cached
+  local minimum.
+* **Closing and extending.** Two free ends of lines between the same states that are closer than 10 `h_min` are
+  the two sides of the tip of a closed region (e.g. a lens) and are joined. Any other free end is extended along its
+  tangent to the first line or edge within 12 `h_min`. Finally, line ends at a junction that are closer than `snap` to
 each other are joined at the point nearest (least squares) to their tangent lines, and a single end is extended
 along its tangent to the line it meets.
 

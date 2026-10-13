@@ -824,7 +824,8 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
                      h0: float = 0.02, h_min: float = 0.002, h_max: float = 0.05, delta_max: float = 0.05,
                      rh_samples: int = 40, snap: float | None = None, solve_timeout: float | None = None,
                      x_lines: Sequence[float] = (), junction_rounds: int = 2, dangling_rounds: int = 2,
-                     cache: dict | None = None,
+                     refine_rounds: int = 1, refine_at: Sequence[tuple] = (), refine_n: int = 13,
+                     refine_size: float = 0.03, cache: dict | None = None,
                      checkpoint: Callable[[dict], None] | None = None, checkpoint_every: int = 200,
                      verbose: bool = False,
                      **solve_kw) -> BoundaryCurves:
@@ -851,7 +852,9 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
     (``dangling_rounds`` times).  Where the two sides of a line differ by two or more phases (allowed only on
     invariant and single-composition lines), each solve of the bracket is also started from the other side's state
     and the lower Gibbs energy is kept, so that a local minimum missed by the stability test does not make a false
-    line.  ``cache``:
+    line.  Where such violations remain, and at the points ``refine_at`` [(x, RH)], the states are scanned on a
+    local grid (``refine_n`` points across a window of half-width ``refine_size`` in the unit square) and every
+    unexplained change of state is traced with half the step and tolerance (``refine_rounds`` times).  ``cache``:
     a dict of solves, kept and reused between calls with the same ``pm``; ``checkpoint(cache)`` is called every
     ``checkpoint_every`` solves (e.g. to save the cache of a long run).  Other keywords go to
     :meth:`PhaseEquilibrium.solve`."""
@@ -892,8 +895,13 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
             return False
         xm = float(np.median(pts[:, 0]))
         if len(pts) >= 4 and np.ptp(pts[:, 1]) > 0.05 and np.all(np.abs(pts[:, 0] - xm) < 2.0 * tol):
-            vertical_line(xm)                               # a vertical line: rebuilt from RH scans beside it
-            return True                                     # (a line that bends away from the vertical is kept)
+            if vertical_line(xm):                           # a vertical line: rebuilt from RH scans beside it
+                return True                                 # (a line that bends away from the vertical is kept)
+            key = frozenset((L, R))                         # already built: keep the part it does not cover
+            v0, v1 = float(pts[:, 1].min()), float(pts[:, 1].max())
+            if any(k == key and abs(xv - xm) < 3.0 * h_min and a <= v0 + h_min and v1 - h_min <= b
+                   for k, xv, a, b in vsegs):
+                return True
         done.append((L, R, pts, ends))
         report(L, R, pts, ends)
         return True
@@ -936,7 +944,7 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
         """the boundary at the unit x ``xu`` from RH scans just left and right of it"""
         eps = 2.0 * tol
         if any(abs(xu - v) < 3.0 * h_min for v in vertical) or not 2.0 * eps < xu < 1.0 - 2.0 * eps:
-            return                                          # (a line on the edge of the diagram is not drawn)
+            return False                                    # (a line on the edge of the diagram is not drawn)
         vertical.append(xu)
         left, right = column(max(xu - eps, 0.0)), column(min(xu + eps, 1.0))
         cuts = sorted({0.0, 1.0} | {z[0] for z in left[1]} | {z[0] for z in right[1]})
@@ -958,6 +966,7 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
             ends = ("edge" if v0 <= 0.0 else "junction", "edge" if v1 >= 1.0 else "junction")
             done.append((sl, sr, pts, ends))                # upwards: the left side is at lower x
             report(sl, sr, pts, ends, "vertical: ")
+        return True
 
     def is_vertical(xu, v):
         """does the change of state at (xu, v) continue at the same x 0.03 above or below?"""
@@ -1110,6 +1119,118 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
         if not found:
             break
 
+    # local refinement: where the topology rules are still violated (a line end inside the diagram that no line
+    # reaches, or a sloped line between states two or more phases apart) and at the points ``refine_at`` (x, RH), the
+    # states are computed on a refine_n x refine_n grid of half-width ``refine_size`` (unit square); every change of
+    # state between neighbouring grid points that no line between those two states crosses is located by bisection
+    # and traced, with half the step and tolerance
+    def violations():
+        out = list(dangling())
+        for c in done:
+            P = c[2]
+            if len(P) >= 2 and _phase_distance(c[0], c[1]) >= 2 and np.ptp(P[:, 1]) > 4.0 * h_min \
+                    and np.ptp(P[:, 0]) > 4.0 * h_min:
+                out.append(P[len(P) // 2])
+        return out
+
+    def scan(C, half, n):
+        xs = np.linspace(max(C[0] - half, 0.0), min(C[0] + half, 1.0), n)
+        vs = np.linspace(max(C[1] - half, 0.0), min(C[1] + half, 1.0), n)
+        S = [[tr.state(np.array([x, v]))[0] for x in xs] for v in vs]
+        found = 0
+        for i in range(n):
+            for j in range(n):
+                for di, dj in ((0, 1), (1, 0)):
+                    i2, j2 = i + di, j + dj
+                    if i2 >= n or j2 >= n:
+                        continue
+                    sa, sb = S[i][j], S[i2][j2]
+                    if sa is None or sb is None or sa == sb:
+                        continue
+                    a, b = np.array([xs[j], vs[i]]), np.array([xs[j2], vs[i2]])
+                    if any({c[0], c[1]} == {sa, sb} and _crosses_seg(c[2], a, b) for c in done):
+                        continue
+                    lo, hi, s_hi = 0.0, 1.0, sb
+                    while np.linalg.norm(b - a) * (hi - lo) > tr.tol:
+                        m = 0.5 * (lo + hi)
+                        sm = tr.state(a + m * (b - a))[0]
+                        if sm is None:
+                            break
+                        if sm == sa:
+                            lo = m
+                        else:
+                            hi, s_hi = m, sm
+                    if s_hi == sa:
+                        continue
+                    B = a + 0.5 * (lo + hi) * (b - a)
+                    n0 = len(done)
+                    if dj:                                  # along x: the line runs in RH, left = lower x
+                        run_seed(B, np.array([0.0, 1.0]), sa, s_hi, {}, dedupe=1.0)
+                    else:                                   # along RH: the line runs in x, left = higher RH
+                        run_seed(B, np.array([1.0, 0.0]), s_hi, sa, {}, dedupe=1.0)
+                    found += len(done) - n0
+        return found
+    def confirmed(c):
+        """a line found by the refinement is kept if fresh solves (cold start, not from the cache) just across it
+        differ at the majority of three interior points (a cached local minimum can make a false change of state)"""
+        slow = 4.0 * solve_timeout if solve_timeout else None       # fresh solves without warm start are slower
+        P = _resample(c[2], 0.25 * max(_length(c[2]), 1e-12))     # points at 0, 1/4, ..., 1 of the length
+        if len(P) < 3:
+            return True
+        votes = []
+        for k in sorted({len(P) // 4, len(P) // 2, (3 * len(P)) // 4}):
+            k = int(np.clip(k, 1, len(P) - 2))
+            t = P[k + 1] - P[k - 1]
+            t = t / max(np.linalg.norm(t), 1e-300)
+            nrm = np.array([-t[1], t[0]])
+            pts_, res_ = [], []
+            for sg in (1.0, -1.0):
+                q = np.clip(P[k] + sg * 4.0 * tol * nrm, 0.0, 1.0)
+                x, r = tr.to_xr(q)
+                pts_.append((float(x), float(r)))
+                res_.append(_solve_limited(pe, feed_of_x(float(x)), float(r), pm.mode, None, dict(solve_kw),
+                                           slow))
+                tr.n_solves += 1
+            if not all(_ok(r_) for r_ in res_):
+                continue
+            # each side also started from the other side's result: the lower Gibbs energy is the equilibrium
+            for i_, (x, r) in enumerate(pts_):
+                alt = _solve_limited(pe, feed_of_x(x), r, pm.mode, res_[1 - i_], dict(solve_kw), slow)
+                tr.n_solves += 1
+                if _ok(alt) and alt.gibbs < res_[i_].gibbs - 1e-9 * max(1.0, abs(res_[i_].gibbs)):
+                    res_[i_] = alt
+            votes.append(phase_state(res_[0]) != phase_state(res_[1]))
+        return not votes or sum(votes) * 2 > len(votes)
+
+    scanned: list = []
+    n_before_refine = len(done)
+    for rnd in range(refine_rounds):
+        centres = violations() + ([tr.to_unit(x, r) for x, r in refine_at] if rnd == 0 else [])
+        centres = [C for C in centres if not any(np.linalg.norm(C - q) < refine_size for q in scanned)]
+        if not centres:
+            break
+        saved = (tr.tol, tr.h_min)
+        tr.tol, tr.h_min = 0.5 * tol, 0.5 * h_min
+        try:
+            found = 0
+            for C in centres:
+                scanned.append(C)
+                found += scan(C, refine_size, refine_n)
+        finally:
+            tr.tol, tr.h_min = saved
+        if verbose:
+            print(f"refinement round {rnd + 1}: {len(centres)} windows, {found} new lines, {tr.n_solves} solves",
+                  flush=True)
+        if not found:
+            break
+    # the lines found by the refinement and all short lines (a few points, typically from the probes around line
+    # ends) are checked by fresh solves across them
+    chk = [i for i, c in enumerate(done) if i >= n_before_refine or (len(c[2]) <= 6 and len(c[2]) > 2)]
+    drop = {i for i in chk if not confirmed(done[i])}
+    if verbose:
+        print(f"check: {len(chk) - len(drop)} of {len(chk)} new or short lines confirmed by fresh solves", flush=True)
+    done[:] = [c for i, c in enumerate(done) if i not in drop]
+
     # lines between the same states as a vertical line that stay within 0.03 of it in x (wandering traces of the
     # vertical line where the solver is noisy) are dropped
     def near_vertical(c):
@@ -1132,6 +1253,7 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
             keep.append(i)
     done[:] = [done[i] for i in sorted(keep)]
     polys = _join_junctions([c[2] for c in done], [c[3] for c in done], 2.5 * h_min if snap is None else snap)
+    polys = _close_tips(polys, [frozenset((c[0], c[1])) for c in done], 10.0 * h_min, 2.5 * h_min)
     polys = _extend_to_edge(polys, 12.0 * h_min, 2.5 * h_min)
     curves = []
     for (L, R, _, ends), pts in zip(done, polys):
@@ -1221,6 +1343,30 @@ def _join_junctions(polys: list, ends: list, snap: float) -> list:
         polys[k] = np.vstack([J, polys[k]]) if side == 0 else np.vstack([polys[k], J])
     return polys
 
+
+
+def _close_tips(polys: list, pairs: list, reach: float, snap: float) -> list:
+    """Two line ends that no other line reaches, of lines between the same two states and closer than ``reach``, are
+    the two sides of the tip of a closed region (e.g. a lens) where the tracing stopped at the sharp turn: they are
+    joined by a straight segment."""
+    polys = [np.asarray(P, float).copy() for P in polys]
+
+    def free_end(k, side):
+        e = polys[k][0] if side == 0 else polys[k][-1]
+        return not any(j != k and _dist_to_polyline(e, Q) < snap for j, Q in enumerate(polys))
+    ends = [(k, side) for k in range(len(polys)) if len(polys[k]) >= 2 for side in (0, 1) if free_end(k, side)]
+    used: set = set()
+    for a in range(len(ends)):
+        for b in range(a + 1, len(ends)):
+            (k1, s1), (k2, s2) = ends[a], ends[b]
+            if k1 == k2 or pairs[k1] != pairs[k2] or ends[a] in used or ends[b] in used:
+                continue
+            e1 = polys[k1][0] if s1 == 0 else polys[k1][-1]
+            e2 = polys[k2][0] if s2 == 0 else polys[k2][-1]
+            if np.linalg.norm(e1 - e2) <= reach:
+                polys[k1] = np.vstack([e2, polys[k1]]) if s1 == 0 else np.vstack([polys[k1], e2])
+                used.update({ends[a], ends[b]})
+    return polys
 
 
 def _extend_to_edge(polys: list, reach: float, snap: float) -> list:
