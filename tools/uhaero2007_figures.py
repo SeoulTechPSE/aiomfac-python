@@ -11,7 +11,8 @@ UNIFAC with its own parameters and, through S2AS, alcohol/acid-specific subgroup
   python tools/uhaero2007_figures.py as [out_dir]              Fig. 11: (NH4)2SO4 + organics, water content vs a_w
   python tools/uhaero2007_figures.py drh [out_dir]             Fig. 12: DRH of (NH4)2SO4 and letovicite vs alpha
   python tools/uhaero2007_figures.py map Y P [out_dir]         Figs. 8, 9: X-RH diagram with organic pair P (1-4)
-  python tools/uhaero2007_figures.py lines Y P [out_dir]       smooth boundary lines for that map (used by plot)
+  python tools/uhaero2007_figures.py lines Y P [out_dir] [--zpf]  smooth boundary lines for that map (used by plot);
+                                                               --zpf: zero-phase-fraction tracing
   python tools/uhaero2007_figures.py plot [out_dir]            draw the figures from the cached results
 
 Inorganic + organic feeds follow the paper: per mol of cation (NH4+ + H+ = 1), sum of inorganic ions (2+Y)/(1+Y),
@@ -248,7 +249,7 @@ def _save(obj, path):
     os.replace(path + ".tmp", path)
 
 
-def run_lines(Y, pair, out):
+def run_lines(Y, pair, out, method="states"):
     """smooth boundary lines for the cached map (trace_boundaries); the solves are cached in lines_cache_*.pkl"""
     from aiomfac_py.diagram import trace_boundaries
     ions = ["NH4+", "H+", "SO4--"] + (["NO3-"] if Y < 1 else [])
@@ -260,7 +261,7 @@ def run_lines(Y, pair, out):
     try:
         bc = trace_boundaries(pe, lambda X: with_organics(inorg_feed(X, Y), o1, o2, f1, 0.2), pm, solve_timeout=20,
                               cache=cache, checkpoint=lambda c: _save(c, cf), checkpoint_every=50,
-                              verbose=True)
+                              verbose=True, method=method)
     finally:
         _save(cache, cf)
     print(f"Y = {Y}, pair {pair}: lines {time.time() - t0:.0f} s, {bc.n_solves} solves", flush=True)
@@ -468,6 +469,8 @@ def plot_org(out):
 
 
 if __name__ == "__main__":
+    zpf = "--zpf" in sys.argv                       # lines: zero-phase-fraction tracing (method="zpf")
+    sys.argv = [a for a in sys.argv if a != "--zpf"]
     cmd = sys.argv[1]
     if cmd == "fig1":
         run_fig1(sys.argv[2] if len(sys.argv) > 2 else ".")
@@ -480,8 +483,11 @@ if __name__ == "__main__":
     elif cmd == "drh":
         run_drh(sys.argv[2] if len(sys.argv) > 2 else ".")
     elif cmd in ("map", "lines"):
-        (run_map if cmd == "map" else run_lines)(float(sys.argv[2]), int(sys.argv[3]),
-                                                  sys.argv[4] if len(sys.argv) > 4 else ".")
+        if cmd == "map":
+            run_map(float(sys.argv[2]), int(sys.argv[3]), sys.argv[4] if len(sys.argv) > 4 else ".")
+        else:
+            run_lines(float(sys.argv[2]), int(sys.argv[3]), sys.argv[4] if len(sys.argv) > 4 else ".",
+                      method="zpf" if zpf else "states")
     elif cmd == "plot":
         plot_all(sys.argv[2] if len(sys.argv) > 2 else ".")
         plot_org(sys.argv[2] if len(sys.argv) > 2 else ".")

@@ -11,7 +11,8 @@ F (NH4)2SO4.3NH4NO3, G NH4HSO4.NH4NO3.
   python tools/uhaero2006_figures.py map Y [out_dir]        Figs. 2, 4, 6, 8, 10: X-RH diagram with pH (a) and
                                                             relative particle mass (b) contours at sulfate fraction Y
   python tools/uhaero2006_figures.py curves Y [out_dir]     Figs. 3, 5, 7, 9, 11: relative particle mass vs RH
-  python tools/uhaero2006_figures.py lines Y [out_dir]      smooth boundary lines for the cached map (trace_boundaries),
+  python tools/uhaero2006_figures.py lines Y [out_dir] [--zpf]  smooth boundary lines for the cached map (trace_boundaries;
+                                                           --zpf: zero-phase-fraction tracing),
                                                            used by plot when present
   python tools/uhaero2006_figures.py plot [out_dir]         draw all figures from the cached results
 
@@ -96,7 +97,7 @@ def _save(obj, path):
     os.replace(path + ".tmp", path)
 
 
-def run_lines(Y, out):
+def run_lines(Y, out, method="states"):
     """trace the boundary lines of the cached map continuously (smooth lines meeting at the junctions)"""
     from aiomfac_py.diagram import trace_boundaries
     pm = pickle.load(open(os.path.join(out, f"map_Y{Y:.2f}.pkl"), "rb"))["pm"]
@@ -105,7 +106,7 @@ def run_lines(Y, out):
     t0 = time.time()
     try:
         bc = trace_boundaries(system(Y), lambda X: feed(X, Y), pm, solve_timeout=20, cache=cache,
-                              checkpoint=lambda c: _save(c, cf), checkpoint_every=50, verbose=True)
+                              checkpoint=lambda c: _save(c, cf), checkpoint_every=50, verbose=True, method=method)
     finally:
         _save(cache, cf)
     print(f"Y = {Y}: lines {time.time() - t0:.0f} s, {bc.n_solves} solves", flush=True)
@@ -226,6 +227,8 @@ def plot_all(out):
 
 
 if __name__ == "__main__":
+    zpf = "--zpf" in sys.argv                       # lines: zero-phase-fraction tracing (method="zpf")
+    sys.argv = [a for a in sys.argv if a != "--zpf"]
     cmd = sys.argv[1]
     if cmd == "fig1":
         out = sys.argv[2] if len(sys.argv) > 2 else "."
@@ -233,6 +236,9 @@ if __name__ == "__main__":
     elif cmd in ("map", "curves", "lines"):
         Y = float(sys.argv[2])
         out = sys.argv[3] if len(sys.argv) > 3 else "."
-        {"map": run_map, "curves": run_curves, "lines": run_lines}[cmd](Y, out)
+        if cmd == "lines":
+            run_lines(Y, out, method="zpf" if zpf else "states")
+        else:
+            {"map": run_map, "curves": run_curves}[cmd](Y, out)
     elif cmd == "plot":
         plot_all(sys.argv[2] if len(sys.argv) > 2 else ".")
