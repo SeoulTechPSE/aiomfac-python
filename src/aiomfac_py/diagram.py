@@ -1253,7 +1253,7 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
             keep.append(i)
     done[:] = [done[i] for i in sorted(keep)]
     polys = _join_junctions([c[2] for c in done], [c[3] for c in done], 2.5 * h_min if snap is None else snap)
-    polys = _close_tips(polys, [frozenset((c[0], c[1])) for c in done], 10.0 * h_min, 2.5 * h_min)
+    polys = _close_tips(polys, [frozenset((c[0], c[1])) for c in done], 15.0 * h_min, 2.5 * h_min)
     polys = _extend_to_edge(polys, 12.0 * h_min, 2.5 * h_min)
     curves = []
     for (L, R, _, ends), pts in zip(done, polys):

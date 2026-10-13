@@ -443,7 +443,7 @@ The tracing uses two rules of phase-diagram topology:
   quarters of their length. Each side is also started from the other side's result, and the lower Gibbs energy
   decides. A line is kept only if the two sides differ at most of these points. This removes lines made by a cached
   local minimum.
-* **Closing and extending.** Two free ends of lines between the same states that are closer than 10 `h_min` are
+* **Closing and extending.** Two free ends of lines between the same states that are closer than 15 `h_min` are
   the two sides of the tip of a closed region (e.g. a lens) and are joined. Any other free end is extended along its
   tangent to the first line or edge within 12 `h_min`. Finally, line ends at a junction that are closer than `snap` to
 each other are joined at the point nearest (least squares) to their tangent lines, and a single end is extended
