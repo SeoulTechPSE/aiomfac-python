@@ -18,6 +18,9 @@
 - `trace_boundaries`: local refinement (`refine_rounds`, `refine_at`, ...) where the topology rules are violated;
   new and short lines are checked by fresh solves (minimum Gibbs energy across the line); tips of closed regions are
   joined; a seed along an existing vertical line keeps the part the vertical line does not cover.
+- `trace_boundaries(..., method="zpf")` (module `aiomfac_py.zpf`): boundaries traced as zero-phase-fraction lines of
+  each solid and liquid (amount where present, saturation index or minus the non-trivial TPD where absent), through
+  junctions; `PhaseEquilibriumResult.tpd_nontrivial`.
 - `rh_profile(..., refine=tol)`: deliquescence steps located by bisection (drawn vertically); `ionic_strength` in
   the output.
 - `trace_boundaries`: line ends that no other line reaches are probed on wider circles (`dangling_rounds`); at a

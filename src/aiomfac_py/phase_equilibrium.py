@@ -692,6 +692,9 @@ class PhaseEquilibriumResult:
     names: list = field(default_factory=list)
     gas: dict = field(default_factory=dict)     # mol in the gas phase (closed) or net mol released, < 0 = uptake (open)
     p_gas: dict = field(default_factory=dict)   # partial pressures [atm]
+    # smallest TPD of the non-trivial minima (trial phases away from the liquids) in the final stability test, of
+    # either sign: positive and going to zero where a further liquid is about to form (used by the ZPF tracing)
+    tpd_nontrivial: float = float("nan")
 
     @property
     def n_liquids(self) -> int:
@@ -2207,6 +2210,7 @@ class PhaseEquilibrium:
         x = np.concatenate(phases + [u0, g0])
         n_outer = 0
         tpd_min = float("nan")
+        tpd_nontriv = float("nan")
         inner_ok = True
         history = []
         act = np.ones(len(x), dtype=bool)                     # entries taking part (False: species absent from a liquid)
@@ -2269,6 +2273,7 @@ class PhaseEquilibrium:
             # stability test of the liquid set (potentials of the largest liquid; water at ln RH)
             mu_eq = self._reference_potentials(liquids, ln_rh)
             best = (0.0, None)
+            nontriv = float("inf")
             known = []                                         # non-trivial minima found in this stability test
             for w0 in self._trial_points(b, rh, liquids):
                 try:
@@ -2285,12 +2290,15 @@ class PhaseEquilibrium:
                     known.append(w)
                 if t < best[0] and dist > 1e-3:
                     best = (t, w)
+                if dist > 1e-3:
+                    nontriv = min(nontriv, float(t))
                 # a clearly unstable liquid set needs one new liquid, not the most negative of all candidates: the
                 # next outer iteration tests again (Michelsen's practice); the final, stable test runs every start, and
                 # so does a test whose liquid count is at max_liquids (it reports tpd_min, e.g. for binodal searches)
                 if (self.tpd_early_stop is not None and n_liq < max_liquids and best[0] < -self.tpd_early_stop):
                     break
             tpd_min = best[0]
+            tpd_nontriv = nontriv if np.isfinite(nontriv) else float("nan")
             if verbose:
                 print(f"  outer {n_outer}: {n_liq} liquid(s), TPD_min={tpd_min:.3e}")
             if best[1] is None or tpd_min > -self.tol_tpd or n_liq >= max_liquids or n_outer >= max_outer:
@@ -2468,7 +2476,8 @@ class PhaseEquilibrium:
         if not inner_ok:
             msg += ("; " if msg else "") + "inner Newton iteration stopped early (line search)"
         result = PhaseEquilibriumResult(status, self.T, rh, liquids, solid_amounts, si, F * scale, checks, tpd_min,
-                                        n_outer, message=msg, names=self.names, gas=gas, p_gas=p_out)
+                                        n_outer, message=msg, names=self.names, gas=gas, p_gas=p_out,
+                                        tpd_nontrivial=tpd_nontriv)
         if self._gas_mode == "open":
             result = self._complete_evaporation(result, feed, rh, solids, p_gas, max_liquids, max_outer, verbose)
         return result

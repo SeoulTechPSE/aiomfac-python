@@ -238,3 +238,33 @@ def test_trace_boundaries_vertical_line():
     assert np.allclose(c.x, 0.75, atol=2e-3) and c.rh.min() == pytest.approx(0.45) and c.rh.max() == pytest.approx(0.65)
     assert {c.left, c.right} == {PhaseState(1, ("letovicite",)), PhaseState(0, ("ammonium_sulfate", "letovicite"))}
     assert c.ends == ("edge", "edge")
+
+
+def test_trace_boundaries_zpf_nacl_kcl():
+    """ZPF tracing (method="zpf"): the boundary lines are the zero-phase-fraction lines of L, halite and sylvite;
+    the liquidus lines meet the mutual deliquescence line at the eutonic composition found by state tracing, and
+    every line ends on the edge (no line ends inside the diagram)."""
+    from aiomfac_py.diagram import trace_boundaries
+    from aiomfac_py.zpf import phase_functions
+    pe = PhaseEquilibrium([], ["Na+", "K+", "Cl-"], T_K=T0)
+    feed = lambda x: {"Na+": x, "K+": 1.0 - x, "Cl-": 1.0}
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        pm = phase_map(pe, feed, [0.1, 0.5, 0.9], x_label="x(NaCl)", n=12, rh_min=0.6, rh_max=0.95, refine_x=False)
+        bc = trace_boundaries(pe, feed, pm, method="zpf")
+        r = pe.solve(feed(0.5), 0.70)
+    f = phase_functions(r, ["halite", "sylvite"], 2)
+    assert f["halite"] > 0 and f["sylvite"] > 0 and f["L1"] < 0          # dry mixture below the mutual DRH
+    L, H, S = PhaseState(1, ()), "halite", "sylvite"
+    by = {frozenset((c.left, c.right)): c for c in bc.curves}
+    liq_h = by[frozenset((PhaseState(1, (H,)), L))]
+    liq_s = by[frozenset((PhaseState(1, (S,)), L))]
+    mdrh = pm.traces[1].boundaries[0].rh
+    xe_h, xe_s = liq_h.x[np.argmin(liq_h.rh)], liq_s.x[np.argmin(liq_s.rh)]
+    assert abs(xe_h - xe_s) < 0.01 and 0.70 < xe_h < 0.75
+    assert abs(liq_h.rh.min() - mdrh) < 3e-3 and abs(liq_s.rh.min() - mdrh) < 3e-3
+    ends = [(c.x[k], c.rh[k]) for c in bc.curves for k in (0, -1)]
+    for x, rh in ends:                                   # on the edge, or where another line passes
+        on_edge = min(x - 0.1, 0.9 - x) < 1e-6 or min(rh - bc.rh_range[0], bc.rh_range[1] - rh) < 1e-6
+        others = [c for c in bc.curves if np.min(np.hypot(c.x - x, c.rh - rh)) < 5e-3]
+        assert on_edge or len(others) >= 2

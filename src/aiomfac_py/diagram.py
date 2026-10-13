@@ -825,7 +825,7 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
                      rh_samples: int = 40, snap: float | None = None, solve_timeout: float | None = None,
                      x_lines: Sequence[float] = (), junction_rounds: int = 2, dangling_rounds: int = 2,
                      refine_rounds: int = 1, refine_at: Sequence[tuple] = (), refine_n: int = 13,
-                     refine_size: float = 0.03, cache: dict | None = None,
+                     refine_size: float = 0.03, method: str = "states", cache: dict | None = None,
                      checkpoint: Callable[[dict], None] | None = None, checkpoint_every: int = 200,
                      verbose: bool = False,
                      **solve_kw) -> BoundaryCurves:
@@ -858,6 +858,11 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
     a dict of solves, kept and reused between calls with the same ``pm``; ``checkpoint(cache)`` is called every
     ``checkpoint_every`` solves (e.g. to save the cache of a long run).  Other keywords go to
     :meth:`PhaseEquilibrium.solve`."""
+    if method == "zpf":
+        from .zpf import trace_zpf
+        return trace_zpf(pe, feed_of_x, pm, tol=tol, h0=h0, h_min=h_min, h_max=h_max, delta_max=delta_max,
+                         rh_samples=rh_samples, solve_timeout=solve_timeout, cache=cache, checkpoint=checkpoint,
+                         checkpoint_every=checkpoint_every, verbose=verbose, **solve_kw)
     traces, xs = _regular_traces(pm)
     x_range = (float(pm.x[0]), float(pm.x[-1]))
     rh_range = (min(t.rh_range[0] if t.rh_range else t.rh[0] for t in pm.traces),

@@ -166,7 +166,7 @@ range), so that boundaries end close to where they meet (eutonic and peritectic 
 `PhaseMap` attributes and methods: `x`, `traces`, `x_label`, `mode`; `states()` (all states that occur);
 `boundary_lines()` (`{(below, above): (x, rh)}`, for analysis); `to_records()` (flat list of boundaries for CSV/JSON).
 
-#### `trace_boundaries(pe, feed_of_x, pm, *, tol=5e-4, h0=0.02, h_min=0.002, h_max=0.05, delta_max=0.05, rh_samples=40, snap=None, solve_timeout=None, x_lines=(), junction_rounds=2, dangling_rounds=2, refine_rounds=1, refine_at=(), refine_n=13, refine_size=0.03, cache=None, checkpoint=None, checkpoint_every=200, verbose=False, **solve_kw) -> BoundaryCurves`
+#### `trace_boundaries(pe, feed_of_x, pm, *, tol=5e-4, h0=0.02, h_min=0.002, h_max=0.05, delta_max=0.05, rh_samples=40, snap=None, solve_timeout=None, x_lines=(), junction_rounds=2, dangling_rounds=2, refine_rounds=1, refine_at=(), refine_n=13, refine_size=0.03, method="states", cache=None, checkpoint=None, checkpoint_every=200, verbose=False, **solve_kw) -> BoundaryCurves`
 
 Traces every boundary line of a phase map continuously in the (x, RH) plane, so that the lines are smooth and meet
 at the junctions (eutonic and peritectic points) instead of being interpolated between the computed compositions.
@@ -186,6 +186,7 @@ Lengths are in units of the diagram (x and RH ranges scaled to 1):
 * `junction_rounds` — rounds of the search for missing lines around the line ends (0 to skip);
 * `dangling_rounds` — rounds of the search around line ends that no other line reaches (circles of 3, 6 and
   12 `h_min`; 0 to skip);
+* `method` — `"states"` (default; the tracing described here) or `"zpf"` (zero-phase-fraction lines, Sect. 6.5a);
 * `refine_rounds`, `refine_at`, `refine_n`, `refine_size` — local refinement where the topology rules are still
   violated, and at the points `refine_at` [(x, RH)]: a `refine_n` × `refine_n` grid of half-width `refine_size`
   (unit square) is scanned, and every change of state that no line explains is traced with half the step and
@@ -448,6 +449,33 @@ The tracing uses two rules of phase-diagram topology:
   tangent to the first line or edge within 12 `h_min`. Finally, line ends at a junction that are closer than `snap` to
 each other are joined at the point nearest (least squares) to their tangent lines, and a single end is extended
 along its tangent to the line it meets.
+
+### 6.5a ZPF tracing (`method="zpf"`)
+
+`trace_boundaries(..., method="zpf")` traces the boundaries as zero-phase-fraction (ZPF) lines (Morral; Hillert's
+"mapping", as in CALPHAD programs) instead of following pairs of phase states. For each phase p, a signed function
+f_p(x, RH) is evaluated from an ordinary equilibrium solve (`aiomfac_py.zpf.phase_functions`):
+
+* a solid: its amount where it is present, its saturation index (≤ 0) where it is absent;
+* the k-th liquid (liquids ordered by amount): its amount where there are at least k liquids; where there are
+  k − 1, minus the smallest tangent-plane distance of a non-trivial trial phase of the stability test
+  (`PhaseEquilibriumResult.tpd_nontrivial`), which goes to zero where the k-th liquid is about to form.
+
+f_p changes sign exactly where p appears or disappears, so the zero lines of all f_p are the boundary lines. Each
+is followed by continuation: a predictor along the tangent, and a corrector along the normal that finds the zero of
+f_p by regula falsi. Because f_p is smooth on both sides, the zero is interpolated rather than bisected. When the
+bracket holds two zeros (near an acute corner), the one nearer to the predicted point is taken. A ZPF line is
+defined across junctions, so it continues through them: where it turns sharply (a liquidus meeting an invariant
+line, say), the continuation is found on small circles around the last point. So a line ends only at the edge or
+on itself (a closed line). The states on both sides are recorded at every point, and a line is split into boundary
+curves where they change; that is where the junctions are. Each curve is the boundary of one phase, so the law of
+adjoining phase regions holds by construction. Lines that coincide (an invariant RH, a single composition) are
+kept once per pair of states. As in the state tracing, line ends at junctions are joined, tips of closed regions
+are closed, and free ends are extended to the line or edge they meet.
+
+Seeds: the phases that differ across each boundary point of the traces, and phases present on one trace and
+absent on the neighbouring one at the same RH with no ZPF line of that phase between them. The cache is shared
+with the state tracing.
 
 ### 6.6 Convex hull for liquid–liquid equilibrium
 
