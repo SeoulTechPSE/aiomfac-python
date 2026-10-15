@@ -136,11 +136,19 @@ def _solve(pe: PhaseEquilibrium, feed: dict, rh: float, mode: str, init, solve_k
 
 def _solve_limited(pe, feed, rh, mode, init, solve_kw, timeout):
     """:func:`_solve` that gives up after ``timeout`` seconds (reported as not converged).  Uses SIGALRM, so it applies
-    only in the main thread on POSIX systems; elsewhere the solve is not limited."""
+    only in the main thread on POSIX systems; elsewhere the solve is not limited.  A numerical error inside the solve
+    (e.g. a singular matrix) is also reported as not converged."""
     import signal
     import threading
+
+    def failed(msg):
+        return PhaseEquilibriumResult("not_converged", pe.T, rh, [], {}, {}, float("nan"), {}, 0.0, message=msg)
+    numeric = (np.linalg.LinAlgError, FloatingPointError, ZeroDivisionError, OverflowError, ValueError)
     if not timeout or not hasattr(signal, "setitimer") or threading.current_thread() is not threading.main_thread():
-        return _solve(pe, feed, rh, mode, init, solve_kw)
+        try:
+            return _solve(pe, feed, rh, mode, init, solve_kw)
+        except numeric as exc:
+            return failed(f"numerical error: {type(exc).__name__}: {exc}")
 
     class _Slow(Exception):
         pass
@@ -152,8 +160,9 @@ def _solve_limited(pe, feed, rh, mode, init, solve_kw, timeout):
     try:
         return _solve(pe, feed, rh, mode, init, solve_kw)
     except _Slow:
-        return PhaseEquilibriumResult("not_converged", pe.T, rh, [], {}, {}, float("nan"), {}, 0.0,
-                                      message="time limit")
+        return failed("time limit")
+    except numeric as exc:
+        return failed(f"numerical error: {type(exc).__name__}: {exc}")
     finally:
         signal.setitimer(signal.ITIMER_REAL, 0.0)
         signal.signal(signal.SIGALRM, old)
