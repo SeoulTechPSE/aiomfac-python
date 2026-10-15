@@ -155,6 +155,10 @@ def _solve_limited(pe, feed, rh, mode, init, solve_kw, timeout):
 
     def alarm(*_):
         raise _Slow()
+    # the floating-point error state is restored afterwards: a time limit that interrupts a numpy.linalg call can
+    # leave its error state behind (invalid -> call numpy's "Singular matrix" handler), after which every later
+    # solve that meets a NaN stops with LinAlgError
+    err, errcall = np.geterr(), np.geterrcall()
     old = signal.signal(signal.SIGALRM, alarm)
     signal.setitimer(signal.ITIMER_REAL, float(timeout))
     try:
@@ -166,6 +170,8 @@ def _solve_limited(pe, feed, rh, mode, init, solve_kw, timeout):
     finally:
         signal.setitimer(signal.ITIMER_REAL, 0.0)
         signal.signal(signal.SIGALRM, old)
+        np.seterr(**err)
+        np.seterrcall(errcall)
 
 
 def trace(pe: PhaseEquilibrium, feed: dict, *, rh_min: float = 0.05, rh_max: float = 0.98, n: int = 32,
