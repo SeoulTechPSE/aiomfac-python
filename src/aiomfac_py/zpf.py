@@ -1,0 +1,387 @@
+"""Phase boundaries of a composition--RH map as zero-phase-fraction (ZPF) lines.
+
+Every boundary line of a phase diagram is a line on which one phase is present with zero amount (Morral; Hillert's
+"mapping").  For each phase p a signed function f_p(x, RH) is evaluated from an ordinary equilibrium solve:
+
+* a solid s: its amount (mol) where it is present, its saturation index (<= 0) where it is absent;
+* the k-th liquid L_k (liquids ordered by amount): the amount of the k-th largest liquid where there are at least
+  k liquids; where there are k - 1, minus the smallest tangent-plane distance of a non-trivial trial phase of the
+  stability test (it goes to zero where the k-th liquid is about to form); -1 otherwise.
+
+f_p changes sign exactly where p appears or disappears, so the zero lines of all f_p are the boundary lines.  Each
+is followed by continuation (predictor along the tangent, corrector along the normal by regula falsi on f_p rather
+than bisection on the phase state).  A ZPF line is defined across junctions, so it continues through them: lines do
+not end inside the diagram, and the law of adjoining phase regions holds by construction (each line is the
+boundary of one phase).  The states on both sides are recorded at every point; a line is split where they change,
+which gives the junctions.
+
+Use :func:`aiomfac_py.diagram.trace_boundaries` with ``method="zpf"``.
+"""
+from __future__ import annotations
+
+import numpy as np
+
+from .diagram import (BoundaryCurve, BoundaryCurves, PhaseMap, PhaseState, _close_tips, _dist_to_polyline,
+                      _extend_to_edge, _join_junctions, _length, _ok, _regular_traces, _resample, _state_at, _Tracer, phase_state)
+
+__all__ = ["phase_functions", "trace_zpf"]
+
+
+def phase_functions(res, solid_keys, max_liquids: int) -> dict:
+    """{phase: f} of a converged result (see the module docstring); phases are solid keys and "L1", "L2", ..."""
+    out = {}
+    for s in solid_keys:
+        if s in res.solids:
+            out[s] = float(res.solids[s])
+        else:
+            out[s] = min(float(res.si.get(s, -1.0)), -1e-12)
+    tots = sorted((float(L.total) for L in res.liquids), reverse=True)
+    n = len(tots)
+    tn = getattr(res, "tpd_nontrivial", float("nan"))
+    for k in range(1, max_liquids + 1):
+        if n >= k:
+            out[f"L{k}"] = tots[k - 1]
+        elif k == n + 1 and np.isfinite(tn) and tn > 0:
+            out[f"L{k}"] = -float(tn)
+        else:
+            out[f"L{k}"] = -1.0
+    return out
+
+
+def _phases_of(st: PhaseState) -> set:
+    return set(st.solids) | {f"L{k}" for k in range(1, st.n_liquids + 1)}
+
+
+def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0.02, h_min: float = 0.002,
+              h_max: float = 0.04, delta_max: float = 0.05, rh_samples: int = 40, max_liquids: int = 4,
+              solve_timeout: float | None = None, cache: dict | None = None, checkpoint=None,
+              checkpoint_every: int = 200, verbose: bool = False, **solve_kw) -> BoundaryCurves:
+    """ZPF tracing of the boundary lines of ``pm`` (see the module docstring).  Arguments as for
+    :func:`aiomfac_py.diagram.trace_boundaries`; the cache is shared with it."""
+    traces, xs = _regular_traces(pm)
+    x_range = (float(pm.x[0]), float(pm.x[-1]))
+    rh_range = (min(t.rh_range[0] if t.rh_range else t.rh[0] for t in pm.traces),
+                max(t.rh_range[1] if t.rh_range else t.rh[-1] for t in pm.traces))
+    tr = _Tracer(pe, feed_of_x, x_range, rh_range, pm.mode, tol, h0, h_min, h_max, delta_max, solve_kw)
+    tr.timeout = solve_timeout
+    if cache is not None:
+        tr.cache = cache
+    tr.checkpoint = checkpoint
+    tr.checkpoint_every = max(1, int(checkpoint_every))
+    for xv, t in zip(pm.x, pm.traces):
+        for r, res in zip(t.rh, t.results):
+            key = tuple(round(float(v), 10) for v in tr.to_unit(float(xv), float(r)))
+            if _ok(res) and tr.cache.get(key, (None,))[0] is None:
+                tr.cache[key] = (phase_state(res), res)
+    solid_keys = sorted({s for st in pm.states() for s in st.solids})
+
+    warm = {"res": None, "at": None}                        # the last converged solve: warm start of the next
+
+    def f(q, phase):
+        """(f_phase, state) at q; (None, None) where the solve failed"""
+        q = np.clip(q, 0.0, 1.0)
+        init = warm["res"] if warm["at"] is not None and np.linalg.norm(q - warm["at"]) < 0.05 else None
+        st, res = tr.state(q, init)
+        if st is None:
+            return None, None
+        if res.liquids:
+            warm["res"], warm["at"] = res, q
+        return phase_functions(res, solid_keys, max_liquids)[phase], st
+
+    def root(phase, a, b, fa, fb, sa, sb):
+        """regula falsi (Illinois) for f_phase = 0 on the segment a-b (fa < 0 < fb or the reverse); returns
+        (point, state on the a side, state on the b side) or None"""
+        side = 0
+        for _ in range(60):
+            if np.linalg.norm(b - a) <= 4.0 * tol:          # f is smooth: the interpolated zero is accurate
+                w = float(np.clip(fa / (fa - fb), 0.0, 1.0)) if fa != fb else 0.5
+                return a + w * (b - a), sa, sb
+            w = fa / (fa - fb) if fa != fb else 0.5
+            w = float(np.clip(w, 0.05, 0.95))           # keep away from the ends (the two branches of f differ)
+            m = a + w * (b - a)
+            fm, sm = f(m, phase)
+            if fm is None:
+                m = a + 0.5 * (b - a)
+                fm, sm = f(m, phase)
+                if fm is None:
+                    return None
+            if (fm > 0) == (fa > 0):
+                a, fa, sa = m, fm, sm
+                if side == -1:
+                    fb *= 0.5
+                side = -1
+            else:
+                b, fb, sb = m, fm, sm
+                if side == 1:
+                    fa *= 0.5
+                side = 1
+        return 0.5 * (a + b), sa, sb
+
+    def correct(phase, q, n, delta):
+        """the zero of f_phase on the line q + s n near s = 0: (point, state at -n, state at +n) or None"""
+        # f is also evaluated at q itself: near a corner of the line (a junction where the ZPF line turns) the
+        # bracket can hold two zeros of f; the one nearer to q is taken
+        d = delta
+        q0 = np.clip(q, 0.0, 1.0)
+        f0, s0_ = f(q0, phase)
+        while True:
+            pm_, pp = q - d * n, q + d * n
+            if not (tr.inside(pm_) and tr.inside(pp)):
+                pm_, pp = np.clip(pm_, 0.0, 1.0), np.clip(pp, 0.0, 1.0)
+            fm, sm = f(pm_, phase)
+            fp, sp = f(pp, phase)
+            if fm is not None and fp is not None and f0 is not None:
+                lo_ok, hi_ok = (fm > 0) != (f0 > 0), (fp > 0) != (f0 > 0)
+                if lo_ok and hi_ok:                         # two zeros: the nearer one (linear estimate)
+                    w_lo, w_hi = f0 / (f0 - fm), f0 / (f0 - fp)
+                    lo_ok, hi_ok = (w_lo <= w_hi), (w_hi < w_lo)
+                if lo_ok:
+                    return root(phase, pm_, q0, fm, f0, sm, s0_)
+                if hi_ok:
+                    return root(phase, q0, pp, f0, fp, s0_, sp)
+            elif fm is not None and fp is not None and (fm > 0) != (fp > 0):
+                return root(phase, pm_, pp, fm, fp, sm, sp)
+            d *= 2.0
+            if d > delta_max:
+                return None
+
+    lines: list = []                                        # (phase, points, [(state -n, state +n)])
+
+    def near_line(phase, p, dist):
+        return any(ph == phase and _dist_to_polyline(p, P) < dist for ph, P, _ in lines if len(P) > 1)
+
+    def kink(phase, pts, t):
+        """the continuation of a ZPF line at a sharp turn: a sign change of f_phase on circles of radius 2 and 4 h_min
+        around the last point, at least 15 degrees away from the way back (the line can fold back at an acute
+        corner, e.g. a liquidus meeting an invariant line); (point, (left, right)) or None"""
+        e = pts[-1]
+        back = np.arctan2(-t[1], -t[0])
+        for rho in (2.0 * h_min, 4.0 * h_min):
+            ang = back + np.radians(np.linspace(15.0, 345.0, 45))
+            C = e + rho * np.c_[np.cos(ang), np.sin(ang)]
+            vals = [f(c, phase) if tr.inside(c) else (None, None) for c in C]
+            best = None
+            for k in range(len(C) - 1):
+                (fa, sa), (fb, sb) = vals[k], vals[k + 1]
+                if fa is None or fb is None or (fa > 0) == (fb > 0):
+                    continue
+                r = root(phase, C[k], C[k + 1], fa, fb, sa, sb)
+                if r is None:
+                    continue
+                d = r[0] - e
+                turn = abs(np.arctan2(t[0] * d[1] - t[1] * d[0], np.dot(t, d)))
+                if best is None or turn < best[0]:
+                    # going around the circle counter-clockwise, a is at the smaller angle: seen from e moving to
+                    # r, the side of a is the right-hand side
+                    best = (turn, r[0], (r[2], r[1]))
+            if best is not None:
+                return best[1], best[2]
+        return None
+
+    def follow(phase, p0, t0, s0):
+        pts, sides = [np.asarray(p0, float)], [s0]
+        t = np.asarray(t0, float) / np.linalg.norm(t0)
+        h, corr = h0, h0 / 4
+        while True:
+            if len(pts) >= 2:
+                t = pts[-1] - pts[-2]
+                t /= np.linalg.norm(t)
+            q = pts[-1] + h * t
+            if not tr.inside(q):
+                s = min(((0.0 if t[k] < 0 else 1.0) - pts[-1][k]) / t[k] for k in (0, 1) if abs(t[k]) > 1e-14)
+                if s < 0.5 * h_min:
+                    return pts, sides, "edge"
+                q, h = np.clip(pts[-1] + s * t, 0.0, 1.0), s
+            n = np.array([-t[1], t[0]])
+            delta = float(np.clip(3.0 * corr, 2.0 * tol, max(0.5 * h, 2.0 * tol)))
+            r = correct(phase, q, n, delta)
+            ok = r is not None
+            if ok:
+                p_new = r[0]
+                seg = p_new - pts[-1]
+                cos_max = np.cos(np.radians(30 if len(pts) >= 2 else 80))
+                ok = np.linalg.norm(seg) > 0.25 * h and np.dot(seg, t) / np.linalg.norm(seg) > cos_max
+            if not ok:
+                if h <= h_min * 1.0001:
+                    k = kink(phase, pts, t)                # a ZPF line turns sharply where another phase
+                    if k is None:                          # appears or disappears: find where it goes on
+                        return pts, sides, "lost"          # a small circle around the last point
+                    pts.append(k[0])
+                    sides.append(k[1])
+                    h, corr = h_min, h_min / 4
+                    continue
+                h = max(0.5 * h, h_min)
+                continue
+            corr = float(abs(np.dot(r[0] - q, n)))
+            pts.append(r[0])
+            sides.append((r[2], r[1]))                    # (left = +n side, right = -n side)
+            if len(pts) > 6 and np.linalg.norm(pts[-1] - pts[0]) < 0.75 * h:
+                pts.append(pts[0].copy())
+                sides.append(sides[0])
+                return pts, sides, "closed"
+            if near_line(phase, pts[-1], 1.5 * h_min):
+                return pts, sides, "merged"
+            if min(pts[-1][0], pts[-1][1], 1 - pts[-1][0], 1 - pts[-1][1]) < 1e-9:
+                return pts, sides, "edge"
+            h = min(1.6 * h, h_max) if corr < 0.25 * delta else h
+
+    def trace_from(phase, p, t0):
+        """the ZPF line of ``phase`` through the point near p (both directions)"""
+        if near_line(phase, p, 3.0 * h_min):
+            return 0
+        n = np.array([-t0[1], t0[0]])
+        r = correct(phase, p, n, max(4.0 * tol, 0.002))
+        if r is None:
+            return 0
+        p0, s_neg, s_pos = r
+        fwd, sf, ef = follow(phase, p0, t0, (s_pos, s_neg))
+        bwd, sb, eb = (([p0], [(s_pos, s_neg)], "closed") if ef == "closed" else
+                       follow(phase, p0, -np.asarray(t0, float), (s_neg, s_pos)))
+        # the backward points have their sides as seen going backwards: swap to the forward orientation
+        P = bwd[::-1] + fwd[1:]
+        S = [(b_, a_) for a_, b_ in sb[::-1]] + sf[1:]
+        if len(P) < 2:
+            return 0
+        lines.append((phase, np.array(P), S))
+        if verbose:
+            a, b = tr.to_xr(P[0]), tr.to_xr(P[-1])
+            print(f"ZPF {phase}: {len(P)} points from ({a[0]:.3f}, {a[1]:.3f}) to ({b[0]:.3f}, {b[1]:.3f}), ends "
+                  f"{eb}/{ef}, {tr.n_solves} solves", flush=True)
+        return 1
+
+    # seeds 1: the boundary points of the traces; every phase that differs across a boundary has a ZPF line there
+    for xv, t in zip(xs, traces):
+        for b in t.boundaries:
+            if not b.resolved and b.rh_hi - b.rh_lo > 1e-2:
+                continue
+            for phase in sorted(_phases_of(b.below) ^ _phases_of(b.above)):
+                trace_from(phase, tr.to_unit(xv, b.rh), np.array([1.0, 0.0]))
+
+    # seeds 2: a phase present on one trace and absent on the neighbouring one at the same RH, with no ZPF line of
+    # that phase crossing between them (lines that cross no trace, e.g. vertical ones)
+    levels = np.linspace(rh_range[0], rh_range[1], rh_samples + 2)[1:-1]
+    for (xa, ta), (xb, tb) in zip(zip(xs[:-1], traces[:-1]), zip(xs[1:], traces[1:])):
+        for r in levels:
+            sa, sb = _state_at(ta, r), _state_at(tb, r)
+            if sa == sb:
+                continue
+            ua, ub = tr.to_unit(xa, r), tr.to_unit(xb, r)
+            for phase in sorted(_phases_of(sa) ^ _phases_of(sb)):
+                if any(ph == phase and _crosses(P, ua, ub) for ph, P, _ in lines):
+                    continue
+                fa, s_a = f(ua, phase)
+                fb, s_b = f(ub, phase)
+                if fa is None or fb is None or (fa > 0) == (fb > 0):
+                    continue
+                rr = root(phase, ua, ub, fa, fb, s_a, s_b)
+                if rr is not None:
+                    trace_from(phase, rr[0], np.array([0.0, 1.0]))
+
+    # lines that got lost (the corrector failed): look for the sign change of the same phase on circles around the
+    # end, away from the line, and continue from there
+    for _ in range(2):
+        added = 0
+        for phase, P, _ in list(lines):
+            for e, back in ((P[-1], P[-2] if len(P) > 1 else P[-1]), (P[0], P[1] if len(P) > 1 else P[0])):
+                if min(e[0], e[1], 1 - e[0], 1 - e[1]) < 2.0 * h_min:
+                    continue
+                if any(ph == phase and Q is not P and _dist_to_polyline(e, Q) < 2.0 * h_min for ph, Q, _ in lines):
+                    continue
+                out = e - back
+                out = out / max(np.linalg.norm(out), 1e-300)
+                for rho in (3.0 * h_min, 6.0 * h_min, 12.0 * h_min):
+                    ang = np.linspace(-0.6 * np.pi, 0.6 * np.pi, 13) + np.arctan2(out[1], out[0])
+                    C = e + rho * np.c_[np.cos(ang), np.sin(ang)]
+                    vals = [f(c, phase) if tr.inside(c) else (None, None) for c in C]
+                    hit = None
+                    for k in range(len(C) - 1):
+                        (fa, sa), (fb, sb) = vals[k], vals[k + 1]
+                        if fa is not None and fb is not None and (fa > 0) != (fb > 0):
+                            hit = root(phase, C[k], C[k + 1], fa, fb, sa, sb)
+                            break
+                    if hit is not None:
+                        n0 = len(lines)
+                        added += trace_from(phase, hit[0], hit[0] - e)
+                        if len(lines) > n0:
+                            break
+        if not added:
+            break
+
+    def sides_at(m, nrm):
+        a = tr.state(np.clip(m + 3.0 * tol * nrm, 0.0, 1.0))[0]
+        b = tr.state(np.clip(m - 3.0 * tol * nrm, 0.0, 1.0))[0]
+        return (a, b)
+
+    def refine_junctions(P, S):
+        """where the side states change between two points, locate the change along the line by bisection and
+        insert the junction point"""
+        P2, S2 = [P[0]], [S[0]]
+        for i in range(1, len(P)):
+            if S[i] != S[i - 1] and np.linalg.norm(P[i] - P[i - 1]) > 2.0 * tol:
+                a, b = P[i - 1], P[i]
+                t = (b - a) / np.linalg.norm(b - a)
+                nrm = np.array([-t[1], t[0]])
+                lo, hi = 0.0, 1.0
+                while np.linalg.norm(b - a) * (hi - lo) > tol:
+                    m = 0.5 * (lo + hi)
+                    sm = sides_at(a + m * (b - a), nrm)
+                    if sm == S[i - 1]:
+                        lo = m
+                    elif sm == S[i]:
+                        hi = m
+                    else:
+                        break
+                J = a + 0.5 * (lo + hi) * (b - a)
+                P2.append(J)
+                S2.append(S[i])
+            P2.append(P[i])
+            S2.append(S[i])
+        return np.array(P2), S2
+
+    # split each line where the states on its two sides change: the pieces are the boundary curves
+    curves = []
+    for phase, P, S in lines:
+        P, S = refine_junctions(P, S)
+        cuts = [0] + [i for i in range(1, len(P)) if S[i] != S[i - 1]] + [len(P) - 1]
+        for a, b in zip(cuts[:-1], cuts[1:]):
+            Q = P[a:b + 1]                               # ends at the junction where the next piece starts
+            left, right = S[a]
+            if len(Q) >= 2 and left is not None and right is not None and left != right:
+                xr = np.array([tr.to_xr(q) for q in Q])
+                curves.append(BoundaryCurve(left, right, xr[:, 0], xr[:, 1], ("junction", "junction")))
+
+    # a degenerate line (an invariant RH, a single composition) is the ZPF line of several phases: keep one piece
+    # per pair of states where pieces coincide
+    sx, sr = x_range[1] - x_range[0], rh_range[1] - rh_range[0]
+    U = [np.c_[(c.x - x_range[0]) / sx, (c.rh - rh_range[0]) / sr] for c in curves]
+    order = sorted(range(len(curves)), key=lambda i: -_length(U[i]))
+    keep: list = []
+    for i in order:
+        key = frozenset((curves[i].left, curves[i].right))
+        if not any(key == frozenset((curves[j].left, curves[j].right)) and
+                   np.mean([_dist_to_polyline(q, U[j]) < 2.0 * h_min for q in _resample(U[i], h_min)]) >= 0.8
+                   for j in keep):
+            keep.append(i)
+    curves = [curves[i] for i in sorted(keep)]
+    # a ZPF line can run along the edge of the diagram (a phase that exists only inside, e.g. letovicite at X = 1):
+    # it is no boundary inside the diagram
+    e_ = 2.0 * h_min
+    on_edge = lambda P: (np.all(P[:, 0] < e_) or np.all(P[:, 0] > 1 - e_) or np.all(P[:, 1] < e_) or
+                         np.all(P[:, 1] > 1 - e_))
+    curves = [c for c, P in zip(curves, [np.c_[(c.x - x_range[0]) / sx, (c.rh - rh_range[0]) / sr] for c in curves])
+              if not on_edge(P)]
+    # free ends: the two sides of the tip of a closed region are joined, others are extended along their tangent to
+    # the line or edge they meet (a line ends at the edge or at a junction)
+    U = [np.c_[(c.x - x_range[0]) / sx, (c.rh - rh_range[0]) / sr] for c in curves]
+    U = _join_junctions(U, [c.ends for c in curves], 2.5 * h_min)
+    U = _close_tips(U, [frozenset((c.left, c.right)) for c in curves], 15.0 * h_min, 2.5 * h_min)
+    U = _extend_to_edge(U, 12.0 * h_min, 2.5 * h_min)
+    curves = [BoundaryCurve(c.left, c.right, x_range[0] + P[:, 0] * sx, rh_range[0] + P[:, 1] * sr, c.ends)
+              for c, P in zip(curves, U)]
+    failed = np.array([tr.to_xr(np.array(k)) for k, v in tr.cache.items() if v[0] is None]).reshape(-1, 2)
+    return BoundaryCurves(curves, x_range, rh_range, tr.n_solves, 0, failed).cleaned(h_min)
+
+
+def _crosses(P, a, b) -> bool:
+    from .diagram import _crosses_seg
+    return _crosses_seg(P, a, b)

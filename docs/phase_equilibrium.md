@@ -31,7 +31,7 @@ liquid–liquid split, and the two have to adjust at the same time.
 | Carbonate | CO3-- (total carbonate) and H+ (proton excess, either sign) | HCO3-, OH-, CO2(aq) are explicit species (Sect. 3.4); `speciation="internal"`: Sect. 3.3 |
 | Solids | all database solids whose ions are present, or a user list | hydrates through the hydrate water h |
 | Gases | NH3, HNO3, HCl, CO2 | open (`p_gas`) or closed (`gas_total`, `n_air`) |
-| Liquid phases | up to `max_liquids` (default 3) | added by a tangent-plane stability test |
+| Liquid phases | up to `max_liquids` (default 4) | added by a tangent-plane stability test |
 | Modes | equilibrium (`solids="all"`), metastable (`"none"`), explicit list, drying path with critical supersaturation | |
 
 ### Why a new solver
@@ -435,6 +435,27 @@ Validation against `_barrier_solve`:
 * F can differ by the removed trace amounts (≤ 1e-9 of the feed), for example 6.7e-10 for pinic acid removed from the
   salt-rich liquid in pinic acid + AS + AN at RH 0.6.
 
+### 5.2a Fallback inner methods
+
+A solve that does not converge (also after the cold restart of a warm start) is repeated with the inner methods of
+`fallback_inner` (default `("rand", "barrier")`; `()` disables it), and the first converged result is returned
+with "inner method … (fallback)" in its message; otherwise the original result. Two failures of the active-set
+solver motivate it (UHAERO 2007 diagrams, about 45 000 solves with organics, 8–25 % not converged):
+
+* **Refused solid.** Next to a boundary between two solids (e.g. letovicite and NH4HSO4), the first Newton step after
+  adding a supersaturated solid at zero drives it negative, so it is refused for the rest of the solve, and the solve
+  ends with SI > 0 (`max_si` violated; about half of the failures). The active set has no exchange step that would
+  let another solid leave instead. The rand and barrier methods need no active-set exchange; with them the state has
+  both solids (or the other one) and a lower F.
+* **Line-search stall** with liquids of very different composition (an alkane-rich liquid with nonacosane at mole
+  fraction 0.98 next to an aqueous one): the a_w condition stays violated at 1e-4. The rand method (logarithmic
+  amounts) converges.
+
+On 60 random failed points of the six diagrams, the guard of Sect. 6.2, `max_liquids = 4` and the fallback together
+gave 59 converged states (mean 4 s); on 60 random converged points the state was unchanged in 59 and had a lower F in
+one. Loosening `tol_tpd` to 1e-3 also removed failures but missed a third liquid in converged states (higher F), so
+it was not adopted.
+
 ### 5.3 Logarithmic amounts without a barrier (`inner_method = "rand"`, optional)
 
 The trace handling of Sects. 5.1 and 7 (removal, re-entry, complete evaporation, `trace_tol`) is a consequence of the
@@ -611,7 +632,10 @@ mole-fraction patterns. They do not depend on RH, so close to saturation an "org
 
 * each organic at x = 0.3, 0.7 and 0.95 in water, with traces of the ions;
 * all organics in feed proportion at x = 0.5 and 0.9 (if there are two or more organics);
-* the feed ions at water-to-ion ratios 2 and 10 (concentrated and moderate salt solutions);
+* the feed ions at water-to-ion ratios 0.2, 2 and 10 (very concentrated, concentrated and moderate salt solutions).
+  The ratio 0.2 was added in 2026-10. Without it, a concentrated acid-sulfate liquid (water : ions about 0.18) next
+  to NH4HSO4 was missed: adipic acid/glutaraldehyde + NH4+/H+/SO4-- at X = 0.28, RH 0.16 then ended as 2L + NH4HSO4,
+  with F higher by 0.02 than the three-liquid equilibrium;
 * single-salt solutions of every cation–anion pair in the feed, at the same two water-to-ion ratios. Without them, a
   liquid enriched in one salt was reached only by the random perturbations below. An example is the Na2SO4-rich third
   liquid of DLT + NaCl + H2SO4 (r = 0.75–3, RH 0.3–0.4). Earlier versions missed it at some states and reported two
@@ -621,9 +645,25 @@ mole-fraction patterns. They do not depend on RH, so close to saturation an "org
 
 The patterns are built in the component basis and made electroneutral (by scaling the anions, or through the proton
 excess). With explicit speciation they are then speciated with the internal model (Sect. 3.4). A minimum counts only if it is
-finite, positive, and at least 1e-3 away (max-norm) from every existing liquid.
+finite, positive, and at least 1e-3 away (max-norm) from every existing liquid. A minimum whose water mole fraction is
+below `tpd_min_water` (1e-6) while ions make up more than 1e-3 of it is discarded: AIOMFAC's ion terms are based on
+molalities and diverge as water vanishes (ln a of order 1e17 and TPD of order −1e8 for a water-free NH4NO3 melt), so
+such a "phase" is outside the model. Seeding it made the inner solve run for tens of seconds and fail (the time-limit
+failures of the UHAERO 2007 diagrams at RH < 0.1). Water-poor organic phases without ions are not affected.
 
 ### 6.3 Adding a phase
+
+`max_liquids` (default 4; 3 before 2026-10) caps the number of liquids. Particles with two organics can have four
+liquids: two organic-rich ones and two aqueous ones (e.g. an almost molten second salt liquid at low RH). With a cap of 3 the outer loop stopped with a negative TPD (not converged) in about 10 % of the
+solves of the 1-hexacosanol/pinic acid and pinonic acid/nonacosane diagrams.
+
+**Liquid exchange.** At the cap a negative TPD means the solve holds the wrong set of liquids (with 5 components at
+fixed T, p and a_w, at most four phases coexist over an area of a composition–RH map). With `liquid_exchange = True`
+(default) such a solve is repeated from scratch with `max_liquids + 1`: the extra liquid is seeded at the TPD minimizer
+and the inner minimization drains the liquid that does not belong; the result is used only if it converges with
+at most `max_liquids` liquids. A solve with `max_liquids = 1` (a deliberate one-liquid state, Sect. 11) is not exchanged. The message then ends with "liquid exchange". In the 1-hexacosanol/pinic acid diagram at RH 2–5 % all such
+failures converge to a different four-liquid state of lower Gibbs energy. The exchange runs before the inner-method
+fallback.
 
 If the most negative TPD is below `−tol_tpd` (1e-7), a new liquid is seeded at the minimizer w. Its non-water part is
 moved out of the liquid that can supply the most of it:
@@ -711,7 +751,15 @@ The status is decided by the **equilibrium conditions of the final state**, not 
 * `"not_converged"`: at least one fails, and `message` names it. A one-liquid solve (`max_liquids=1`) of an unstable
   state is reported as not converged with "stability test still negative", which is intended.
 * `"dry"`: no liquid remains, because all non-water material is crystalline (inorganic systems below their
-  deliquescence RH); `liquids` is then empty.
+  deliquescence RH); `liquids` is then empty. The all-solid state is the minimum of a linear program over the
+  candidate solids. It replaces the iteration's result when its F is lower. It also replaces a result whose liquid has
+  lost nearly all its water but kept ions (water mole fraction below `tpd_min_water`). Such a "molten salt" is
+  outside AIOMFAC: the ion terms diverge (ln a_w ~ +1e9), so its F has no meaning. Without this rule, NH4+/H+/SO4--
+  mixtures between letovicite and (NH4)2SO4 below about 27 % RH ended "not converged" with about 30 % of the ions
+  left in such a liquid. As soon as a liquid becomes such a melt, the Newton inner solver stops its barrier
+  continuation (which otherwise follows the vanishing water down through about a hundred stages). The outer loop then
+  skips the stability test, whose reference potentials would be meaningless (TPD about −1e12). Together these
+  shorten such solves from about 35 s to under 1 s.
 * `max_si_all_candidates` also reports supersaturation of solids that were disabled (`solids="none"`, metastable).
 
 If the inner iteration stopped on a failed line search, the `message` says so even when the checks pass.
@@ -736,7 +784,7 @@ print(res.summary())
 ```
 
 * `solve(feed, rh, *, solids="all" | "none" | [keys], p_gas=None, gas_total=None, n_air=None, P_atm=1.0,
-  max_liquids=3, max_outer=8, verbose=False)`.
+  max_liquids=4, max_outer=8, verbose=False)`.
   * `feed` maps organic names and ion keys to mol (water excluded) and must be electroneutral.
   * Give either `p_gas` or `gas_total` (with `n_air`), not both.
 * `solve(..., init=previous_result)` starts from a previous result of the same system and feed (warm start, plan

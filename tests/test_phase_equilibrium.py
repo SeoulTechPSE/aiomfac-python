@@ -144,13 +144,16 @@ def test_equilibrium_sequence_with_nitrate():
         _assert_equilibrium(r)
     assert hi.n_liquids == 2 and not hi.solids                      # LLPS, no solid
     assert mid.n_liquids == 2 and set(mid.solids) == {"ammonium_sulfate"}
-    assert set(lo.solids) == {"ammonium_sulfate", "ammonium_nitrate"}
+    # with the sulfate-nitrate double salts in the database, NH4NO3 crystallizes as (NH4)2SO4.2NH4NO3 next to the
+    # excess (NH4)2SO4 (Clegg et al., 1998)
+    assert set(lo.solids) == {"ammonium_sulfate", "AS_2AN"}
 
 
 def test_drying_path_crystallizes_only_after_critical_supersaturation():
     T = 300.0
     pe = PhaseEquilibrium([PINIC], ["NH4+", "SO4--", "NO3-"], T_K=T)
-    lsc = {"ammonium_sulfate": implied_ln_s_crit("ammonium_sulfate", T, 0.35), "ammonium_nitrate": 99.0}
+    lsc = {"ammonium_sulfate": implied_ln_s_crit("ammonium_sulfate", T, 0.35), "ammonium_nitrate": 99.0,
+           "AS_2AN": 99.0, "AS_3AN": 99.0}                                   # nitrate-bearing salts stay dissolved
     path = pe.drying_path(_ansan_feed(True), [0.60, 0.40, 0.30, 0.20], ln_s_crit=lsc)
     by_rh = {round(r.rh, 2): r for r in path}
     assert not by_rh[0.60].solids and not by_rh[0.40].solids        # supersaturated but metastable
@@ -667,7 +670,8 @@ def test_warm_drying_path_past_a_disappearing_salt_liquid():
     T, oir, f_an = 290.0, 2.78, 0.33124116480218            # paper_1 notebook 06, Seoul site mean
     m_org, m_as, m_an = oir / 186.207, (1 - f_an) / 132.14, f_an / 80.04
     feed = {"pinic_acid": m_org, "NH4+": 2 * m_as + m_an, "SO4--": m_as, "NO3-": m_an}
-    lsc = {"ammonium_sulfate": implied_ln_s_crit("ammonium_sulfate", T, 0.35), "ammonium_nitrate": 99.0}
+    lsc = {"ammonium_sulfate": implied_ln_s_crit("ammonium_sulfate", T, 0.35), "ammonium_nitrate": 99.0,
+           "AS_2AN": 99.0, "AS_3AN": 99.0}                                   # nitrate-bearing salts stay dissolved
     grid = [0.80, 0.70, 0.60, 0.50, 0.45, 0.40, 0.35, 0.30, 0.25, 0.20, 0.15, 0.10, 0.05]
     paths = {w: PhaseEquilibrium([PINIC], ["NH4+", "SO4--", "NO3-"], T_K=T).drying_path(feed, grid, ln_s_crit=lsc,
                                                                                         warm=w) for w in (True, False)}
@@ -700,3 +704,101 @@ def test_pure_water_liquid_is_dropped():
     r = pe.solve({"oil": 1.0}, 0.99999, solids="none")
     assert r.status == "converged", r.message
     assert r.n_liquids == 1 and r.liquids[0].mole_fractions[1] > 0.99
+
+
+def _uhaero_organic(pair, X, ions=("NH4+", "H+", "SO4--")):
+    """Organic + NH4+/H+/SO4-- particle of Amundson et al. (2007), alpha = 0.2 (molar organic/inorganic ratio)."""
+    from aiomfac_py import Component
+    orgs = {"adipic": Component(2, "adipic acid", ((2, 4), (137, 2))),
+            "glutaraldehyde": Component(3, "glutaraldehyde", ((2, 3), (20, 2))),
+            "pinonic": Component(2, "pinonic acid", ((1, 2), (2, 2), (3, 2), (4, 1), (18, 1), (137, 1))),
+            "nonacosane": Component(3, "nonacosane", ((1, 2), (2, 27))),
+            "hydroxyglutaric": Component(2, "2-hydroxy-glutaric acid", ((2, 2), (137, 2), (151, 1), (153, 1))),
+            "palmitic": Component(3, "palmitic acid", ((1, 1), (2, 14), (137, 1)))}
+    (o1, f1), (o2, f2) = pair
+    pe = PhaseEquilibrium([orgs[o1], orgs[o2]], list(ions), T_K=298.15)
+    Y = 1.0 if "NO3-" not in ions else 0.85
+    feed = {"NH4+": X, "H+": 1.0 - X, "SO4--": Y / (1 + Y)}
+    if "NO3-" in ions:
+        feed["NO3-"] = (1 - Y) / (1 + Y)
+    b = 0.25 * sum(feed.values())                            # alpha / (1 - alpha) with alpha = 0.2
+    feed[orgs[o1].name], feed[orgs[o2].name] = f1 * b, f2 * b
+    return pe, feed
+
+
+def test_fallback_inner_method_supersaturated_solid():
+    """Next to the letovicite/NH4HSO4 boundary the Newton active set refuses NH4HSO4 (SI = +0.011 at its end); the
+    fallback inner method finds both solids, at a lower Gibbs energy."""
+    pe, feed = _uhaero_organic((("adipic", 0.15), ("glutaraldehyde", 0.85)), 0.7334)
+    pe.fallback_inner = ()
+    bad = pe.solve(feed, 0.3719)
+    assert bad.status == "not_converged" and bad.si["ammonium_bisulfate"] > 1e-3
+    pe.fallback_inner = ("rand", "barrier")
+    res = pe.solve(feed, 0.3719)
+    assert res.status == "converged" and set(res.solids) == {"ammonium_bisulfate", "letovicite"}
+    assert res.gibbs < bad.gibbs and max(res.si.values()) < 1e-4
+
+
+def test_three_organic_and_aqueous_liquids_converge():
+    """pinonic acid / nonacosane + (NH4)2SO4: three liquids of very different composition (alkane-rich, acid-rich,
+    aqueous); the Newton line search stalls (a_w residual), the fallback converges."""
+    pe, feed = _uhaero_organic((("pinonic", 0.5), ("nonacosane", 0.5)), 0.992)
+    res = pe.solve(feed, 0.814)
+    assert res.status == "converged" and len(res.liquids) == 3
+    assert max(abs(L.ln_a[0] - np.log(0.814)) for L in res.liquids) < 1e-5
+
+
+def test_water_free_trial_phase_discarded():
+    """At low RH the stability test can run into a water-free NH4NO3 melt, where AIOMFAC's ion terms diverge
+    (ln a ~ 1e17, TPD ~ -1e8); such trial phases are discarded, so the solve converges quickly to a finite state."""
+    import time
+    pe, feed = _uhaero_organic((("hydroxyglutaric", 0.5), ("palmitic", 0.5)), 0.685,
+                               ions=("NH4+", "H+", "SO4--", "NO3-"))
+    t0 = time.time()
+    res = pe.solve(feed, 0.051)
+    assert res.status == "converged" and res.tpd_min > -1.0 and time.time() - t0 < 30
+    assert all(L.mole_fractions[0] > 1e-3 for L in res.liquids)
+
+
+def test_liquid_exchange_at_max_liquids():
+    """1-hexacosanol / pinic acid + NH4HSO4-rich salt at RH 4 %: the solve ends with four liquids (the cap) and a
+    negative stability test, i.e. the wrong set of four; re-solving with one more liquid allowed drains the wrong
+    one and converges to a different four-liquid state."""
+    from aiomfac_py import Component
+    o1 = Component(2, "1-hexacosanol", ((145, 1), (146, 24), (150, 1), (153, 1)))
+    o2 = Component(3, "pinic acid", ((1, 2), (2, 2), (3, 2), (4, 1), (137, 2)))
+    pe = PhaseEquilibrium([o1, o2], ["NH4+", "H+", "SO4--"], T_K=298.15)
+    feed = {"NH4+": 0.124, "H+": 0.876, "SO4--": 0.5}
+    feed[o1.name] = feed[o2.name] = 0.125 * sum(feed.values())
+    pe.liquid_exchange = False
+    bad = pe.solve(feed, 0.041)
+    assert bad.status == "not_converged" and len(bad.liquids) == 4 and bad.tpd_min < -1e-2
+    pe.liquid_exchange = True
+    res = pe.solve(feed, 0.041)
+    assert res.status == "converged" and len(res.liquids) == 4 and "liquid exchange" in res.message
+    assert res.gibbs < bad.gibbs + 1e-9
+
+
+def test_dried_liquid_becomes_all_solid():
+    """NH4+/H+/SO4-- between letovicite and (NH4)2SO4 at low RH: the iteration can drain the water out of the last
+    liquid while it keeps ions (a 'molten salt', x_w ~ 3e-7, where AIOMFAC diverges: ln a_w ~ +2e9).  Such a liquid
+    is outside the model; the all-solid state (here the exact stoichiometric mixture of the two salts) is taken."""
+    import time
+    pe = PhaseEquilibrium([], ["NH4+", "H+", "SO4--"], T_K=298.15)
+    t0 = time.time()
+    res = pe.solve({"NH4+": 0.95, "H+": 0.05, "SO4--": 0.5}, 0.0819)
+    assert res.status == "dry" and not res.liquids and time.time() - t0 < 10.0     # (about 35 s before the early stop)
+    assert res.solids["ammonium_sulfate"] == pytest.approx(0.4, rel=1e-6)
+    assert res.solids["letovicite"] == pytest.approx(0.05, rel=1e-6)
+
+
+def test_concentrated_acid_sulfate_trial_liquid():
+    """Adipic acid/glutaraldehyde + NH4+/H+/SO4-- (X = 0.28) at RH 0.16: the equilibrium has three liquids, one of
+    them a concentrated acid-sulfate liquid (water : ions about 0.18).  Without a trial composition that
+    concentrated, the stability test missed it and the solve ended in a local minimum with solid NH4HSO4 (F higher by
+    0.02)."""
+    pe, feed = _uhaero_organic((("adipic", 0.15), ("glutaraldehyde", 0.85)), 0.2809)
+    res = pe.solve(feed, 0.16)
+    ref = pe.solve(feed, 0.16, solids="none")
+    assert res.status == "converged" and len(res.liquids) == 3 and not res.solids
+    assert res.gibbs == pytest.approx(ref.gibbs, abs=1e-8)

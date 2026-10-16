@@ -692,6 +692,9 @@ class PhaseEquilibriumResult:
     names: list = field(default_factory=list)
     gas: dict = field(default_factory=dict)     # mol in the gas phase (closed) or net mol released, < 0 = uptake (open)
     p_gas: dict = field(default_factory=dict)   # partial pressures [atm]
+    # smallest TPD of the non-trivial minima (trial phases away from the liquids) in the final stability test, of
+    # either sign: positive and going to zero where a further liquid is about to form (used by the ZPF tracing)
+    tpd_nontrivial: float = float("nan")
 
     @property
     def n_liquids(self) -> int:
@@ -802,6 +805,13 @@ class PhaseEquilibrium:
         # "newton" otherwise)
         self.inner_method = "newton"
         self.si_tol = 1.0e-9                         # an inactive solid is added once its SI exceeds this
+        # inner methods tried, in order, when a solve does not converge (see _solve_fallback); () to disable
+        self.fallback_inner = ("rand", "barrier")
+        # retry a solve stopped at max_liquids with a negative TPD with one more liquid allowed (see _solve_exchange)
+        self.liquid_exchange = True
+        # a trial phase of the stability test with water below this mole fraction and ions is discarded: AIOMFAC
+        # (molality-based ion terms) diverges as water vanishes, giving meaningless TPD of -1e8 (molten salts)
+        self.tpd_min_water = 1.0e-6
         self.newton_mu0, self.newton_mu_factor, self.newton_mu_min = 1.0e-4, 0.01, 1.0e-14   # liquid barrier: 6 stages
         self.trace_tol = 1.0e-9                     # scaled amount below which a liquid entry is removed
         self._trunc_max = 0.0
@@ -819,6 +829,19 @@ class PhaseEquilibrium:
 
     def _solid_columns(self, solids: list[Solid]) -> np.ndarray:
         return self._columns(solids)
+
+    def _dry_assemblage(self, b: np.ndarray):
+        """Minimum of sum_s u_s c_s (c = solid cost at the current RH) over u >= 0 with V u = b (all non-water
+        material in the candidate solids; ``b`` scaled).  Returns (u, F) or None when the feed cannot be fully
+        crystallized (e.g. it holds organics or ions without a solid)."""
+        from scipy.optimize import linprog
+        V = self._columns(self._solids_now)[1:]
+        lp = linprog(self._solid_cost_now, A_eq=V, b_eq=b[1:self.Nc], bounds=(0, None), method="highs")
+        if lp.status != 0:
+            return None
+        # saturation indices of the solids relative to the optimal assemblage: minus the reduced costs
+        si = -(self._solid_cost_now - V.T @ np.asarray(lp.eqlin.marginals))
+        return np.asarray(lp.x), float(lp.fun), np.minimum(si, 0.0)
 
     def _solid_cost(self, solids: list[Solid], ln_rh: float) -> np.ndarray:
         return np.array([self._lnk[s.key] - s.h_eff * ln_rh for s in solids])
@@ -1310,6 +1333,7 @@ class PhaseEquilibrium:
         changes = 0
         reentries = 0
         dec_prev = math.inf
+        dec, it = math.nan, -1                                   # (for the verbose line of an empty stage)
         while True:
             for it in range(max_newton):
                 F0, gvec = merit(x, rv, mu)
@@ -1398,6 +1422,10 @@ class PhaseEquilibrium:
                 act[k] = True; x[k] = 0.0; changes += 1
                 Z, pos, sol = setup(); converged = True
                 continue
+            # a liquid drying into a water-free melt of ions (outside AIOMFAC; the all-solid state is taken by _solve):
+            # stop here instead of following the vanishing water down through hundreds of barrier stages
+            if self._molten(x, n_liq):
+                return x, False
             # the barrier shifts the potential of entry j by mu / x_j: continue below newton_mu_min until that shift is
             # at most 1e-10 for every entry (explicit H+ or OH- can be traces of 1e-14 and less)
             small = float(np.min(x[pos])) if np.any(pos) else 1.0
@@ -1405,6 +1433,17 @@ class PhaseEquilibrium:
                 break
             mu = max(mu * self.newton_mu_factor, min(self.newton_mu_min, 1.0e-10 * small), 1.0e-300)
         return x, converged
+
+    def _molten(self, x, n_liq) -> bool:
+        """Has a liquid of ``x`` lost (almost) all its water while keeping ions (water below ``tpd_min_water`` of its
+        moles, ions above 1e-3)?"""
+        N, nn = self.N, self.lm.n_neutral
+        for a in range(n_liq):
+            L = np.maximum(x[a * N:(a + 1) * N], 0.0)
+            tot = float(np.sum(L))
+            if tot > 0 and L[0] < self.tpd_min_water * tot and float(np.sum(L[nn:])) > 1e-3 * tot:
+                return True
+        return False
 
     def _rand_solve(self, x, n_liq, ln_rh, *, act=None, max_newton=100, verbose=False):
         """Inner problem in logarithmic amounts (``inner_method = "rand"``; explicit speciation, no sign-free entries).
@@ -1756,8 +1795,19 @@ class PhaseEquilibrium:
                     mc, ma = lc.max(), la_.max()
                     return (mc + math.log(np.exp(lc - mc).sum())) - (ma + math.log(np.exp(la_ - ma).sum()))
                 lo, hi = -5.0, 5.0
-                while g(lo) > 0: lo -= 10.0
-                while g(hi) < 0: hi += 10.0
+                # bracket the root; g is not finite when an activity coefficient has overflowed (the bracket search
+                # would then never end), and |psi| beyond ~700/|z| only means a diverging iterate
+                g_lo, g_hi = g(lo), g(hi)
+                for _ in range(80):
+                    if not (math.isfinite(g_lo) and g_lo > 0):
+                        break
+                    lo -= 10.0; g_lo = g(lo)
+                for _ in range(80):
+                    if not (math.isfinite(g_hi) and g_hi < 0):
+                        break
+                    hi += 10.0; g_hi = g(hi)
+                if not (math.isfinite(g_lo) and math.isfinite(g_hi) and g_lo <= 0.0 <= g_hi):
+                    return best_w, best_t, False
                 from scipy.optimize import brentq
                 psi = brentq(g, lo, hi, xtol=1e-14)
                 le = le + zi * psi
@@ -1869,7 +1919,8 @@ class PhaseEquilibrium:
         """Electroneutral trial compositions (sum 1) for the stability test.  Compositions are fixed mole-fraction
         patterns of the components, independent of RH (an RH-scaled water content would make "organic-rich" trials
         water-rich close to saturation): each organic at x = 0.3, 0.7 and 0.95 in water; all organics in feed
-        proportion at x = 0.5 and 0.9; salt solutions at two water-to-ion ratios; dilute water; plus perturbed copies
+        proportion at x = 0.5 and 0.9; salt solutions at water-to-ion ratios 0.2, 2 and 10 (single salts at 2 and 10);
+        dilute water; plus perturbed copies
         of the current liquids.  With explicit speciation the component patterns are speciated with the internal model
         (a pattern with all acid as free H+ starts far from any minimum and misses, e.g., a third, sulfate-rich liquid
         of DLT + NaCl + H2SO4)."""
@@ -1899,7 +1950,9 @@ class PhaseEquilibrium:
             for xo in (0.5, 0.9):
                 comp_trials.append(make(1.0 - xo, xo * org_fr, eps * ion_fr))
         if ion_fr[nn:].sum() > 0:
-            for water in (2.0, 10.0):                                # concentrated and moderate salt solutions
+            # very concentrated (water : ions = 0.2, e.g. the acid-sulfate melt-like liquid that coexists with
+            # NH4HSO4 at low RH), concentrated and moderate salt solutions
+            for water in (0.2, 2.0, 10.0):
                 comp_trials.append(make(water, eps * org_fr, ion_fr))
             # single-salt solutions of every cation-anion pair present: a liquid enriched in one salt (e.g. the
             # Na2SO4-rich third liquid of DLT + NaCl + H2SO4) is otherwise reached only by chance
@@ -1953,7 +2006,7 @@ class PhaseEquilibrium:
         return out
 
     def solve(self, feed: dict, rh: float, *, solids="all", p_gas: dict | None = None, gas_total: dict | None = None,
-              n_air: float | None = None, P_atm: float = 1.0, max_liquids: int = 3, max_outer: int = 8,
+              n_air: float | None = None, P_atm: float = 1.0, max_liquids: int = 4, max_outer: int = 8,
               verbose: bool = False, init: "PhaseEquilibriumResult | None" = None) -> PhaseEquilibriumResult:
         """See :meth:`_solve`.  A warm-started solve (``init``) that does not converge is repeated from scratch, and
         the cold result is used if it converges (a start from a neighbouring state can be poor, e.g. a small salt
@@ -1966,10 +2019,61 @@ class PhaseEquilibrium:
             if cold.status == "converged":
                 cold.message = ((cold.message + "; ") if cold.message else "") + "warm start discarded (not converged)"
                 return cold
+        if (res.status == "not_converged" and self.liquid_exchange and 2 <= max_liquids <= len(res.liquids)
+                and res.tpd_min < -self.tol_tpd):
+            res = self._solve_exchange(feed, rh, res, kw)
+        if res.status == "not_converged" and self.fallback_inner:
+            res = self._solve_fallback(feed, rh, res, kw)
         return res
 
+    def _solve_exchange(self, feed, rh, res, kw):
+        """Liquid exchange: the solve stopped at ``max_liquids`` liquids with a negative TPD.  At most as many
+        liquids as there are independent components can coexist over an area of the diagram, so the trial phase
+        should replace one of the liquids, not join them.  The outer loop only adds liquids; allowing one more lets
+        it add the trial phase, after which the inner solve drains the liquid that does not belong (it vanishes and
+        is removed).  The result is used if it converges with at most ``max_liquids`` liquids.  Not for
+        ``max_liquids = 1`` (a deliberate one-liquid solve)."""
+        kw2 = dict(kw, max_liquids=kw["max_liquids"] + 1)
+        alt = self._solve(feed, rh, init=None, **kw2)
+        if alt.status == "converged" and len(alt.liquids) <= kw["max_liquids"]:
+            alt.message = ((alt.message + "; ") if alt.message else "") + "liquid exchange"
+            return alt
+        return res
+
+    def _solve_fallback(self, feed, rh, res, kw):
+        """Repeat a solve that did not converge with the other inner methods (``fallback_inner``).  The default
+        Newton inner solver adds solids by an active set; next to a boundary between two solids it can refuse a
+        supersaturated solid (the first Newton step drives it negative) and end with SI > 0, and with liquids of very
+        different composition (e.g. an alkane-rich and an aqueous liquid) its line search can stall.  The "rand"
+        (logarithmic amounts) and "barrier" (interior point) methods need no active-set exchange.  The first
+        converged (or dry) result is returned; otherwise the original one.  A method that raises a linear-algebra
+        error counts as not converged."""
+        own = self.inner_method
+        tried = {own}
+        try:
+            for method in self.fallback_inner:
+                if method in tried or (method == "rand" and np.any(self.lm.free)):
+                    continue
+                tried.add(method)
+                self._set_inner(method)
+                try:
+                    alt = self._solve(feed, rh, init=None, **kw)
+                except (np.linalg.LinAlgError, FloatingPointError, ValueError):   # e.g. eigh of a non-finite
+                    continue                                                       # Hessian: this method failed
+                if alt.status in ("converged", "dry"):
+                    alt.message = ((alt.message + "; ") if alt.message else "") + f"inner method {method} (fallback)"
+                    return alt
+        finally:
+            self._set_inner(own)
+        return res
+
+    def _set_inner(self, method):
+        self.inner_method = method
+        for child in self._children.values():
+            child._set_inner(method)
+
     def _solve(self, feed: dict, rh: float, *, solids="all", p_gas: dict | None = None, gas_total: dict | None = None,
-               n_air: float | None = None, P_atm: float = 1.0, max_liquids: int = 3, max_outer: int = 8,
+               n_air: float | None = None, P_atm: float = 1.0, max_liquids: int = 4, max_outer: int = 8,
                verbose: bool = False, init: "PhaseEquilibriumResult | None" = None) -> PhaseEquilibriumResult:
         """Equilibrium for the non-water ``feed`` [mol] (organic names and ion keys) at relative humidity ``rh``.
 
@@ -2011,6 +2115,8 @@ class PhaseEquilibrium:
                 child.hess_scheme, child.hess_reuse_tol = self.hess_scheme, self.hess_reuse_tol
                 child.tpd_hess_reuse_tol, child.tpd_method = self.tpd_hess_reuse_tol, self.tpd_method
                 child.inner_method, child.si_tol = self.inner_method, self.si_tol
+                child.fallback_inner, child.tpd_min_water = self.fallback_inner, self.tpd_min_water
+                child.liquid_exchange = self.liquid_exchange
                 child.seed_method, child.tpd_early_stop = self.seed_method, self.tpd_early_stop
                 child.newton_mu0, child.newton_mu_factor, child.newton_mu_min = (self.newton_mu0, self.newton_mu_factor,
                                                                                   self.newton_mu_min)
@@ -2104,6 +2210,7 @@ class PhaseEquilibrium:
         x = np.concatenate(phases + [u0, g0])
         n_outer = 0
         tpd_min = float("nan")
+        tpd_nontriv = float("nan")
         inner_ok = True
         history = []
         act = np.ones(len(x), dtype=bool)                     # entries taking part (False: species absent from a liquid)
@@ -2160,9 +2267,13 @@ class PhaseEquilibrium:
             if dry:                                            # everything crystallized: no liquid to test
                 tpd_min = 0.0
                 break
+            if self._solids_now and self._gas_mode == "none" and self._molten(x, n_liq):
+                tpd_min = 0.0                                  # a water-free melt: its potentials are meaningless
+                break                                          # for a stability test; the all-solid state is used
             # stability test of the liquid set (potentials of the largest liquid; water at ln RH)
             mu_eq = self._reference_potentials(liquids, ln_rh)
             best = (0.0, None)
+            nontriv = float("inf")
             known = []                                         # non-trivial minima found in this stability test
             for w0 in self._trial_points(b, rh, liquids):
                 try:
@@ -2172,17 +2283,22 @@ class PhaseEquilibrium:
                     continue
                 if not (np.all(np.isfinite(w)) and np.isfinite(t) and np.all(w > 0)):
                     continue
+                if w[0] < self.tpd_min_water * float(np.sum(w)) and float(np.sum(w[nn:])) > 1e-3 * float(np.sum(w)):
+                    continue                                   # water-free ionic trial phase: outside the model
                 dist = min(float(np.max(np.abs(w - L.mole_fractions))) for L in liquids)
                 if dist > 1e-3 and t < -self.tol_tpd:
                     known.append(w)
                 if t < best[0] and dist > 1e-3:
                     best = (t, w)
+                if dist > 1e-3:
+                    nontriv = min(nontriv, float(t))
                 # a clearly unstable liquid set needs one new liquid, not the most negative of all candidates: the
                 # next outer iteration tests again (Michelsen's practice); the final, stable test runs every start, and
                 # so does a test whose liquid count is at max_liquids (it reports tpd_min, e.g. for binodal searches)
                 if (self.tpd_early_stop is not None and n_liq < max_liquids and best[0] < -self.tpd_early_stop):
                     break
             tpd_min = best[0]
+            tpd_nontriv = nontriv if np.isfinite(nontriv) else float("nan")
             if verbose:
                 print(f"  outer {n_outer}: {n_liq} liquid(s), TPD_min={tpd_min:.3e}")
             if best[1] is None or tpd_min > -self.tol_tpd or n_liq >= max_liquids or n_outer >= max_outer:
@@ -2313,9 +2429,34 @@ class PhaseEquilibrium:
         checks["max_removed_trace"] = self._trunc_max
         checks["n_line_search_failures"] = float(self._ls_failures)
         liquids = [self._to_components(L) for L in liquids]          # largest removed amount, relative to sum |feed|
+        # all-solid state: with water open, its transformed Gibbs energy sum_s n_s (ln K_s - h_s ln RH) is linear in
+        # the solid amounts, so its minimum over the candidate solids is a linear program.  It corrects a dry result
+        # whose solids are not the optimal assemblage (the iteration has no liquid left to exchange material through)
+        # and replaces a liquid-containing result whose F is higher (e.g. just below a mutual deliquescence RH, where
+        # the iteration can end at a liquid saturated with a non-optimal pair of solids).
+        dry_si = None
+        if self._solids_now and self._gas_mode == "none":
+            dry_lp = self._dry_assemblage(b)
+            if dry_lp is not None:
+                u_lp, F_lp, si_lp = dry_lp
+                F_now = float(np.dot(x[len(phases) * N:len(phases) * N + S], self._solid_cost_now)) if dry else F
+                # a liquid that has lost (almost) all its water but kept ions is outside AIOMFAC (the ion terms
+                # diverge, ln a_w ~ +1e9, and F has no meaning): the iteration dried a liquid into a "molten salt"
+                # instead of crystallizing it; the all-solid state is taken if it exists
+                molten = not dry and any(
+                    float(L.amounts[0]) < self.tpd_min_water * float(np.sum(L.amounts))
+                    and float(np.sum(L.amounts[self.lm.n_neutral:])) > 1e-3 * float(np.sum(L.amounts))
+                    for L in liquids)
+                if molten or F_lp < F_now - 1e-9 * max(1.0, abs(F_now)):
+                    dry = True
+                    F = F_lp
+                    solid_amounts = {s_.key: float(v) * scale for s_, v in zip(self._solids_now, u_lp)
+                                     if v * scale > thresh}
+                if dry:                                   # saturation indices of a dry state: from the program
+                    dry_si = {s_.key: float(v) for s_, v in zip(self._solids_now, si_lp)}
         if dry:
             # all non-water material is in solids; the remaining "liquid" is a numerical remnant of the barrier
-            si = self._si_liquids(liquids, ln_rh)
+            si = dry_si if dry_si is not None else self._si_liquids(liquids, ln_rh)
             return PhaseEquilibriumResult("dry", self.T, rh, [], solid_amounts, si, F * scale,
                                           {"max_mass_balance_residual": checks["max_mass_balance_residual"]},
                                           0.0, n_outer, message="no liquid phase (all solutes crystalline)",
@@ -2335,7 +2476,8 @@ class PhaseEquilibrium:
         if not inner_ok:
             msg += ("; " if msg else "") + "inner Newton iteration stopped early (line search)"
         result = PhaseEquilibriumResult(status, self.T, rh, liquids, solid_amounts, si, F * scale, checks, tpd_min,
-                                        n_outer, message=msg, names=self.names, gas=gas, p_gas=p_out)
+                                        n_outer, message=msg, names=self.names, gas=gas, p_gas=p_out,
+                                        tpd_nontrivial=tpd_nontriv)
         if self._gas_mode == "open":
             result = self._complete_evaporation(result, feed, rh, solids, p_gas, max_liquids, max_outer, verbose)
         return result

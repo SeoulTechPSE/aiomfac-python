@@ -1,0 +1,270 @@
+"""Phase-boundary tracing (aiomfac_py.diagram): the deliquescence RH found by bisection on PhaseEquilibrium solves must
+equal the single-salt saturation of the SLE layer (sle.binary_saturation), and the bookkeeping (states, intervals,
+boundary kinds, phase maps) must be consistent."""
+import warnings
+
+import numpy as np
+import pytest
+
+pytest.importorskip("scipy")
+
+from aiomfac_py.diagram import Boundary, PhaseState, phase_map, pie_composition, trace  # noqa: E402
+from aiomfac_py.phase_equilibrium import PhaseEquilibrium  # noqa: E402
+from aiomfac_py.sle import binary_saturation  # noqa: E402
+
+T0 = 298.15
+
+
+@pytest.mark.parametrize("key,feed", [("ammonium_sulfate", {"NH4+": 2.0, "SO4--": 1.0}),
+                                      ("halite", {"Na+": 1.0, "Cl-": 1.0}),
+                                      ("ammonium_nitrate", {"NH4+": 1.0, "NO3-": 1.0})])
+def test_traced_drh_equals_binary_saturation(key, feed):
+    pe = PhaseEquilibrium([], list(feed), T_K=T0)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        t = trace(pe, feed, n=16, tol=1e-4)
+    deliq = [b for b in t.boundaries if b.kind == "deliquescence"]
+    assert len(deliq) == 1 and deliq[0].resolved
+    b = deliq[0]
+    assert b.rh_hi - b.rh_lo <= 1e-4
+    assert abs(b.rh - binary_saturation(key, T0)["aw"]) < 2e-4
+    assert b.below == PhaseState(0, (key,)) and b.above == PhaseState(1, ())
+    # intervals cover the requested range (also when the lowest solve failed) and agree with the boundaries
+    iv = t.intervals()
+    assert iv[0][0] == pytest.approx(t.rh_range[0]) and iv[-1][1] == pytest.approx(t.rh_range[1])
+    assert all(a <= b for a, b, _ in iv)
+    assert iv[-1][2] == PhaseState(1, ())
+
+
+def test_metastable_mode_has_no_solids():
+    pe = PhaseEquilibrium([], ["Na+", "Cl-"], T_K=T0)
+    t = trace(pe, {"Na+": 1.0, "Cl-": 1.0}, mode="metastable", rh_min=0.5, rh_max=0.95, n=6)
+    assert all(s == PhaseState(1, ()) for s in t.states)
+    assert t.boundaries == []
+
+
+def test_boundary_kinds():
+    L, AS, AN = PhaseState(1, ()), PhaseState(0, ("ammonium_sulfate",)), PhaseState(1, ("ammonium_nitrate",))
+    assert Boundary(0.8, 0.8, 0.8, AS, L).kind == "deliquescence"
+    assert Boundary(0.5, 0.5, 0.5, L, AN).kind == "precipitation"
+    assert Boundary(0.5, 0.5, 0.5, PhaseState(2, ()), L).kind == "phase separation"
+    assert Boundary(0.1, 0.1, 0.1, PhaseState(0, ("MgCl2_4H2O",)), PhaseState(0, ("bischofite",))).kind == \
+        "solid transition"
+    assert L.label == "L" and PhaseState(2, ("halite",)).label == "2L + halite"
+
+
+def test_phase_map_mixed_salt_eutonic():
+    """NaCl + KCl: the mutual deliquescence RH (both salts dissolve together) is below both single-salt DRH."""
+    pe = PhaseEquilibrium([], ["Na+", "K+", "Cl-"], T_K=T0)
+    feed = lambda x: {"Na+": x, "K+": 1.0 - x, "Cl-": 1.0}
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        pm = phase_map(pe, feed, [0.3, 0.6], x_label="x(NaCl)", n=16, rh_min=0.6, rh_max=0.95)
+    for t in pm.traces:
+        first = t.boundaries[0]
+        assert first.below.solids == ("halite", "sylvite") and first.rh < 0.756
+    # the mutual DRH does not depend on the mixing ratio
+    assert abs(pm.traces[0].boundaries[0].rh - pm.traces[1].boundaries[0].rh) < 2e-4
+    recs = pm.to_records()
+    assert {r["kind"] for r in recs} <= {"deliquescence", "precipitation", "phase separation", "solid transition",
+                                         "other"}
+    lines = pm.boundary_lines()
+    assert all(len(xs) == len(rh) for xs, rh in lines.values())
+
+
+def test_pie_composition_groups():
+    pe = PhaseEquilibrium([], ["Na+", "Cl-"], T_K=T0)
+    res = pe.solve({"Na+": 1.0, "Cl-": 1.0}, 0.9)
+    pie = pie_composition(res)
+    assert pie[0][0] == "L1" and set(pie[0][1]) == {"water", "ions"}
+    assert np.isclose(pie[0][1]["ions"], 2.0)
+
+
+def test_ammonium_sulfate_nitrate_double_salts():
+    """(NH4)2SO4 + NH4NO3: the dry assemblage follows the stoichiometry of the double salts (linear program over
+    the candidate solids), and the mutual deliquescence RH of (NH4)2SO4 + (NH4)2SO4.2NH4NO3 is an invariant point
+    (independent of the mixing ratio)."""
+    pe = PhaseEquilibrium([], ["NH4+", "SO4--", "NO3-"], T_K=T0)
+    feed = lambda x: {"NH4+": 2 * x + (1 - x), "SO4--": x, "NO3-": 1 - x}
+    expect = {0.1: {"ammonium_nitrate", "AS_3AN"}, 0.3: {"AS_3AN", "AS_2AN"}, 0.6: {"ammonium_sulfate", "AS_2AN"},
+              0.97: {"ammonium_sulfate", "AS_2AN"}}
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        for x, solids in expect.items():
+            r = pe.solve(feed(x), 0.4)
+            assert r.status == "dry" and set(r.solids) == solids, (x, r.solids)
+            assert max(r.si.values()) <= 1e-9
+        mdrh = []
+        for x in (0.6, 0.97):
+            t = trace(pe, feed(x), rh_min=0.55, rh_max=0.66, n=8, tol=1e-4)
+            mdrh.append(t.boundaries[0].rh)
+            assert t.boundaries[0].below.solids == ("AS_2AN", "ammonium_sulfate")
+    assert abs(mdrh[0] - mdrh[1]) < 3e-4
+
+
+def test_deliquescence_point_and_rh_profile():
+    from aiomfac_py.diagram import deliquescence_point, rh_profile
+    pe = PhaseEquilibrium([], ["NH4+", "SO4--"], T_K=T0)
+    feed = {"NH4+": 2.0, "SO4--": 1.0}
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        rh, solids = deliquescence_point(pe, feed, step=0.05)
+        p = rh_profile(pe, feed, [0.95, 0.85, 0.7, 0.5])
+    assert solids == ("ammonium_sulfate",)
+    assert abs(rh - binary_saturation("ammonium_sulfate", T0)["aw"]) < 2e-4
+    # dry below the DRH (relative mass 1), growing water uptake above it
+    assert p["rel_mass"][2] == pytest.approx(1.0) and p["rel_mass"][3] == pytest.approx(1.0)
+    assert p["rel_mass"][0] > p["rel_mass"][1] > 1.5
+    assert p["solids"][3] == ("ammonium_sulfate",) and np.all(np.isnan(p["pH"][2:]))
+    # refined: the step is located to 1e-4, so the curve rises vertically from 1 at the DRH
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        q = rh_profile(pe, feed, [0.95, 0.85, 0.7, 0.5], refine=1e-4)
+    k = int(np.argmax(q["rel_mass"] > 1.0 + 1e-9))
+    assert q["rel_mass"][k - 1] == pytest.approx(1.0) and q["rel_mass"][k] > 1.5
+    assert q["rh"][k] - q["rh"][k - 1] <= 1e-4 and abs(q["rh"][k] - rh) < 2e-4
+    assert np.all(np.diff(q["rh"]) > 0) and np.all(q["ionic_strength"][q["rel_mass"] > 1.0] > 0)
+
+
+def test_acid_sulfate_ph_and_letovicite():
+    from aiomfac_py.diagram import particle_properties
+    pe = PhaseEquilibrium([], ["NH4+", "H+", "SO4--"], T_K=T0)
+    feed = {"NH4+": 0.6, "H+": 0.4, "SO4--": 0.5}
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        r = pe.solve(feed, 0.5)
+    p = particle_properties(pe, feed, r)
+    assert "letovicite" in p["solids"] and p["n_liquids"] == 1
+    assert -3.0 < p["pH"] < 1.0 and p["rel_mass"] > 1.0
+
+
+def test_ternary_lle_three_phase_region():
+    """water / 1-hexacosanol / pinic acid: one three-phase triangle (Amundson et al., 2007, Fig. 2), equilibrium
+    activities equal in all three coexisting liquids, and the binary water/pinic acid gap at the edge."""
+    from aiomfac_py import Component
+    from aiomfac_py.diagram import binary_mixing_curve, ternary_lle
+    W = Component(1, "Water", ((16, 1),))
+    hexa = Component(2, "1-hexacosanol", ((145, 1), (146, 24), (150, 1), (153, 1)))
+    pinic = Component(3, "pinic acid", ((1, 2), (2, 2), (3, 2), (4, 1), (137, 2)))
+    gap = binary_mixing_curve([W, Component(2, "pinic acid", pinic.subgroups)], T0)["splits"]
+    assert len(gap) == 1 and 0.005 < gap[0][0] < 0.012 and 0.19 < gap[0][1] < 0.23
+    td = ternary_lle([W, hexa, pinic], T0, h=0.01)
+    assert len(td.three_phase) == 1
+    V = td.three_phase[0]
+    assert V[:, 0].max() > 0.6 and V[:, 1].max() > 0.15         # an organic-rich and an acid-rich liquid
+    eq = td.equilibrium(0.3, 0.1)
+    assert eq["n_phases"] == 3 and 0.95 < eq["activities"][0] <= 1.0
+
+
+def test_trace_boundaries_nacl_kcl():
+    """Continuation of the boundary lines: the mutual deliquescence line of NaCl + KCl is horizontal (an invariant
+    RH), the two liquidus lines meet it at the eutonic composition, and the lines agree with the traces."""
+    from aiomfac_py.diagram import _curve_grid, _region_grid, trace_boundaries
+    pe = PhaseEquilibrium([], ["Na+", "K+", "Cl-"], T_K=T0)
+    feed = lambda x: {"Na+": x, "K+": 1.0 - x, "Cl-": 1.0}
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        pm = phase_map(pe, feed, [0.1, 0.5, 0.9], x_label="x(NaCl)", n=12, rh_min=0.6, rh_max=0.95, refine_x=False)
+        bc = trace_boundaries(pe, feed, pm, h_max=0.1)
+    L, H, S = PhaseState(1, ()), "halite", "sylvite"
+    by = {frozenset((c.left, c.right)): c for c in bc.curves}
+    mutual = by[frozenset((PhaseState(0, (H, S)), PhaseState(1, (H,))))]
+    mdrh = pm.traces[1].boundaries[0].rh
+    assert np.ptp(mutual.rh) < 2e-3 and abs(np.mean(mutual.rh) - mdrh) < 2e-3
+    liq_h = by[frozenset((PhaseState(1, (H,)), L))]
+    liq_s = by[frozenset((PhaseState(1, (S,)), L))]
+    # the liquidus lines run from the eutonic point (at the mutual DRH) to the edges of the diagram
+    for c in (liq_h, liq_s):
+        i = int(np.argmin(c.rh))
+        assert abs(c.rh[i] - mdrh) < 3e-3
+    assert abs(liq_h.x[np.argmin(liq_h.rh)] - liq_s.x[np.argmin(liq_s.rh)]) < 0.02
+    # the traced lines pass through the boundary points of the traces
+    for xv, t in zip(pm.x, pm.traces):
+        for b in t.boundaries:
+            c = by[frozenset((b.below, b.above))]
+            assert abs(np.interp(xv, *(np.sort(c.x), c.rh[np.argsort(c.x)])) - b.rh) < 2e-3
+    # region grid from the lines: the state below the mutual line is the dry mixture everywhere
+    states = pm.states()
+    Z, xf, rg, _ = _region_grid(pm, 200, states, 50)
+    Z = _curve_grid(bc, xf, rg, Z, {s: k for k, s in enumerate(states)})
+    assert np.all(Z[rg < mdrh - 0.01] == states.index(PhaseState(0, (H, S))))
+    # with traced lines the region outlines (contours) are not drawn; without them they are
+    mpl = pytest.importorskip("matplotlib")
+    mpl.use("Agg")
+    from matplotlib.collections import QuadMesh
+    from aiomfac_py.diagram import plot_phase_map
+    ax = plot_phase_map(pm, curves=bc, legend=False)
+    assert all(isinstance(c, QuadMesh) for c in ax.collections) and len(ax.lines) >= len(bc.curves)
+    ax = plot_phase_map(pm, legend=False, show_failed=True)
+    assert any(not isinstance(c, QuadMesh) for c in ax.collections)
+    # labels in the regions enclosed by the lines; a region too small for its label gets a number listed outside
+    import matplotlib.pyplot as plt
+    from aiomfac_py.diagram import ionic_strength, label_regions, plot_validity
+    fig, ax = plt.subplots(figsize=(6.0, 4.5))
+    plot_phase_map(pm, ax=ax, curves=bc, legend=False)
+    items = label_regions(ax, pm, {H: "H", S: "S"}, curves=bc)
+    texts = {t.get_text() for t in ax.texts}
+    assert {"H+S", "L"} <= texts and all(str(n) in texts for n, _ in items)
+    fig2, ax2 = plt.subplots(figsize=(1.6, 1.2))           # small axes, large font: labels do not fit
+    plot_phase_map(pm, ax=ax2, curves=bc, legend=False)
+    items = label_regions(ax2, pm, {H: "H", S: "S"}, curves=bc, fontsize=24)
+    assert "H+S" in {t for _, t in items} and str(items[0][0]) in {t.get_text() for t in ax2.texts}
+    plt.close("all")
+    # validity: ionic strength of the solution (NaCl + KCl, about 2-7 mol/kg at RH 0.8-0.95); no line below 1000
+    res = pm.traces[1].results[-1]
+    assert 1.0 < ionic_strength(res) < 10.0
+    assert ionic_strength(pm.traces[1].results[0]) == 0.0 or pm.traces[1].results[0].liquids
+    _, ax3 = plt.subplots()
+    cs = plot_validity(ax3, pm, limit=1000.0)
+    assert not any(len(p) for p in cs.allsegs[0])
+    plt.close("all")
+
+
+def test_trace_boundaries_vertical_line():
+    """A boundary at fixed composition (letovicite stoichiometry, X = 0.75 in NH4+/H+/SO4--) that crosses no trace
+    is found between the traces, recognised as vertical and built from RH scans beside it."""
+    from aiomfac_py.diagram import trace_boundaries
+    pe = PhaseEquilibrium([], ["NH4+", "H+", "SO4--"], T_K=T0)
+
+    def feed(x):
+        return {"NH4+": x, "H+": 1.0 - x, "SO4--": 0.5}
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        pm = phase_map(pe, feed, [0.6, 0.7, 0.8, 0.9], n=8, rh_min=0.45, rh_max=0.65, refine_x=False)
+        bc = trace_boundaries(pe, feed, pm)
+    assert all(not t.boundaries for t in pm.traces)
+    assert len(bc.curves) == 1
+    c = bc.curves[0]
+    assert np.allclose(c.x, 0.75, atol=2e-3) and c.rh.min() == pytest.approx(0.45) and c.rh.max() == pytest.approx(0.65)
+    assert {c.left, c.right} == {PhaseState(1, ("letovicite",)), PhaseState(0, ("ammonium_sulfate", "letovicite"))}
+    assert c.ends == ("edge", "edge")
+
+
+def test_trace_boundaries_zpf_nacl_kcl():
+    """ZPF tracing (method="zpf"): the boundary lines are the zero-phase-fraction lines of L, halite and sylvite;
+    the liquidus lines meet the mutual deliquescence line at the eutonic composition found by state tracing, and
+    every line ends on the edge (no line ends inside the diagram)."""
+    from aiomfac_py.diagram import trace_boundaries
+    from aiomfac_py.zpf import phase_functions
+    pe = PhaseEquilibrium([], ["Na+", "K+", "Cl-"], T_K=T0)
+    feed = lambda x: {"Na+": x, "K+": 1.0 - x, "Cl-": 1.0}
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        pm = phase_map(pe, feed, [0.1, 0.5, 0.9], x_label="x(NaCl)", n=12, rh_min=0.6, rh_max=0.95, refine_x=False)
+        bc = trace_boundaries(pe, feed, pm, method="zpf")
+        r = pe.solve(feed(0.5), 0.70)
+    f = phase_functions(r, ["halite", "sylvite"], 2)
+    assert f["halite"] > 0 and f["sylvite"] > 0 and f["L1"] < 0          # dry mixture below the mutual DRH
+    L, H, S = PhaseState(1, ()), "halite", "sylvite"
+    by = {frozenset((c.left, c.right)): c for c in bc.curves}
+    liq_h = by[frozenset((PhaseState(1, (H,)), L))]
+    liq_s = by[frozenset((PhaseState(1, (S,)), L))]
+    mdrh = pm.traces[1].boundaries[0].rh
+    xe_h, xe_s = liq_h.x[np.argmin(liq_h.rh)], liq_s.x[np.argmin(liq_s.rh)]
+    assert abs(xe_h - xe_s) < 0.01 and 0.70 < xe_h < 0.75
+    assert abs(liq_h.rh.min() - mdrh) < 3e-3 and abs(liq_s.rh.min() - mdrh) < 3e-3
+    ends = [(c.x[k], c.rh[k]) for c in bc.curves for k in (0, -1)]
+    for x, rh in ends:                                   # on the edge, or where another line passes
+        on_edge = min(x - 0.1, 0.9 - x) < 1e-6 or min(rh - bc.rh_range[0], bc.rh_range[1] - rh) < 1e-6
+        others = [c for c in bc.curves if np.min(np.hypot(c.x - x, c.rh - rh)) < 5e-3]
+        assert on_edge or len(others) >= 2

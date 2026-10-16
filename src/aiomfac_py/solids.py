@@ -63,13 +63,14 @@ ION_REGISTRY: dict[str, tuple[int, int]] = {
 
 @dataclass(frozen=True)
 class KSpec:
-    kind: str                         # "phreeqc" | "vanthoff"
+    kind: str                         # "phreeqc" | "vanthoff" | "composite"
     coeffs: tuple[float, ...] = ()    # phreeqc: A1..A6
     ln_k0: float = 0.0                # vanthoff: ln K at T_REF (reference value, before anchoring)
     dH: float = 0.0                   # J/mol (dissolution, per formula unit incl. hydrate water)
     dCp: float = 0.0                  # J/(mol K)
     T_min: float = 253.15
     T_max: float = 373.15
+    parts: tuple = ()                 # composite: ((solid key, count), ...) of the simple salts
 
     def ln_k(self, T: float) -> float:
         if self.kind == "phreeqc":
@@ -79,6 +80,12 @@ class KSpec:
         if self.kind == "vanthoff":
             return (self.ln_k0 - self.dH / R_GAS * (1.0 / T - 1.0 / T_REF)
                     + self.dCp / R_GAS * (T_REF / T - 1.0 + math.log(T / T_REF)))
+        if self.kind == "composite":
+            # double salt = sum of simple salts (their AIOMFAC-consistent ln K) + the solid-state formation reaction
+            # sum_j n_j salt_j(cr) -> double salt(cr), whose ln K (ln_k0, dH; dCp = 0) does not depend on the
+            # solution model
+            return (sum(n * SOLIDS[k].ln_k(T) for k, n in self.parts)
+                    + self.ln_k0 - self.dH / R_GAS * (1.0 / T - 1.0 / T_REF))
         raise ValueError(self.kind)
 
 
@@ -177,6 +184,11 @@ def _ph(*c, **kw):
 
 def _vh(ln_k0, dH, dCp, **kw):
     return KSpec("vanthoff", ln_k0=ln_k0, dH=dH, dCp=dCp, **kw)
+
+
+def _cs(parts, ln_k0, dH, **kw):
+    """composite (double salt): ln K = sum n_j ln K_j(T) + ln_k0 - dH/R (1/T - 1/T_REF)"""
+    return KSpec("composite", ln_k0=ln_k0, dH=dH, parts=tuple(parts), **kw)
 
 
 # --------------------------------------------------------------------------------------------------------
@@ -339,6 +351,27 @@ _DB: list[Solid] = [
           _vh(-10.88 * math.log(10.0), 20.29e3, 0.0, T_min=273.15, T_max=323.15), n_oh=2, quality="B",
           source="log K -10.88, delta_h 4.85 kcal (PHREEQC pitzer.dat); OH- carried as -H+"),
     # ---- double salts (not anchored) ---------------------------------------------------------------------
+    # ammonium sulfate-nitrate double salts (Clegg, Brimblecombe & Wexler, 1998, J. Phys. Chem. A 102, 2137, Table 2).
+    # Clegg's mole-fraction constants assume Clegg's activity model, so only the solid-state formation reaction
+    #   (NH4)2SO4(cr) + n NH4NO3(cr) -> (NH4)2SO4.nNH4NO3(cr)
+    # is taken from them: ln K_ds - ln K_AS - n ln K_AN (the mole-fraction/molality conversion cancels because the
+    # ion numbers balance), and dH likewise; the simple-salt K are those of this database (fitted to AIOMFAC).
+    Solid("AS_2AN", "(NH4)2SO4.2NH4NO3", {"NH4+": 4, "SO4--": 1, "NO3-": 2}, 0,
+          _cs((("ammonium_sulfate", 1), ("ammonium_nitrate", 2)), -23.681 + 11.960 + 2 * 5.5295,
+              (58.85 - 6.084 - 2 * 25.69) * 1e3, T_min=263.15, T_max=323.15), quality="B",
+          source="Clegg et al. (1998) Table 2: ln xKs -23.681, dH 58.85 kJ/mol; (NH4)2SO4 -11.960, 6.084; "
+                 "NH4NO3(IV) -5.5295, 25.69",
+          note="formation from the simple salts: ln K +(-0.662), dH +1.39 kJ/mol"),
+    Solid("AS_3AN", "(NH4)2SO4.3NH4NO3", {"NH4+": 5, "SO4--": 1, "NO3-": 3}, 0,
+          _cs((("ammonium_sulfate", 1), ("ammonium_nitrate", 3)), -29.422 + 11.960 + 3 * 5.5295,
+              (84.86 - 6.084 - 3 * 25.69) * 1e3, T_min=263.15, T_max=323.15), quality="B",
+          source="Clegg et al. (1998) Table 2: ln xKs -29.422, dH 84.86 kJ/mol (see AS_2AN)",
+          note="formation from the simple salts: ln K -0.874, dH +1.71 kJ/mol"),
+    Solid("AHS_AN", "NH4HSO4.NH4NO3", {"NH4+": 2, "H+": 1, "SO4--": 1, "NO3-": 1}, 0,
+          _cs((("ammonium_bisulfate", 1), ("ammonium_nitrate", 1)), -18.081 + 11.408 + 5.5295,
+              (8.73 + 15.17 - 25.69) * 1e3, T_min=273.15, T_max=323.15), quality="C",
+          source="Clegg et al. (1998) Table 2: ln xKs -18.081, dH 8.73 kJ/mol; NH4HSO4 -11.408, -15.17",
+          note="metastable with respect to letovicite in NH4HSO4-NH4NO3-H2O according to Clegg et al. (1998)"),
     Solid("glauberite", "Na2Ca(SO4)2", {"Na+": 2, "Ca++": 1, "SO4--": 2}, 0,
           _ph(218.142, 0, -9285, -77.735), quality="B", source=_PH_REF),
     Solid("syngenite", "K2Ca(SO4)2.H2O", {"K+": 2, "Ca++": 1, "SO4--": 2}, 1,

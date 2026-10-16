@@ -23,6 +23,61 @@
   1.00 to 0.107 log10 units (Hoga et al., 2018). `peg_treatment=None` restores the published equations. A
   `UserWarning` is issued either way. **Behaviour change** for PEG-containing systems. AIOMFAC-web v3.14's switch to
   the mole-fraction mixing rule for reported viscosities is described in the README, not ported.
+- **Solver robustness** (`PhaseEquilibrium`): (i) the stability test discards water-free ionic trial phases (AIOMFAC
+  diverges there; `tpd_min_water`), (ii) `max_liquids` defaults to 4 (two organic and two aqueous liquids occur with
+  two organics), (iii) a solve that does not converge is repeated with the `rand` and `barrier` inner methods
+  (`fallback_inner`), which need no active-set exchange next to a boundary between two solids. In the UHAERO 2007
+  diagrams 59 of 60 sampled failures converge; converged states are unchanged. (iv) A solve stopped at
+  `max_liquids` with a negative TPD is repeated with one more liquid allowed (`liquid_exchange`); the wrong liquid
+  is drained and a different four-liquid state of lower Gibbs energy is found (v) A liquid dried to a water-free "molten
+  salt" (outside AIOMFAC) is replaced by the all-solid state; the solve stops as soon as the melt forms (about 35 s
+  -> under 1 s). A fallback inner method that raises a linear-algebra error counts as not converged. (vi) The stability test also starts from a very
+  concentrated salt composition (water : ions = 0.2): a concentrated acid-sulfate liquid next to NH4HSO4 was missed,
+  leaving a local minimum with the solid (2L + NH4HSO4 instead of 3L in the adipic acid/glutaraldehyde diagram).
+- `trace_boundaries`: a line end that no other line reaches is extended along its tangent to the first line or edge
+  within 12 `h_min`; `label_regions`: a region thinner than the drawn lines is numbered beside its line.
+- `trace_boundaries`: local refinement (`refine_rounds`, `refine_at`, ...) where the topology rules are violated;
+  new and short lines are checked by fresh solves (minimum Gibbs energy across the line); tips of closed regions are
+  joined; a seed along an existing vertical line keeps the part the vertical line does not cover.
+- `trace_boundaries(..., method="zpf")` (module `aiomfac_py.zpf`): boundaries traced as zero-phase-fraction lines of
+  each solid and liquid (amount where present, saturation index or minus the non-trivial TPD where absent), through
+  junctions; `PhaseEquilibriumResult.tpd_nontrivial`.
+- `rh_profile(..., refine=tol)`: deliquescence steps located by bisection (drawn vertically); `ionic_strength` in
+  the output.
+- `trace_boundaries`: line ends that no other line reaches are probed on wider circles (`dangling_rounds`); at a
+  bracket between states that differ by two or more phases, each solve is checked against the other side's state
+  (restarted from it and restricted to its solids; the lower Gibbs energy is kept).
+
+- **Phase diagram labels and validity** (`aiomfac_py.diagram`): `label_regions` labels the areas enclosed by the
+  traced lines (state from the solves inside, incl. the `trace_boundaries` cache); regions too small for their label
+  get a number listed outside the axes. `ionic_strength`, `validity_points`, `plot_validity`: dashed line at a
+  limiting ionic strength of the ion-containing liquids (default 100 mol/kg), beyond which AIOMFAC extrapolates.
+  `trace_boundaries`: missing lines between traces are found by chaining the states of the crossing lines (a line
+  crossing the interval no longer hides another one), seeds that bend away from a vertical line are kept, and lines
+  traced twice are dropped. Singular lines lying on a traced vertical line are not drawn dotted.
+
+- **Phase diagrams** (`aiomfac_py.diagram`, extra `plot`): phase-boundary tracing in RH by bisection on
+  `PhaseEquilibrium` solves (`trace`; equilibrium and metastable modes; non-converged solves are dropped and listed),
+  composition–RH maps with refinement in composition where the boundary topology changes (`phase_map`), plotting with
+  boundary lines and region colours (`plot_phase_map`), phase composition for pie charts (`pie_composition`). The
+  traced deliquescence RH of ten single salts equals `sle.binary_saturation` to 4e-5. Also `rh_profile`,
+  `particle_properties` (relative particle mass, pH), `deliquescence_point`, `label_regions`, and for neutral
+  mixtures `binary_mixing_curve`, `ternary_lle` (phase diagram from the lower convex hull of the Gibbs energy of
+  mixing) and `plot_ternary`. Manual `docs/phase_diagrams.md`, notebook `notebooks/07_phase_diagrams.ipynb`, and the
+  figures of Amundson et al. (2006, 2007) with AIOMFAC (`tools/uhaero2006_figures.py`, `tools/uhaero2007_figures.py`).
+- **Boundary-line continuation** (`diagram.trace_boundaries`, `BoundaryCurves`, `plot_boundary_curves`): every
+  boundary of a phase map is followed in the (x, RH) plane by a predictor (secant) and a corrector (bisection across
+  the line), vertical lines included, so the lines are smooth and meet at the junctions;
+  `plot_phase_map(..., curves=)` draws them and fills the regions between them.
+- **Double salts** (`aiomfac_py.solids`): (NH4)2SO4·2NH4NO3, (NH4)2SO4·3NH4NO3 and NH4HSO4·NH4NO3 as composite
+  solids, ln K = sum of the simple salts' ln K (this database, fitted to AIOMFAC) + the solid-state formation reaction
+  from Clegg, Brimblecombe and Wexler (1998, Table 2), which does not depend on the solution model.
+- `PhaseEquilibrium`: an all-solid state is now the minimum of a linear program over the candidate solids (water
+  open), which corrects dry results with a non-optimal assemblage and replaces a liquid-containing result whose
+  transformed Gibbs energy is higher than the best all-solid one; saturation indices of dry results come from the
+  program. Mutual deliquescence RHs are therefore invariant in the mixing ratio, as the phase rule requires.
+- `PhaseEquilibrium`: the charge-balance bracket search of the tangent-plane successive substitution could loop
+  forever when an activity coefficient had overflowed; it is now bounded and hands over to the Newton step.
 
 ## v1.3.0 (2026-10)
 
