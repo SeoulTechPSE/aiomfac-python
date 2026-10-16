@@ -789,6 +789,12 @@ def _phase_distance(a: PhaseState, b: PhaseState) -> int:
     return abs(a.n_liquids - b.n_liquids) + len(set(a.solids) ^ set(b.solids))
 
 
+def _cross2(a, b) -> float:
+    """z component of the cross product of two 2-vectors (numpy >= 2.0 deprecates, and newer versions reject, 2-D
+    vectors in np.cross)"""
+    return float(a[0] * b[1] - a[1] * b[0])
+
+
 def _dist_to_polyline(p, P) -> float:
     if len(P) == 1:
         return float(np.linalg.norm(p - P[0]))
@@ -2098,7 +2104,7 @@ def plot_ternary(td: TernaryLLE, ax=None, *, show: str = "phases", n_tie: int = 
         for c, name in ((2, "L2"), (3, "L3")):
             sel = np.nonzero(cls == c)[0]
             if len(sel):
-                w = np.array([0.5 * abs(np.cross(P[t[1]] - P[t[0]], P[t[2]] - P[t[0]])) for t in tris[sel]])
+                w = np.array([0.5 * abs(_cross2(P[t[1]] - P[t[0]], P[t[2]] - P[t[0]])) for t in tris[sel]])
                 if w.sum() > 2e-3:
                     cc = (P[tris[sel]].mean(axis=1) * w[:, None]).sum(0) / w.sum()
                     ax.text(cc[1], cc[0], name, fontsize=11, ha="center", va="center")
