@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- `trace_boundaries(..., method="zpf")`: seeds between neighbouring traces whose states differ by two or more
+  phases are found by halving the segment (`seed_subdivide`), and solids that occur on no trace are included; in the
+  UHAERO 2007 Y = 0.85 diagrams (traces every 0.1 in X) the boundary pieces missing against the state tracing fall
+  from 17, 15, 6, 4 to 1, 3, 0, 4.
 - **Fix, aquelec mixing rule** (`aquelec_viscosity`): ion molalities were multiplied by
   `lambda = w_w / (w_w + sum w_org)` as printed in Lilek and Zuend (2022) Eq. (20); the paper's own definition
   (`m_i,aquelec = n_i / W_w`) and the Fortran need division by lambda. Changes log10 eta by up to 0.022 for water +

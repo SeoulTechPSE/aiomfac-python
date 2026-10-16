@@ -22,6 +22,7 @@ from __future__ import annotations
 import numpy as np
 
 from .diagram import (BoundaryCurve, BoundaryCurves, PhaseMap, PhaseState, _close_tips, _dist_to_polyline,
+                      _phase_distance,
                       _extend_to_edge, _join_junctions, _length, _ok, _regular_traces, _resample, _state_at, _Tracer, phase_state)
 
 __all__ = ["phase_functions", "trace_zpf"]
@@ -54,6 +55,7 @@ def _phases_of(st: PhaseState) -> set:
 
 def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0.02, h_min: float = 0.002,
               h_max: float = 0.04, delta_max: float = 0.05, rh_samples: int = 40, max_liquids: int = 4,
+              seed_subdivide: float | None = 0.004,
               solve_timeout: float | None = None, cache: dict | None = None, checkpoint=None,
               checkpoint_every: int = 200, verbose: bool = False, **solve_kw) -> BoundaryCurves:
     """ZPF tracing of the boundary lines of ``pm`` (see the module docstring).  Arguments as for
@@ -86,7 +88,10 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
             return None, None
         if res.liquids:
             warm["res"], warm["at"] = res, q
-        return phase_functions(res, solid_keys, max_liquids)[phase], st
+        # a solid that occurs on no trace of the map (only between two traces) is not in solid_keys: it is taken
+        # as well, from its saturation index where it is absent
+        keys = solid_keys if (phase in solid_keys or (phase[:1] == "L" and phase[1:].isdigit())) else solid_keys + [phase]
+        return phase_functions(res, keys, max_liquids)[phase], st
 
     def root(phase, a, b, fa, fb, sa, sb):
         """regula falsi (Illinois) for f_phase = 0 on the segment a-b (fa < 0 < fb or the reverse); returns
@@ -260,22 +265,46 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
     # seeds 2: a phase present on one trace and absent on the neighbouring one at the same RH, with no ZPF line of
     # that phase crossing between them (lines that cross no trace, e.g. vertical ones)
     levels = np.linspace(rh_range[0], rh_range[1], rh_samples + 2)[1:-1]
+    def seed_segment(ua, ub, sa, sb):
+        for phase in sorted(_phases_of(sa) ^ _phases_of(sb)):
+            if any(ph == phase and _crosses(P, ua, ub) for ph, P, _ in lines):
+                continue
+            fa, s_a = f(ua, phase)
+            fb, s_b = f(ub, phase)
+            if fa is None or fb is None or (fa > 0) == (fb > 0):
+                continue
+            rr = root(phase, ua, ub, fa, fb, s_a, s_b)
+            if rr is not None:
+                trace_from(phase, rr[0], np.array([0.0, 1.0]))
+
+    def subdivide(ua, ub, sa, sb, depth=0):
+        """seeds 2b: where the states at the ends of a horizontal segment differ by two or more phases, several
+        boundaries lie in between, and a phase present only inside the segment has the same sign of f at both ends;
+        the segment is halved until its ends differ by at most one phase (or it is shorter than seed_subdivide), and
+        each piece is seeded"""
+        if sa == sb:
+            return
+        if (_phase_distance(sa, sb) <= 1 or np.linalg.norm(ub - ua) < seed_subdivide or depth >= 12):
+            seed_segment(ua, ub, sa, sb)
+            return
+        m = 0.5 * (ua + ub)
+        sm = tr.state(m)[0]
+        if sm is None:                                     # failed solve: seed the whole segment as before
+            seed_segment(ua, ub, sa, sb)
+            return
+        subdivide(ua, m, sa, sm, depth + 1)
+        subdivide(m, ub, sm, sb, depth + 1)
+
     for (xa, ta), (xb, tb) in zip(zip(xs[:-1], traces[:-1]), zip(xs[1:], traces[1:])):
         for r in levels:
             sa, sb = _state_at(ta, r), _state_at(tb, r)
             if sa == sb:
                 continue
             ua, ub = tr.to_unit(xa, r), tr.to_unit(xb, r)
-            for phase in sorted(_phases_of(sa) ^ _phases_of(sb)):
-                if any(ph == phase and _crosses(P, ua, ub) for ph, P, _ in lines):
-                    continue
-                fa, s_a = f(ua, phase)
-                fb, s_b = f(ub, phase)
-                if fa is None or fb is None or (fa > 0) == (fb > 0):
-                    continue
-                rr = root(phase, ua, ub, fa, fb, s_a, s_b)
-                if rr is not None:
-                    trace_from(phase, rr[0], np.array([0.0, 1.0]))
+            if seed_subdivide:
+                subdivide(ua, ub, sa, sb)
+            else:
+                seed_segment(ua, ub, sa, sb)
 
     # lines that got lost (the corrector failed): look for the sign change of the same phase on circles around the
     # end, away from the line, and continue from there

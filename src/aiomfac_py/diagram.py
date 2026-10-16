@@ -883,7 +883,8 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
         from .zpf import trace_zpf
         return trace_zpf(pe, feed_of_x, pm, tol=tol, h0=h0, h_min=h_min, h_max=h_max, delta_max=delta_max,
                          rh_samples=rh_samples, solve_timeout=solve_timeout, cache=cache, checkpoint=checkpoint,
-                         checkpoint_every=checkpoint_every, verbose=verbose, **solve_kw)
+                         checkpoint_every=checkpoint_every, verbose=verbose,
+                         seed_subdivide=solve_kw.pop("seed_subdivide", 0.004), **solve_kw)
     traces, xs = _regular_traces(pm)
     x_range = (float(pm.x[0]), float(pm.x[-1]))
     rh_range = (min(t.rh_range[0] if t.rh_range else t.rh[0] for t in pm.traces),

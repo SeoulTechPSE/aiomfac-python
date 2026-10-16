@@ -474,8 +474,12 @@ kept once per pair of states. As in the state tracing, line ends at junctions ar
 are closed, and free ends are extended to the line or edge they meet.
 
 Seeds: the phases that differ across each boundary point of the traces, and phases present on one trace and
-absent on the neighbouring one at the same RH with no ZPF line of that phase between them. The cache is shared
-with the state tracing.
+absent on the neighbouring one at the same RH with no ZPF line of that phase between them. Where the states on
+two neighbouring traces differ by two or more phases at the same RH, several boundaries lie between them, and a phase
+present only between the traces (a thin strip at a nearly stoichiometric composition) has the same sign of f_p on
+both traces; such a segment is halved until its ends differ by at most one phase or it is shorter than
+`seed_subdivide` (default 0.004 of the axis ranges; `None` switches this off), and each piece is seeded. A solid that
+occurs on no trace at all is included through its saturation index. The cache is shared with the state tracing.
 
 ### 6.6 Convex hull for liquid–liquid equilibrium
 
