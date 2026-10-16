@@ -62,12 +62,39 @@ See [`docs/user_manual.md`](docs/user_manual.md) for the case format, the modes,
 fields.
 
 Phase diagrams built on the same solvers (`aiomfac_py.diagram`, manual [`docs/phase_diagrams.md`](docs/phase_diagrams.md),
-examples in [`notebooks/07_phase_diagrams.ipynb`](notebooks/07_phase_diagrams.ipynb)): the (NH4)2SO4–NH4NO3–H2O
-system at 298.15 K with AIOMFAC and the double salts of Clegg et al. (1998), traced with `phase_map` and drawn with
-`plot_phase_map` (script: [`tools/diagram_as_an.py`](tools/diagram_as_an.py)).
+examples in [`notebooks/07_phase_diagrams.ipynb`](notebooks/07_phase_diagrams.ipynb)):
+
+* `trace` locates every RH at which the phase state of a particle changes (bisection); `phase_map` repeats it over a
+  composition parameter X for UHAERO-style X–RH diagrams.
+* `trace_boundaries` turns the map into continuous boundary lines meeting at junctions. `method="states"` (default)
+  follows the line between two phase states; `method="zpf"` follows zero-phase-fraction lines (amount of a phase
+  where it is present, saturation index or minus the non-trivial TPD where it is absent), which continue through
+  junctions, so a line ends only on the edge or on itself. ZPF seeds come from the traces of the map, so a phase
+  present only between two traces can be missed (X 0.73–0.79 of the UHAERO 2007 Y = 0.85 diagrams; see the report
+  below). Both methods share one solve cache, checkpointed for long runs.
+* `plot_phase_map` fills the regions between the lines, `label_regions` names them (small regions are numbered and
+  listed beside the panel), and `plot_validity` marks where the ionic strength of a liquid exceeds the range AIOMFAC
+  was fitted to.
+* Scripts reproduce the inorganic and organic phase diagrams of UHAERO (Amundson et al., 2006, 2007):
+  [`tools/uhaero2006_figures.py`](tools/uhaero2006_figures.py), [`tools/uhaero2007_figures.py`](tools/uhaero2007_figures.py)
+  (`map`, `lines [--zpf]`, `plot`); the comparison with the papers is in
+  [`docs/UHAERO_AIOMFAC_comparison_EN.docx`](docs/UHAERO_AIOMFAC_comparison_EN.docx). A simpler example, the
+  (NH4)2SO4–NH4NO3–H2O system with the double salts of Clegg et al. (1998), is
+  [`tools/diagram_as_an.py`](tools/diagram_as_an.py).
+
+Inorganic: NH4+/H+/SO4²⁻/NO3⁻/H2O at sulfate fraction Y = 0.85, 298.15 K (UHAERO 2006 Fig. 4; solids A (NH4)2SO4,
+B letovicite, C NH4HSO4, D NH4NO3, E 2AN·AS, F 3AN·AS, G AN·AHS; ZPF lines; left pH, right relative particle mass):
 
 <p align="center">
-  <img src="docs/figs/phase_diagram_as_an.png" alt="(NH4)2SO4-NH4NO3-H2O phase diagram at 298.15 K" width="900">
+  <img src="docs/figs/phase_diagram_uhaero06_Y0.85.png" alt="UHAERO 2006 Fig. 4 with AIOMFAC: X-RH phase diagram at Y = 0.85" width="900">
+</p>
+
+Organic–inorganic: NH4+/H+/SO4²⁻/H2O (Y = 1) with two organics at organic/inorganic mixing ratio 0.2, 298.15 K
+(UHAERO 2007 Fig. 8; nL: number of liquid phases; (a) 1-hexacosanol/pinic acid, (b) adipic acid/glutaraldehyde,
+(c) pinonic acid/nonacosane, (d) 2-hydroxyglutaric acid/palmitic acid; ZPF lines):
+
+<p align="center">
+  <img src="docs/figs/phase_diagram_uhaero07_Y1.00.png" alt="UHAERO 2007 Fig. 8 with AIOMFAC: X-RH phase diagrams with two organics" width="900">
 </p>
 
 ## Layout
@@ -88,7 +115,7 @@ system at 298.15 K with AIOMFAC and the double salts of Clegg et al. (1998), tra
 | `src/aiomfac_py/lle.py` | liquid-liquid equilibrium (`solve_pep`/`solve_pep_gfe`) — primal-dual interior-point/active-set Gibbs-energy minimization on top of `ActivityModel`, port of Amundson et al. (2006, JOTA 130); **not** part of AIOMFAC-web, not Fortran-validated (see the module docstring and `tests/test_lle.py`) |
 | `src/aiomfac_py/solids.py`, `src/aiomfac_py/sle.py` | solid–liquid equilibrium (`SLESolver`) at fixed T and RH on top of `ActivityModel` — primal-dual active-set Gibbs minimization after Amundson et al. (2006, JOTA 128, 469–498), with a 23-solid database of K_sp(T) and hydrates for atmospheric salts; neutral/alkali–alkaline-earth systems only (no H+/HSO4-, no gas phase). **Not** part of AIOMFAC-web, not Fortran-validated — see the "Solid–liquid equilibrium" section and `docs/SLE_design.md` |
 | `src/aiomfac_py/phase_equilibrium.py` | combined liquid–liquid–solid equilibrium (`PhaseEquilibrium`) of water + organics + ions at fixed T and RH: one transformed-Gibbs minimization over all liquid phases (ion basis, per-phase electroneutrality, water open at a_w = RH) and all candidate solids, with an outer tangent-plane stability test that adds liquid phases; equilibrium, metastable (`solids="none"`) and drying-path modes. Acid sulfate and carbonate systems (speciated in every liquid, as in SLESolver) and volatile NH3/HNO3/HCl/CO2 (open fixed-p or closed ideal-gas phase) supported. **Not** part of AIOMFAC-web, not Fortran-validated — see the "Combined liquid–liquid–solid equilibrium" section and `tests/test_phase_equilibrium.py` |
-| `src/aiomfac_py/diagram.py` | phase diagrams on top of `PhaseEquilibrium`: `trace` locates every RH at which the phase state (number of liquids, solids present) of a particle changes, by bisection to a set tolerance (equilibrium or metastable mode); `phase_map` repeats it over a composition parameter X (refining X where the boundary topology changes) for UHAERO-style X–RH diagrams; `plot_phase_map` draws them (optional `matplotlib`, extra `plot`); `pie_composition` gives the phase composition for pie charts; `binary_mixing_curve`, `ternary_lle` and `plot_ternary` for liquid–liquid diagrams of neutral mixtures (convex hull of the Gibbs energy of mixing) — manual `docs/phase_diagrams.md`, examples `notebooks/07_phase_diagrams.ipynb`, UHAERO figures `tools/uhaero2006_figures.py`, `tools/uhaero2007_figures.py` |
+| `src/aiomfac_py/diagram.py` | phase diagrams on top of `PhaseEquilibrium`: `trace` locates every RH at which the phase state (number of liquids, solids present) of a particle changes, by bisection to a set tolerance (equilibrium or metastable mode); `phase_map` repeats it over a composition parameter X (refining X where the boundary topology changes) for UHAERO-style X–RH diagrams; `trace_boundaries` traces continuous boundary lines (`method="states"` or zero-phase-fraction `method="zpf"`, module `aiomfac_py.zpf`); `plot_phase_map`, `label_regions` and `plot_validity` draw, name and mark them (optional `matplotlib`, extra `plot`); `pie_composition` gives the phase composition for pie charts; `binary_mixing_curve`, `ternary_lle` and `plot_ternary` for liquid–liquid diagrams of neutral mixtures (convex hull of the Gibbs energy of mixing) — manual `docs/phase_diagrams.md`, examples `notebooks/07_phase_diagrams.ipynb`, UHAERO figures `tools/uhaero2006_figures.py`, `tools/uhaero2007_figures.py` |
 | `src/aiomfac_py/tool.py`, `examples/cases/` | main tool (`aiomfac-tool`): case files, calculation modes, solver selection, unified results; manual in `docs/user_manual.md`, tests in `tests/test_tool.py` |
 | `src/aiomfac_py/gp_partition.py` | gas/particle partitioning at fixed RH (`gp_partition`) — joint Levenberg-Marquardt solver (default), a pseudo-transient RH-continuation fallback (inspired by Amundson et al., 2007, C. R. Acad. Sci.), and the original successive-substitution method, all on top of `ActivityModel`; **not** part of AIOMFAC-web (see the module docstring and `tests/test_gp_partition.py`) |
 | `src/aiomfac_py/viscosity.py` | AIOMFAC-VISC (`electrolyte_viscosity`, `water_viscosity_pas`) — predictive dynamic-viscosity model for **aqueous electrolyte** solutions, port of Lilek and Zuend (2022, *Atmos. Chem. Phys.* 22, 3203–3233); built on top of `ActivityModel`'s ion molal activities/activity coefficients. Covers the 17 ions and all cation–anion pairs the paper fits. Also covers the paper's organic-inorganic mixing extension (Sect. 3): `organic_mixture_viscosity`/`pure_organic_viscosity_vtf` port the group-contribution organic-viscosity engine of Gervasi, Topping and Zuend (2020, *Atmos. Chem. Phys.* 20, 2987–3008); `aquelec_viscosity`/`aquorg_viscosity` implement two of Lilek and Zuend's three mixing rules (Sect. 3.4.1–3.4.2); and `predict_tg_derieux2018` implements the closed-form glass-transition-temperature estimate of DeRieux et al. (2018, *Atmos. Chem. Phys.* 18, 6331–6351) that the organic-viscosity model's Tg-dependent pure-component estimate relies on. Does **not** implement the ZSR mixing rule (Sect. 3.4.3, needs an iterative nonlinear solve) — see the module docstring and `tests/test_viscosity.py` |
