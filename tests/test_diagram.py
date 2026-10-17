@@ -268,3 +268,12 @@ def test_trace_boundaries_zpf_nacl_kcl():
         on_edge = min(x - 0.1, 0.9 - x) < 1e-6 or min(rh - bc.rh_range[0], bc.rh_range[1] - rh) < 1e-6
         others = [c for c in bc.curves if np.min(np.hypot(c.x - x, c.rh - rh)) < 5e-3]
         assert on_edge or len(others) >= 2
+
+
+def test_zpf_near_seg():
+    import numpy as np
+    from aiomfac_py.zpf import _near_seg
+    P = np.array([[0.5, 0.0], [0.5, 1.0]])
+    assert _near_seg(P, np.array([0.4, 0.5]), np.array([0.6, 0.5]), 0.01)       # crosses
+    assert _near_seg(P, np.array([0.3, 0.5]), np.array([0.495, 0.5]), 0.01)     # ends next to the line
+    assert not _near_seg(P, np.array([0.1, 0.5]), np.array([0.3, 0.5]), 0.01)

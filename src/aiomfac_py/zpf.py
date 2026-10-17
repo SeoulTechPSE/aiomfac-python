@@ -15,13 +15,19 @@ not end inside the diagram, and the law of adjoining phase regions holds by cons
 boundary of one phase).  The states on both sides are recorded at every point; a line is split where they change,
 which gives the junctions.
 
+Seeds: the boundary points of the traces; between neighbouring traces, segments halved until their ends differ
+by at most one phase; and neighbouring solves whose states differ with no line between them (region consistency).
+
 Use :func:`aiomfac_py.diagram.trace_boundaries` with ``method="zpf"``.
 """
 from __future__ import annotations
 
+import time
+
 import numpy as np
 
 from .diagram import (BoundaryCurve, BoundaryCurves, PhaseMap, PhaseState, _close_tips, _dist_to_polyline,
+                      _phase_distance,
                       _extend_to_edge, _join_junctions, _length, _ok, _regular_traces, _resample, _state_at, _Tracer, phase_state)
 
 __all__ = ["phase_functions", "trace_zpf"]
@@ -54,6 +60,8 @@ def _phases_of(st: PhaseState) -> set:
 
 def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0.02, h_min: float = 0.002,
               h_max: float = 0.04, delta_max: float = 0.05, rh_samples: int = 40, max_liquids: int = 4,
+              seed_subdivide: float | None = 0.004, consistency_rounds: int = 2, consistency_k: int = 8,
+              consistency_radius: float = 0.01, consistency_max: int = 300, consistency_time: float = 1800.0,
               solve_timeout: float | None = None, cache: dict | None = None, checkpoint=None,
               checkpoint_every: int = 200, verbose: bool = False, **solve_kw) -> BoundaryCurves:
     """ZPF tracing of the boundary lines of ``pm`` (see the module docstring).  Arguments as for
@@ -76,6 +84,7 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
     solid_keys = sorted({s for st in pm.states() for s in st.solids})
 
     warm = {"res": None, "at": None}                        # the last converged solve: warm start of the next
+    deadline = {"t": float("inf")}                          # time budget of the consistency seeds
 
     def f(q, phase):
         """(f_phase, state) at q; (None, None) where the solve failed"""
@@ -86,7 +95,10 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
             return None, None
         if res.liquids:
             warm["res"], warm["at"] = res, q
-        return phase_functions(res, solid_keys, max_liquids)[phase], st
+        # a solid that occurs on no trace of the map (only between two traces) is not in solid_keys: it is taken
+        # as well, from its saturation index where it is absent
+        keys = solid_keys if (phase in solid_keys or (phase[:1] == "L" and phase[1:].isdigit())) else solid_keys + [phase]
+        return phase_functions(res, keys, max_liquids)[phase], st
 
     def root(phase, a, b, fa, fb, sa, sb):
         """regula falsi (Illinois) for f_phase = 0 on the segment a-b (fa < 0 < fb or the reverse); returns
@@ -183,6 +195,8 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
         t = np.asarray(t0, float) / np.linalg.norm(t0)
         h, corr = h0, h0 / 4
         while True:
+            if time.time() > deadline["t"]:
+                return pts, sides, "lost"
             if len(pts) >= 2:
                 t = pts[-1] - pts[-2]
                 t /= np.linalg.norm(t)
@@ -260,22 +274,46 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
     # seeds 2: a phase present on one trace and absent on the neighbouring one at the same RH, with no ZPF line of
     # that phase crossing between them (lines that cross no trace, e.g. vertical ones)
     levels = np.linspace(rh_range[0], rh_range[1], rh_samples + 2)[1:-1]
+    def seed_segment(ua, ub, sa, sb):
+        for phase in sorted(_phases_of(sa) ^ _phases_of(sb)):
+            if any(ph == phase and _crosses(P, ua, ub) for ph, P, _ in lines):
+                continue
+            fa, s_a = f(ua, phase)
+            fb, s_b = f(ub, phase)
+            if fa is None or fb is None or (fa > 0) == (fb > 0):
+                continue
+            rr = root(phase, ua, ub, fa, fb, s_a, s_b)
+            if rr is not None:
+                trace_from(phase, rr[0], np.array([0.0, 1.0]))
+
+    def subdivide(ua, ub, sa, sb, depth=0):
+        """seeds 2b: where the states at the ends of a horizontal segment differ by two or more phases, several
+        boundaries lie in between, and a phase present only inside the segment has the same sign of f at both ends;
+        the segment is halved until its ends differ by at most one phase (or it is shorter than seed_subdivide), and
+        each piece is seeded"""
+        if sa == sb or time.time() > deadline["t"]:
+            return
+        if (_phase_distance(sa, sb) <= 1 or np.linalg.norm(ub - ua) < seed_subdivide or depth >= 12):
+            seed_segment(ua, ub, sa, sb)
+            return
+        m = 0.5 * (ua + ub)
+        sm = tr.state(m)[0]
+        if sm is None:                                     # failed solve: seed the whole segment as before
+            seed_segment(ua, ub, sa, sb)
+            return
+        subdivide(ua, m, sa, sm, depth + 1)
+        subdivide(m, ub, sm, sb, depth + 1)
+
     for (xa, ta), (xb, tb) in zip(zip(xs[:-1], traces[:-1]), zip(xs[1:], traces[1:])):
         for r in levels:
             sa, sb = _state_at(ta, r), _state_at(tb, r)
             if sa == sb:
                 continue
             ua, ub = tr.to_unit(xa, r), tr.to_unit(xb, r)
-            for phase in sorted(_phases_of(sa) ^ _phases_of(sb)):
-                if any(ph == phase and _crosses(P, ua, ub) for ph, P, _ in lines):
-                    continue
-                fa, s_a = f(ua, phase)
-                fb, s_b = f(ub, phase)
-                if fa is None or fb is None or (fa > 0) == (fb > 0):
-                    continue
-                rr = root(phase, ua, ub, fa, fb, s_a, s_b)
-                if rr is not None:
-                    trace_from(phase, rr[0], np.array([0.0, 1.0]))
+            if seed_subdivide:
+                subdivide(ua, ub, sa, sb)
+            else:
+                seed_segment(ua, ub, sa, sb)
 
     # lines that got lost (the corrector failed): look for the sign change of the same phase on circles around the
     # end, away from the line, and continue from there
@@ -306,6 +344,87 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
                             break
         if not added:
             break
+
+    # seeds 3 (region consistency): all solves in a region enclosed by the lines must have the same phase state.  Two
+    # neighbouring converged solves (k nearest, closer than consistency_radius) whose states differ while no ZPF line
+    # of a phase that differs between them crosses the segment joining them point to a missing line: both states are
+    # checked against each other (re-solved from the other one, lowest Gibbs energy kept: a local minimum is no
+    # boundary) and the segment is seeded as in seeds 2
+    def consistency_seeds():
+        from scipy.spatial import cKDTree
+        tried: set = set()
+        t_start = time.time()
+        deadline["t"] = t_start + consistency_time
+        for _ in range(max(0, int(consistency_rounds))):
+            pts = [(np.array(k, float), v[0], v[1]) for k, v in tr.cache.items() if v[0] is not None]
+            if len(pts) < 2:
+                return 0
+            X = np.array([q[0] for q in pts])
+            # next to failed solves the states are not resolved, and every new solve there tends to fail slowly
+            # (time limit): pairs within consistency_radius of a failed solve are left out
+            Fp = np.array([k for k, v in tr.cache.items() if v[0] is None], float).reshape(-1, 2)
+            Ft = cKDTree(Fp) if len(Fp) else None
+            # at the junctions (where the states beside a line change, and where lines end) the states of several
+            # regions meet within a few h_min: pairs there are left out too
+            Ep = np.array([P[k] for _, P, S in lines if len(P) > 1
+                           for k in [0, len(P) - 1] + [i for i in range(1, len(P)) if S[i] != S[i - 1]]],
+                          float).reshape(-1, 2)
+            Et = cKDTree(Ep) if len(Ep) else None
+            by_phase: dict = {}
+            for ph, P, _ in lines:
+                if len(P) > 1:
+                    by_phase.setdefault(ph, []).append(P)
+            # a line of the phase that crosses the segment, or passes within eps of it (the line ends are joined at the
+            # junctions only afterwards), accounts for the change
+            eps = 2.5 * h_min
+            dist, idx = cKDTree(X).query(X, k=min(int(consistency_k) + 1, len(X)))
+            cand = {}
+            for i in range(len(X)):
+                for d, j in zip(dist[i, 1:], idx[i, 1:]):
+                    if d > consistency_radius:
+                        continue
+                    si, sj = pts[i][1], pts[j][1]
+                    if si == sj:
+                        continue
+                    a, b = X[i], X[j]
+                    if Ft is not None and Ft.query(0.5 * (a + b))[0] < consistency_radius:
+                        continue
+                    if Et is not None and Et.query(0.5 * (a + b))[0] < 5.0 * h_min:
+                        continue
+                    if all(any(_near_seg(P, a, b, eps) for P in by_phase.get(ph, [])) for ph in _phases_of(si) ^ _phases_of(sj)):
+                        continue
+                    cand[(min(i, j), max(i, j))] = float(d)
+            n0, n_pairs = len(lines), 0
+            for (i, j), d in sorted(cand.items(), key=lambda kv: kv[1]):
+                if n_pairs >= consistency_max or time.time() - t_start > consistency_time:
+                    break
+                a, b = X[i], X[j]
+                cell = (tuple(np.round(a / (2.0 * h_min)).astype(int)), tuple(np.round(b / (2.0 * h_min)).astype(int)))
+                if cell in tried:
+                    continue
+                tried.add(cell)
+                n_pairs += 1
+                sa = tr.state_min(a, [pts[j][2]])[0]
+                sb = tr.state_min(b, [pts[i][2]])[0]
+                if sa is None or sb is None or sa == sb:
+                    continue
+                nl = len(lines)
+                subdivide(a, b, sa, sb)
+                if verbose and len(lines) > nl:
+                    xa, ra = tr.to_xr(a)
+                    xb, rb = tr.to_xr(b)
+                    print(f"  consistency: line between ({xa:.4f}, {ra:.4f}) {sa.label} and ({xb:.4f}, {rb:.4f}) "
+                          f"{sb.label}", flush=True)
+            if verbose:
+                print(f"ZPF consistency: {len(cand)} inconsistent neighbours, {n_pairs} checked, "
+                      f"{len(lines) - n0} lines added, {tr.n_solves} solves", flush=True)
+            if len(lines) == n0:
+                break
+        return 0
+
+    if consistency_rounds:
+        consistency_seeds()
+        deadline["t"] = float("inf")
 
     def sides_at(m, nrm):
         a = tr.state(np.clip(m + 3.0 * tol * nrm, 0.0, 1.0))[0]
@@ -380,6 +499,15 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
               for c, P in zip(curves, U)]
     failed = np.array([tr.to_xr(np.array(k)) for k, v in tr.cache.items() if v[0] is None]).reshape(-1, 2)
     return BoundaryCurves(curves, x_range, rh_range, tr.n_solves, 0, failed).cleaned(h_min)
+
+
+def _near_seg(P, a, b, eps) -> bool:
+    """the polyline P crosses the segment a-b or comes within eps of it"""
+    if _crosses(P, a, b) or _dist_to_polyline(a, P) < eps or _dist_to_polyline(b, P) < eps:
+        return True
+    ab = b - a
+    w = np.clip(((P - a) @ ab) / max(float(ab @ ab), 1e-300), 0.0, 1.0)
+    return bool(np.min(np.linalg.norm(a + w[:, None] * ab - P, axis=1)) < eps)
 
 
 def _crosses(P, a, b) -> bool:

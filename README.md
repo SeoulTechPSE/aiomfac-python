@@ -69,9 +69,10 @@ examples in [`notebooks/07_phase_diagrams.ipynb`](notebooks/07_phase_diagrams.ip
 * `trace_boundaries` turns the map into continuous boundary lines meeting at junctions. `method="states"` (default)
   follows the line between two phase states; `method="zpf"` follows zero-phase-fraction lines (amount of a phase
   where it is present, saturation index or minus the non-trivial TPD where it is absent), which continue through
-  junctions, so a line ends only on the edge or on itself. ZPF seeds come from the traces of the map, so a phase
-  present only between two traces can be missed (X 0.73–0.79 of the UHAERO 2007 Y = 0.85 diagrams; see the report
-  below). Both methods share one solve cache, checkpointed for long runs.
+  junctions, so a line ends only on the edge or on itself. Seeds come from the traces of the map, from segments
+  between neighbouring traces halved until their ends differ by at most one phase (a phase present only between two
+  traces), and from a region-consistency check (neighbouring solves whose states differ with no line between them).
+  Where solves fail, lines can stay open. Both methods share one solve cache, checkpointed for long runs.
 * `plot_phase_map` fills the regions between the lines, `label_regions` names them (small regions are numbered and
   listed beside the panel), and `plot_validity` marks where the ionic strength of a liquid exceeds the range AIOMFAC
   was fitted to.
