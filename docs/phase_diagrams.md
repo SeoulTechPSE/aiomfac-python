@@ -479,7 +479,17 @@ two neighbouring traces differ by two or more phases at the same RH, several bou
 present only between the traces (a thin strip at a nearly stoichiometric composition) has the same sign of f_p on
 both traces; such a segment is halved until its ends differ by at most one phase or it is shorter than
 `seed_subdivide` (default 0.004 of the axis ranges; `None` switches this off), and each piece is seeded. A solid that
-occurs on no trace at all is included through its saturation index. The cache is shared with the state tracing.
+occurs on no trace at all is included through its saturation index. Finally the lines are checked against the
+solves (region consistency): all solves in a region enclosed by the lines must have the same phase state, so two
+neighbouring converged solves (the `consistency_k` = 8 nearest, closer than `consistency_radius` = 0.01) whose states
+differ while no line of a phase that differs between them crosses or passes near the segment joining them point to a
+missing line. Both states are first checked against each other (re-solved from the other one, the lower Gibbs energy
+kept, so a local minimum does not count), then the segment is seeded as above. Pairs within `consistency_radius` of
+a failed solve are left out (the states there are not resolved, and new solves tend to run into the time limit). At
+most `consistency_max` = 300 pairs per round, `consistency_rounds` = 2 rounds and `consistency_time` = 1800 s in all
+(`consistency_rounds=0` switches the check off). In the UHAERO 2007 Y = 0.85 diagrams this
+finds the thin strips near the bottom edge that the seeds between traces miss, for about 1000 extra solves per
+diagram. The cache is shared with the state tracing.
 
 ### 6.6 Convex hull for liquid–liquid equilibrium
 
