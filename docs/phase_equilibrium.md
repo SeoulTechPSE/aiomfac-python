@@ -437,9 +437,16 @@ Validation against `_barrier_solve`:
 
 ### 5.2a Fallback inner methods
 
-A solve that does not converge (also after the cold restart of a warm start) is repeated with the inner methods of
-`fallback_inner` (default `("rand", "barrier")`; `()` disables it), and the first converged result is returned
-with "inner method … (fallback)" in its message; otherwise the original result. Two failures of the active-set
+A solve that does not converge is repeated with the inner methods of `fallback_inner` (default
+`("rand", "barrier")`; `()` disables it), and the first converged result is returned with "inner method …
+(fallback)" in its message; otherwise the original result. With `fallback_first = True` (default) the fallback
+comes right after the first attempt, before the cold restart of a warm start and the liquid exchange; with `False`
+it comes last. The order matters under a time limit: in the UHAERO 2007 organic diagrams the "rand" method stalls
+when the stability test adds a liquid with a barely negative TPD (about -1e-3) that should vanish again (its
+logarithmic steps shrink the liquid only geometrically), while Newton drains it at once; tried last, the Newton
+fallback came after 40-75 s, beyond the 20 s limit of the line tracing. On 70 failed solves sampled from the eight
+diagrams (warm start, 20 s), 13 converge with the fallback first against 2 before; 48 converged solves keep the
+same state and F (within 1e-7) at the same cost. The rest (e.g. at the tip of a thin 4L+C region) fail either way. Two failures of the active-set
 solver motivate it (UHAERO 2007 diagrams, about 45 000 solves with organics, 8–25 % not converged):
 
 * **Refused solid.** Next to a boundary between two solids (e.g. letovicite and NH4HSO4), the first Newton step after

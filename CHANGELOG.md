@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- `PhaseEquilibrium.fallback_first` (default `True`): a solve that does not converge is repeated with the
+  `fallback_inner` methods right away, before the cold restart and the liquid exchange; in the UHAERO 2007 organic
+  diagrams 13 of 70 sampled failures converge within the 20 s limit (2 before), converged solves are unchanged.
 - `trace_boundaries(..., method="zpf")`: seeds between neighbouring traces whose states differ by two or more
   phases are found by halving the segment (`seed_subdivide`), and solids that occur on no trace are included; in the
   UHAERO 2007 Y = 0.85 diagrams (traces every 0.1 in X) the boundary pieces missing against the state tracing fall
