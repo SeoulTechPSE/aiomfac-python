@@ -488,8 +488,9 @@ kept, so a local minimum does not count), then the segment is seeded as above. P
 a failed solve are left out (the states there are not resolved, and new solves tend to run into the time limit). At
 most `consistency_max` = 300 pairs per round, `consistency_rounds` = 2 rounds and `consistency_time` = 1800 s in all
 (`consistency_rounds=0` switches the check off). In the UHAERO 2007 Y = 0.85 diagrams this
-finds the thin strips near the bottom edge that the seeds between traces miss, for about 1000 extra solves per
-diagram. The cache is shared with the state tracing.
+reduces the boundary pieces missing against the state tracing from 1, 3, 0, 4 (seeds between traces only) to
+1, 2, 0, 3, for a few hundred extra solves per diagram. Pairs within 5 `h_min` of a junction (where the states beside
+a line change) are left out as well: several regions meet there within a few `h_min`. The cache is shared with the state tracing.
 
 ### 6.6 Convex hull for liquid–liquid equilibrium
 

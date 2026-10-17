@@ -84,6 +84,7 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
     solid_keys = sorted({s for st in pm.states() for s in st.solids})
 
     warm = {"res": None, "at": None}                        # the last converged solve: warm start of the next
+    deadline = {"t": float("inf")}                          # time budget of the consistency seeds
 
     def f(q, phase):
         """(f_phase, state) at q; (None, None) where the solve failed"""
@@ -194,6 +195,8 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
         t = np.asarray(t0, float) / np.linalg.norm(t0)
         h, corr = h0, h0 / 4
         while True:
+            if time.time() > deadline["t"]:
+                return pts, sides, "lost"
             if len(pts) >= 2:
                 t = pts[-1] - pts[-2]
                 t /= np.linalg.norm(t)
@@ -288,7 +291,7 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
         boundaries lie in between, and a phase present only inside the segment has the same sign of f at both ends;
         the segment is halved until its ends differ by at most one phase (or it is shorter than seed_subdivide), and
         each piece is seeded"""
-        if sa == sb:
+        if sa == sb or time.time() > deadline["t"]:
             return
         if (_phase_distance(sa, sb) <= 1 or np.linalg.norm(ub - ua) < seed_subdivide or depth >= 12):
             seed_segment(ua, ub, sa, sb)
@@ -351,6 +354,7 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
         from scipy.spatial import cKDTree
         tried: set = set()
         t_start = time.time()
+        deadline["t"] = t_start + consistency_time
         for _ in range(max(0, int(consistency_rounds))):
             pts = [(np.array(k, float), v[0], v[1]) for k, v in tr.cache.items() if v[0] is not None]
             if len(pts) < 2:
@@ -360,6 +364,12 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
             # (time limit): pairs within consistency_radius of a failed solve are left out
             Fp = np.array([k for k, v in tr.cache.items() if v[0] is None], float).reshape(-1, 2)
             Ft = cKDTree(Fp) if len(Fp) else None
+            # at the junctions (where the states beside a line change, and where lines end) the states of several
+            # regions meet within a few h_min: pairs there are left out too
+            Ep = np.array([P[k] for _, P, S in lines if len(P) > 1
+                           for k in [0, len(P) - 1] + [i for i in range(1, len(P)) if S[i] != S[i - 1]]],
+                          float).reshape(-1, 2)
+            Et = cKDTree(Ep) if len(Ep) else None
             by_phase: dict = {}
             for ph, P, _ in lines:
                 if len(P) > 1:
@@ -379,6 +389,8 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
                     a, b = X[i], X[j]
                     if Ft is not None and Ft.query(0.5 * (a + b))[0] < consistency_radius:
                         continue
+                    if Et is not None and Et.query(0.5 * (a + b))[0] < 5.0 * h_min:
+                        continue
                     if all(any(_near_seg(P, a, b, eps) for P in by_phase.get(ph, [])) for ph in _phases_of(si) ^ _phases_of(sj)):
                         continue
                     cand[(min(i, j), max(i, j))] = float(d)
@@ -396,7 +408,13 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
                 sb = tr.state_min(b, [pts[i][2]])[0]
                 if sa is None or sb is None or sa == sb:
                     continue
+                nl = len(lines)
                 subdivide(a, b, sa, sb)
+                if verbose and len(lines) > nl:
+                    xa, ra = tr.to_xr(a)
+                    xb, rb = tr.to_xr(b)
+                    print(f"  consistency: line between ({xa:.4f}, {ra:.4f}) {sa.label} and ({xb:.4f}, {rb:.4f}) "
+                          f"{sb.label}", flush=True)
             if verbose:
                 print(f"ZPF consistency: {len(cand)} inconsistent neighbours, {n_pairs} checked, "
                       f"{len(lines) - n0} lines added, {tr.n_solves} solves", flush=True)
@@ -406,6 +424,7 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
 
     if consistency_rounds:
         consistency_seeds()
+        deadline["t"] = float("inf")
 
     def sides_at(m, nrm):
         a = tr.state(np.clip(m + 3.0 * tol * nrm, 0.0, 1.0))[0]
