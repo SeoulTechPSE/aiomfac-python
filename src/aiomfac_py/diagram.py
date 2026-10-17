@@ -886,7 +886,7 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
                          checkpoint_every=checkpoint_every, verbose=verbose,
                          seed_subdivide=solve_kw.pop("seed_subdivide", 0.004),
                          **{k: solve_kw.pop(k) for k in ("consistency_rounds", "consistency_k", "consistency_radius",
-                                                         "consistency_max", "consistency_time") if k in solve_kw}, **solve_kw)
+                                                         "consistency_max", "consistency_time", "invariants") if k in solve_kw}, **solve_kw)
     traces, xs = _regular_traces(pm)
     x_range = (float(pm.x[0]), float(pm.x[-1]))
     rh_range = (min(t.rh_range[0] if t.rh_range else t.rh[0] for t in pm.traces),

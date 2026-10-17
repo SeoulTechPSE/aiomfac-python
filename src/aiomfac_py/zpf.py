@@ -27,7 +27,7 @@ import time
 import numpy as np
 
 from .diagram import (BoundaryCurve, BoundaryCurves, PhaseMap, PhaseState, _close_tips, _dist_to_polyline,
-                      _phase_distance,
+                      _phase_distance, _solve_limited,
                       _extend_to_edge, _join_junctions, _length, _ok, _regular_traces, _resample, _state_at, _Tracer, phase_state)
 
 __all__ = ["phase_functions", "trace_zpf"]
@@ -62,6 +62,7 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
               h_max: float = 0.04, delta_max: float = 0.05, rh_samples: int = 40, max_liquids: int = 4,
               seed_subdivide: float | None = 0.004, consistency_rounds: int = 2, consistency_k: int = 8,
               consistency_radius: float = 0.01, consistency_max: int = 300, consistency_time: float = 1800.0,
+              invariants: bool = True,
               solve_timeout: float | None = None, cache: dict | None = None, checkpoint=None,
               checkpoint_every: int = 200, verbose: bool = False, **solve_kw) -> BoundaryCurves:
     """ZPF tracing of the boundary lines of ``pm`` (see the module docstring).  Arguments as for
@@ -457,6 +458,102 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
             S2.append(S[i])
         return np.array(P2), S2
 
+    # invariant lines: a horizontal piece of a line between states that differ by two phases (one phase replaced by
+    # another, e.g. 4L | 3L+C) is an invariant: all phases of both states coexist at one RH.  The minimum of F is nearly
+    # flat there (the amounts jump across the line while F changes little), so solves close to it tend to fail.  Its
+    # RH is found directly: the state below, imposed (its solids only, its number of liquids), is solved for the RH at
+    # which the phase that appears above becomes stable (saturation index 0 for a solid, non-trivial TPD 0 for a
+    # liquid), at the ends and the middle of the piece; the piece is placed there, and failed solves within 2.5 h_min of
+    # it are not reported (their state is that of their side)
+    inv_found = []
+
+    def appearing_value(lo, phase, x, rh):
+        feed = feed_of_x(float(x))
+        kw = dict(tr.solve_kw, solids=list(lo.solids) if lo.solids else "none", max_liquids=max(1, lo.n_liquids))
+        res = _solve_limited(pe, feed, float(rh), pm.mode, None, kw, solve_timeout)
+        tr.n_solves += 1
+        if not _ok(res) or len(res.liquids) != lo.n_liquids:
+            return None
+        if phase.startswith("L") and phase[1:].isdigit():
+            tn = getattr(res, "tpd_nontrivial", float("nan"))
+            return -float(tn) if np.isfinite(tn) else None
+        return float(res.si.get(phase, np.nan)) if np.isfinite(res.si.get(phase, np.nan)) else None
+
+    def invariant_rh(lo, phase, x, rh0):
+        """RH at which ``phase`` becomes stable next to the imposed state ``lo`` at composition x (regula falsi)"""
+        a, b = rh0 - 0.01, rh0 + 0.01
+        fa, fb = appearing_value(lo, phase, x, a), appearing_value(lo, phase, x, b)
+        if fa is None or fb is None or (fa > 0) == (fb > 0):
+            return None
+        side = 0
+        for _ in range(40):
+            m = b - fb * (b - a) / (fb - fa)
+            fm = appearing_value(lo, phase, x, m)
+            if fm is None:
+                return None
+            if abs(fm) < 1e-12 or abs(b - a) < 1e-9:
+                return m
+            if (fm > 0) == (fb > 0):
+                b, fb = m, fm
+                if side == -1:
+                    fa *= 0.5
+                side = -1
+            else:
+                a, fa = m, fm
+                if side == 1:
+                    fb *= 0.5
+                side = 1
+        return 0.5 * (a + b)
+
+    def snap_invariants():
+        flat = 4.0 * tol
+        for li, (phase, P, S) in enumerate(lines):
+            i = 0
+            while i < len(P) - 1:
+                j = i
+                while (j + 1 < len(P) and S[j + 1] == S[i] and None not in S[i]
+                       and _phase_distance(S[i][0], S[i][1]) == 2 and abs(P[j + 1][1] - P[i][1]) < flat):
+                    j += 1
+                if j - i >= 2 and abs(P[j][0] - P[i][0]) > 4.0 * h_min:
+                    sa, sb = S[i]
+                    # which side is below: the state just below the middle of the piece
+                    mid = P[(i + j) // 2]
+                    below = tr.state(np.clip(mid - np.array([0.0, 3.0 * tol]), 0.0, 1.0))[0]
+                    lo, up = (sa, sb) if below == sa else ((sb, sa) if below == sb else (None, None))
+                    new = sorted(_phases_of(up) - _phases_of(lo)) if lo is not None else []
+                    if verbose:
+                        print(f"  invariant candidate {sa.label} | {sb.label}: below {below.label if below else None}, "
+                              f"appearing {new}", flush=True)
+                    gone = sorted(_phases_of(lo) - _phases_of(up)) if lo is not None else []
+                    if len(new) == 1 and len(gone) == 1:
+                        xs_ = [P[i][0], mid[0], P[j][0]]
+                        rs = []
+                        for xu in xs_:
+                            x_, r_ = tr.to_xr(np.array([xu, mid[1]]))
+                            # the phase that appears, next to the state below; or (e.g. a liquid appearing next to an
+                            # all-solid state, which has no stability test) the phase that goes, next to the state above
+                            rr = invariant_rh(lo, new[0], x_, r_)
+                            if rr is None:
+                                rr = invariant_rh(up, gone[0], x_, r_)
+                            if rr is not None:
+                                rs.append((xu, (rr - rh_range[0]) / (rh_range[1] - rh_range[0])))
+                        if verbose:
+                            print(f"  invariant RH found at {len(rs)} of 3 compositions", flush=True)
+                        if len(rs) >= 2:
+                            cx, cr = np.array(rs).T
+                            k = np.polyfit(cx, cr, 1) if len(rs) > 2 else np.polyfit(cx, cr, 1)
+                            for q in range(i, j + 1):
+                                P[q][1] = np.polyval(k, P[q][0])
+                            inv_found.append((P[i:j + 1].copy(), lo, up))
+                            if verbose:
+                                a_, b_ = tr.to_xr(P[i]), tr.to_xr(P[j])
+                                print(f"ZPF invariant: {lo.label} | {up.label} ({new[0]} appears) X {a_[0]:.3f}-{b_[0]:.3f} "
+                                      f"at RH {a_[1]:.6f}-{b_[1]:.6f}", flush=True)
+                i = j + 1
+
+    if invariants:
+        snap_invariants()
+
     # split each line where the states on its two sides change: the pieces are the boundary curves
     curves = []
     for phase, P, S in lines:
@@ -497,7 +594,9 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
     U = _extend_to_edge(U, 12.0 * h_min, 2.5 * h_min)
     curves = [BoundaryCurve(c.left, c.right, x_range[0] + P[:, 0] * sx, rh_range[0] + P[:, 1] * sr, c.ends)
               for c, P in zip(curves, U)]
-    failed = np.array([tr.to_xr(np.array(k)) for k, v in tr.cache.items() if v[0] is None]).reshape(-1, 2)
+    fk = [np.array(k) for k, v in tr.cache.items() if v[0] is None]
+    fk = [k for k in fk if not any(_dist_to_polyline(k, Q) < 2.5 * h_min for Q, _, _ in inv_found)]
+    failed = np.array([tr.to_xr(k) for k in fk]).reshape(-1, 2)
     return BoundaryCurves(curves, x_range, rh_range, tr.n_solves, 0, failed).cleaned(h_min)
 
 
