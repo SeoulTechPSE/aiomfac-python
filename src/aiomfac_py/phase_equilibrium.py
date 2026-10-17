@@ -812,6 +812,11 @@ class PhaseEquilibrium:
         # negative TPD and that should vanish again is drained by Newton (active set) at once, while "rand" (logarithmic
         # amounts) only shrinks it geometrically and stalls; tried last, the fallback often came after a time limit
         self.fallback_first = True
+        # "rand": consecutive short line-search steps (< 1e-2) after which the inner iteration is given up as stalled
+        # and the solve goes on to the fallback (see _rand_solve); None (default) disables it.  In the UHAERO 2007
+        # organic diagrams 10 lets 6 more of 70 failed solves converge within a 20 s limit, but one of 80 converged
+        # solves (rand converging after a long stall) then needs the slower Newton fallback
+        self.rand_stall_iterations = None
         # retry a solve stopped at max_liquids with a negative TPD with one more liquid allowed (see _solve_exchange)
         self.liquid_exchange = True
         # a trial phase of the stability test with water below this mole fraction and ions is discarded: AIOMFAC
@@ -1699,6 +1704,11 @@ class PhaseEquilibrium:
                         return x, converged
                 if any(float(np.sum(x[a * N:(a + 1) * N])) < 1.0e-10 for a in range(n_liq)):
                     return x, converged                          # a liquid disappears: the outer loop removes it
+                # a stall with a liquid that is not small (e.g. one the stability test added with a barely negative
+                # TPD that should vanish again): the logarithmic steps shrink it only geometrically, so the iteration
+                # is given up here and the solve goes on to the fallback inner method (Newton drains it at once)
+                if self.rand_stall_iterations and short >= self.rand_stall_iterations:
+                    return x, False
             else:
                 converged = False
             if verbose:

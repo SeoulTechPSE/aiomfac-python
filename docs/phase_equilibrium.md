@@ -446,7 +446,21 @@ when the stability test adds a liquid with a barely negative TPD (about -1e-3) t
 logarithmic steps shrink the liquid only geometrically), while Newton drains it at once; tried last, the Newton
 fallback came after 40-75 s, beyond the 20 s limit of the line tracing. On 70 failed solves sampled from the eight
 diagrams (warm start, 20 s), 13 converge with the fallback first against 2 before; 48 converged solves keep the
-same state and F (within 1e-7) at the same cost. The rest (e.g. at the tip of a thin 4L+C region) fail either way. Two failures of the active-set
+same state and F (within 1e-7) at the same cost. The rest (e.g. at the tip of a thin 4L+C region) fail either way.
+
+`rand_stall_iterations` (default `None`, off) gives the "rand" iteration up after that many consecutive short
+line-search steps (< 1e-2), so that the fallback starts sooner. With 10, 18 instead of 12 of the 70 failed solves
+converge within 20 s, and the failed solves take 10 % less time; but one of 80 converged solves, where "rand"
+converges after a long stall (9 s), then needs the Newton fallback (22 s) and runs into the limit. States and F
+are the same wherever both converge.
+
+The solves that fail with every method lie (i) on an invariant line, e.g. RH 0.1778 between 4L and 3L+C in UHAERO
+2007 Y = 0.85 (a): within 3e-4 of the line (bisection points), the two states differ in F by about 2e-5, the 4L
+state imposed converges in 4 s but leaves NH4HSO4 supersaturated (SI about 1e-4), and the minimum of F along the
+exchange of the solid against the fourth liquid is nearly flat, so the Newton iteration does not converge; and (ii)
+at the tip of a thin 4L+C region, where the fourth liquid emerges from another one (two liquids of the
+neighbouring 4L+C states differ by only 0.05 in mole fraction, as near a liquid-liquid critical point): the
+solves end with three liquids and a stability test that is still negative by only 1e-6 to 1e-5. Two failures of the active-set
 solver motivate it (UHAERO 2007 diagrams, about 45 000 solves with organics, 8–25 % not converged):
 
 * **Refused solid.** Next to a boundary between two solids (e.g. letovicite and NH4HSO4), the first Newton step after
