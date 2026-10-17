@@ -467,28 +467,54 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
     # it are not reported (their state is that of their side)
     inv_found = []
 
-    def appearing_value(lo, phase, x, rh):
+    def appearing_value(lo, phase, x, rh, init=None):
+        """(stability of ``phase`` next to the imposed state ``lo`` at (x, rh): SI or -TPD, > 0 = stable; result),
+        or (None, None) if the imposed solve fails.  ``init``: warm start (a result at the same composition)."""
         feed = feed_of_x(float(x))
         kw = dict(tr.solve_kw, solids=list(lo.solids) if lo.solids else "none", max_liquids=max(1, lo.n_liquids))
-        res = _solve_limited(pe, feed, float(rh), pm.mode, None, kw, solve_timeout)
+        res = _solve_limited(pe, feed, float(rh), pm.mode, init, kw, solve_timeout)
         tr.n_solves += 1
         if not _ok(res) or len(res.liquids) != lo.n_liquids:
-            return None
+            return None, None
         if phase.startswith("L") and phase[1:].isdigit():
-            tn = getattr(res, "tpd_nontrivial", float("nan"))
-            return -float(tn) if np.isfinite(tn) else None
-        return float(res.si.get(phase, np.nan)) if np.isfinite(res.si.get(phase, np.nan)) else None
+            v = -float(getattr(res, "tpd_nontrivial", float("nan")))
+        else:
+            v = float(res.si.get(phase, np.nan))
+        return (v, res) if np.isfinite(v) else (None, None)
 
-    def invariant_rh(lo, phase, x, rh0):
-        """RH at which ``phase`` becomes stable next to the imposed state ``lo`` at composition x (regula falsi)"""
-        a, b = rh0 - 0.01, rh0 + 0.01
-        fa, fb = appearing_value(lo, phase, x, a), appearing_value(lo, phase, x, b)
-        if fa is None or fb is None or (fa > 0) == (fb > 0):
+    def invariant_rh(lo, phase, x, rh0, init=None):
+        """RH at which ``phase`` becomes stable next to the imposed state ``lo`` at composition x (regula falsi).
+        Every imposed solve is warm-started from the last converged one (first: ``init``, the unconstrained solution
+        in the region of ``lo`` at the same composition): near an invariant the free energy is flat and the imposed
+        solves started from scratch often fail.  The bracket starts close to rh0 and is widened up to +-0.01."""
+        d = 3.0 * tol * (rh_range[1] - rh_range[0])
+        last = [init]
+
+        def f(r):
+            v, res = appearing_value(lo, phase, x, r, last[0])
+            if res is not None:
+                last[0] = res
+            return v
+        a, b = rh0 - d, rh0 + d
+        fa = f(a)
+        if fa is None:
+            return None
+        fb = f(b)
+        while fb is not None and (fa > 0) == (fb > 0) and max(rh0 - a, b - rh0) < 0.01:
+            if fa > 0:                                     # stable on both ends: move the lower end down
+                a = rh0 - 2.0 * (rh0 - a)
+                fa = f(a)
+                if fa is None:
+                    return None
+            else:
+                b = rh0 + 2.0 * (b - rh0)
+                fb = f(b)
+        if fb is None or (fa > 0) == (fb > 0):
             return None
         side = 0
         for _ in range(40):
             m = b - fb * (b - a) / (fb - fa)
-            fm = appearing_value(lo, phase, x, m)
+            fm = f(m)
             if fm is None:
                 return None
             if abs(fm) < 1e-12 or abs(b - a) < 1e-9:
@@ -532,30 +558,50 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
                             x_, r_ = tr.to_xr(np.array([xu, mid[1]]))
                             # the phase that appears, next to the state below; or (e.g. a liquid appearing next to an
                             # all-solid state, which has no stability test) the phase that goes, next to the state above
-                            rr = invariant_rh(lo, new[0], x_, r_)
+                            r_lo = tr.state(np.clip(np.array([xu, mid[1] - 3.0 * tol]), 0.0, 1.0))
+                            r_up = tr.state(np.clip(np.array([xu, mid[1] + 3.0 * tol]), 0.0, 1.0))
+                            rr = invariant_rh(lo, new[0], x_, r_, r_lo[1] if r_lo[0] == lo else None)
                             if rr is None:
-                                rr = invariant_rh(up, gone[0], x_, r_)
+                                rr = invariant_rh(up, gone[0], x_, r_, r_up[1] if r_up[0] == up else None)
                             if rr is not None:
                                 rs.append((xu, (rr - rh_range[0]) / (rh_range[1] - rh_range[0])))
                         if verbose:
                             print(f"  invariant RH found at {len(rs)} of 3 compositions", flush=True)
-                        if len(rs) >= 2:
-                            cx, cr = np.array(rs).T
-                            k = np.polyfit(cx, cr, 1) if len(rs) > 2 else np.polyfit(cx, cr, 1)
-                            for q in range(i, j + 1):
-                                P[q][1] = np.polyval(k, P[q][0])
-                            inv_found.append((P[i:j + 1].copy(), lo, up))
-                            if verbose:
-                                a_, b_ = tr.to_xr(P[i]), tr.to_xr(P[j])
-                                print(f"ZPF invariant: {lo.label} | {up.label} ({new[0]} appears) X {a_[0]:.3f}-{b_[0]:.3f} "
-                                      f"at RH {a_[1]:.6f}-{b_[1]:.6f}", flush=True)
+                        pieces.append((li, i, j, lo, up, new[0]))
+                        pooled.setdefault(frozenset((lo, up)), []).extend(rs)
                 i = j + 1
+
+    pieces, pooled, inv_fit = [], {}, {}
+
+    def invariant_fit(rs):
+        """RH* (unit) as a function of x: constant if the RH* found agree within 2 tol (an invariant is horizontal;
+        the spread is the accuracy of the solves on the flat free energy), else the least-squares line"""
+        cx, cr = np.array(rs).T
+        if np.ptp(cr) < 2.0 * tol:
+            return np.array([0.0, float(np.mean(cr))])
+        return np.polyfit(cx, cr, 1)
 
     if invariants:
         snap_invariants()
+        # the RH* found on every piece with the same two states are pooled (the coinciding ZPF lines of the
+        # appearing and the disappearing phase, and pieces where the search failed)
+        for li, i, j, lo, up, ph in pieces:
+            rs = pooled[frozenset((lo, up))]
+            if len(rs) < 2:
+                continue
+            k = inv_fit.setdefault(frozenset((lo, up)), invariant_fit(rs))
+            P = lines[li][1]
+            for q in range(i, j + 1):
+                P[q][1] = np.polyval(k, P[q][0])
+            inv_found.append((P[i:j + 1].copy(), lo, up))
+            if verbose:
+                a_, b_ = tr.to_xr(P[i]), tr.to_xr(P[j])
+                print(f"ZPF invariant: {lo.label} | {up.label} ({ph} appears) X {a_[0]:.3f}-{b_[0]:.3f} "
+                      f"at RH {a_[1]:.6f}-{b_[1]:.6f} ({len(rs)} RH* found)", flush=True)
 
     # split each line where the states on its two sides change: the pieces are the boundary curves
     curves = []
+    flat_tol = 4.0 * tol
     for phase, P, S in lines:
         P, S = refine_junctions(P, S)
         cuts = [0] + [i for i in range(1, len(P)) if S[i] != S[i - 1]] + [len(P) - 1]
@@ -564,6 +610,12 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
             left, right = S[a]
             if len(Q) >= 2 and left is not None and right is not None and left != right:
                 xr = np.array([tr.to_xr(q) for q in Q])
+                k = inv_fit.get(frozenset((left, right)))
+                if k is not None:                        # junction points added after the snapping lie on it too
+                    Q = np.array(Q, dtype=float)
+                    on = np.abs(Q[:, 1] - np.polyval(k, Q[:, 0])) < flat_tol
+                    Q[on, 1] = np.polyval(k, Q[on, 0])
+                    xr = np.array([tr.to_xr(q) for q in Q])
                 curves.append(BoundaryCurve(left, right, xr[:, 0], xr[:, 1], ("junction", "junction")))
 
     # a degenerate line (an invariant RH, a single composition) is the ZPF line of several phases: keep one piece
