@@ -807,6 +807,16 @@ class PhaseEquilibrium:
         self.si_tol = 1.0e-9                         # an inactive solid is added once its SI exceeds this
         # inner methods tried, in order, when a solve does not converge (see _solve_fallback); () to disable
         self.fallback_inner = ("rand", "barrier")
+        # a solve that does not converge is repeated with the fallback_inner methods first, before the cold restart
+        # with the own method and the liquid exchange (see solve): a liquid that the stability test adds with a barely
+        # negative TPD and that should vanish again is drained by Newton (active set) at once, while "rand" (logarithmic
+        # amounts) only shrinks it geometrically and stalls; tried last, the fallback often came after a time limit
+        self.fallback_first = True
+        # "rand": consecutive short line-search steps (< 1e-2) after which the inner iteration is given up as stalled
+        # and the solve goes on to the fallback (see _rand_solve); None (default) disables it.  In the UHAERO 2007
+        # organic diagrams 10 lets 6 more of 70 failed solves converge within a 20 s limit, but one of 80 converged
+        # solves (rand converging after a long stall) then needs the slower Newton fallback
+        self.rand_stall_iterations = None
         # retry a solve stopped at max_liquids with a negative TPD with one more liquid allowed (see _solve_exchange)
         self.liquid_exchange = True
         # a trial phase of the stability test with water below this mole fraction and ions is discarded: AIOMFAC
@@ -1694,6 +1704,11 @@ class PhaseEquilibrium:
                         return x, converged
                 if any(float(np.sum(x[a * N:(a + 1) * N])) < 1.0e-10 for a in range(n_liq)):
                     return x, converged                          # a liquid disappears: the outer loop removes it
+                # a stall with a liquid that is not small (e.g. one the stability test added with a barely negative
+                # TPD that should vanish again): the logarithmic steps shrink it only geometrically, so the iteration
+                # is given up here and the solve goes on to the fallback inner method (Newton drains it at once)
+                if self.rand_stall_iterations and short >= self.rand_stall_iterations:
+                    return x, False
             else:
                 converged = False
             if verbose:
@@ -2014,6 +2029,10 @@ class PhaseEquilibrium:
         kw = dict(solids=solids, p_gas=p_gas, gas_total=gas_total, n_air=n_air, P_atm=P_atm, max_liquids=max_liquids,
                   max_outer=max_outer, verbose=verbose)
         res = self._solve(feed, rh, init=init, **kw)
+        fell_back = False
+        if res.status == "not_converged" and self.fallback_inner and self.fallback_first:
+            res = self._solve_fallback(feed, rh, res, kw)
+            fell_back = True
         if init is not None and res.status == "not_converged":
             cold = self._solve(feed, rh, init=None, **kw)
             if cold.status == "converged":
@@ -2022,7 +2041,7 @@ class PhaseEquilibrium:
         if (res.status == "not_converged" and self.liquid_exchange and 2 <= max_liquids <= len(res.liquids)
                 and res.tpd_min < -self.tol_tpd):
             res = self._solve_exchange(feed, rh, res, kw)
-        if res.status == "not_converged" and self.fallback_inner:
+        if res.status == "not_converged" and self.fallback_inner and not fell_back:
             res = self._solve_fallback(feed, rh, res, kw)
         return res
 
