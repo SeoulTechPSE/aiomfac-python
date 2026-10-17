@@ -492,6 +492,19 @@ reduces the boundary pieces missing against the state tracing from 1, 3, 0, 4 (s
 1, 2, 0, 3, for a few hundred extra solves per diagram. Pairs within 5 `h_min` of a junction (where the states beside
 a line change) are left out as well: several regions meet there within a few `h_min`. The cache is shared with the state tracing.
 
+Invariant lines (`invariants=True`, default). A flat piece of a ZPF line whose two sides differ by one appearing and
+one disappearing phase is an invariant candidate (the side below is found by a solve just under the middle of the
+piece). At its two ends and middle the invariant RH* is the root of the stability of the appearing phase (SI of a
+solid, -TPD of a k-th liquid) next to the lower state imposed (its solids, at most its number of liquids), found by
+regula falsi from a bracket close to the line; if that fails, the disappearing phase next to the imposed upper state is
+used. The imposed solves start from the unconstrained solution in that region at the same composition and then from
+the last converged imposed solve: near an invariant the free energy is flat and solves from scratch often fail. The
+RH* found on all pieces with the same two states (e.g. the coinciding ZPF lines of the appearing and the disappearing
+phase) are pooled; if they agree within 2 `tol` the piece is set to their mean, otherwise to the least-squares line
+(at least two RH* needed). Junction points of curves of that pair within 4 `tol` are moved onto it, and failed
+solves along a snapped line are not reported. In UHAERO 2007 Y = 0.85, pair 1 this sets the 4L | 3L+C line to
+RH 0.177836 (before: 0.1771-0.1778 along the line) and the lines at RH 0.338333, 0.426535, 0.552667 exactly flat.
+
 ### 6.6 Convex hull for liquid–liquid equilibrium
 
 For a mixture of neutral components at fixed T and pressure, the equilibrium state of an overall composition z is

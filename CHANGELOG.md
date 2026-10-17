@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- ZPF tracing (`method="zpf"`): invariant lines are detected and set to the invariant RH* (root of the stability of
+  the appearing phase next to the imposed lower state, warm-started; RH* pooled per pair of states; `invariants=True`).
+  UHAERO 2007 Y = 0.85 pair 1: the 4L | 3L+C line at RH 0.177836, flat (see docs/phase_diagrams.md 6.5a).
 - `PhaseEquilibrium.fallback_first` (default `True`): a solve that does not converge is repeated with the
   `fallback_inner` methods right away, before the cold restart and the liquid exchange; in the UHAERO 2007 organic
   diagrams 13 of 70 sampled failures converge within the 20 s limit (2 before), converged solves are unchanged.
