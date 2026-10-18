@@ -537,6 +537,10 @@ cache, and the halving of segments between traces is done once), merges their so
 the tracing as with one worker, which finds most solves in the cache (NaCl–KCl: 456 of 512 solves prefetched, the
 same curves, 49 s -> 36 s on two cores). The checks that follow (lost line ends, region consistency, invariant lines)
 run in the main process. Processes are started by fork (Linux, macOS); without fork (Windows) `workers` is ignored.
+With `verbose` the workers report their lines; the solves of each finished phase are merged and `checkpoint` is
+called. UHAERO 2007 Fig. 8 (b) (Y = 1, adipic acid/glutaraldehyde) from scratch with two workers: 2711 s (prefetch
+2307 s, 4024 solves; then 409 solves), against 5079 s in one process with the earlier solver; the same 19 lines and
+topology, no failed solves, lines within 3e-4 (median) of the earlier ones, at most 0.019 at one line end.
 
 Since 2026-10 one AIOMFAC evaluation of the UHAERO 2007 organic systems takes about 0.29 ms (0.48 ms before: the
 temperature-only parts of the SR term are cached, the MR sums vectorized), and a solve 1.3–1.4 s (median of

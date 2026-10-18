@@ -75,7 +75,7 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
     warm-started from another neighbour.  ``_prefetch`` (internal): (phases, subdivide) of such a worker; the
     function then returns the new cache entries."""
     if workers and workers > 1 and _prefetch is None:
-        cache = _parallel_prefetch(workers, pe, feed_of_x, pm, cache, verbose,
+        cache = _parallel_prefetch(workers, pe, feed_of_x, pm, cache, verbose, checkpoint,
                                    dict(tol=tol, h0=h0, h_min=h_min, h_max=h_max, delta_max=delta_max,
                                         rh_samples=rh_samples, max_liquids=max_liquids, seed_subdivide=seed_subdivide,
                                         solve_timeout=solve_timeout, **solve_kw))
@@ -694,15 +694,16 @@ def _prefetch_worker(task):
     cache = dict(g["cache"])
     try:
         return trace_zpf(g["pe"], g["feed_of_x"], g["pm"], cache=cache, consistency_rounds=0, invariants=False,
-                         _prefetch=(set(phases), subdiv, set(g["cache"])), verbose=False, **g["kw"])
+                         _prefetch=(set(phases), subdiv, set(g["cache"])), verbose=g["verbose"], **g["kw"])
     except Exception as exc:                                # a worker that fails only loses its prefetch
         if g["verbose"]:
             print(f"ZPF prefetch {phases}: failed ({type(exc).__name__}: {exc})", flush=True)
         return {}
 
 
-def _parallel_prefetch(workers, pe, feed_of_x, pm, cache, verbose, kw):
-    """solves of the seed lines traced in ``workers`` forked processes, merged into ``cache`` (returned)"""
+def _parallel_prefetch(workers, pe, feed_of_x, pm, cache, verbose, checkpoint, kw):
+    """solves of the seed lines traced in ``workers`` forked processes, merged into ``cache`` (returned) as each
+    phase is done, then ``checkpoint(cache)``; with ``verbose`` the workers report their lines"""
     import multiprocessing as mp
     cache = {} if cache is None else cache
     try:
@@ -736,9 +737,13 @@ def _parallel_prefetch(workers, pe, feed_of_x, pm, cache, verbose, kw):
     n0 = len(cache)
     try:
         with ctx.Pool(int(workers)) as pool:
-            for new in pool.imap_unordered(_prefetch_worker, tasks):
+            for (phases, _), new in zip(tasks, pool.imap(_prefetch_worker, tasks)):
                 for k, v in new.items():
                     cache.setdefault(k, v)
+                if verbose:
+                    print(f"ZPF prefetch: {phases[0]} done, {len(new)} solves, {time.time() - t0:.0f} s", flush=True)
+                if checkpoint is not None:
+                    checkpoint(cache)
     finally:
         _PREFETCH.clear()
     if verbose:
