@@ -1,12 +1,13 @@
 """Solver benchmark: fixed points of the UHAERO 2007 organic-inorganic systems, solved from scratch.
 
-  python solver_bench.py run <out.json> [--timeout 20] [--kinds conv,failed,hard] [--limit N] [--warm DIR]
+  python solver_bench.py run <out.json> [--timeout 20] [--kinds conv,failed,hard] [--limit N] [--warm DIR [--warm-min D]]
   python solver_bench.py compare <base.json> <new.json>
 
 The points (tools/bench/organic_points.json) are converged (conv) and failed (failed) solves sampled from the line
 caches of the UHAERO 2007 Figs. 8 and 9 (four organic pairs each) and points next to an invariant line and the tip of
 a thin 4L+C region (hard).  Each point is solved with init=None under the time limit (``--warm DIR``: started
-from the nearest other converged solve of the line cache DIR/lines_cache_Y<Y>_P<P>.pkl, as in the boundary tracing); the result is the status, the
+from the nearest other converged solve of the line cache DIR/lines_cache_Y<Y>_P<P>.pkl, as in the boundary tracing; ``--warm-min D``: the nearest one at least D away
+(unit square) and at another composition); the result is the status, the
 phase state, the Gibbs energy and the wall time.  `compare` reports, against a base run: points whose state changed,
 the largest |dF| among points converged in both, the converged counts and the total and median times.
 """
@@ -20,7 +21,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 
-def _nearest(cache_dir, p, caches={}):
+def _nearest(cache_dir, p, dmin=0.0, caches={}):
     """nearest other converged result of the line cache (unit coordinates of the cache from its lines file)"""
     import pickle
     import numpy as np
@@ -33,12 +34,12 @@ def _nearest(cache_dir, p, caches={}):
     K, R, (x0, x1), (r0, r1) = caches[key]
     q = np.array([(p["X"] - x0) / (x1 - x0), (p["RH"] - r0) / (r1 - r0)])
     d = np.hypot(*(K - q).T)
-    d[d < 1e-9] = np.inf
+    d[(d < max(dmin, 1e-9)) | (np.abs(K[:, 0] - q[0]) < (1e-6 if dmin > 0 else -1.0))] = np.inf
     j = int(np.argmin(d))
     return R[j], float(d[j])
 
 
-def run(out, timeout=20.0, kinds=("conv", "failed", "hard"), limit=None, warm=None):
+def run(out, timeout=20.0, kinds=("conv", "failed", "hard"), limit=None, warm=None, warm_min=0.0):
     import uhaero2007_figures as u
     from aiomfac_py.diagram import _ok, _solve_limited, phase_state
     pts = [p for p in json.load(open(os.path.join(HERE, "bench", "organic_points.json"))) if p["kind"] in kinds]
@@ -51,7 +52,7 @@ def run(out, timeout=20.0, kinds=("conv", "failed", "hard"), limit=None, warm=No
             systems[key] = u.org_system(p["P"], ions)
         pe, o1, o2, f1 = systems[key]
         feed = u.with_organics(u.inorg_feed(p["X"], p["Y"]), o1, o2, f1, 0.2)
-        init, dist = _nearest(warm, p) if warm else (None, None)
+        init, dist = _nearest(warm, p, warm_min) if warm else (None, None)
         t = time.perf_counter()
         res = _solve_limited(pe, feed, p["RH"], "equilibrium", init, {}, timeout)
         dt = time.perf_counter() - t
@@ -99,6 +100,8 @@ if __name__ == "__main__":
             kw["kinds"] = tuple(a[a.index("--kinds") + 1].split(","))
         if "--warm" in a:
             kw["warm"] = a[a.index("--warm") + 1]
+        if "--warm-min" in a:
+            kw["warm_min"] = float(a[a.index("--warm-min") + 1])
         if "--limit" in a:
             kw["limit"] = int(a[a.index("--limit") + 1])
         run(a[1], **kw)
