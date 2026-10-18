@@ -86,6 +86,33 @@ def build_mr_state(mixture: Mixture) -> MRState:
                    bool(qcca_int), bool(rcc_int))
 
 
+_UPPER_CACHE: dict = {}
+
+
+def _UPPER(n: int) -> np.ndarray:
+    """(n, n) indicator of i <= j"""
+    u = _UPPER_CACHE.get(n)
+    if u is None:
+        u = _UPPER_CACHE[n] = np.triu(np.ones((n, n)))
+    return u
+
+
+def _mr_maps(mixture: Mixture):
+    """Composition-independent maps, cached on the mixture: A (n_neutral, NGN) subgroup counts of the neutral
+    components, G (NGN, NGN) subgroup -> main-group index, subgroup molar masses."""
+    maps = mixture.__dict__.get("_mr_maps")
+    if maps is None:
+        sr = mixture.sr
+        nn, ngn = mixture.n_neutral, len(sr.solv_subs)
+        A = np.array([mixture.itab[:nn, s - 1] for s in sr.solv_subs], dtype=float).T.reshape(nn, ngn)
+        G = np.zeros((ngn, ngn))
+        for j in range(ngn):
+            G[mixture.maingroup_index[j], j] = 1.0
+        maps = (A, G, np.asarray(mixture.subgroup_mw, dtype=float)[:ngn])
+        object.__setattr__(mixture, "_mr_maps", maps)
+    return maps
+
+
 @dataclass
 class MRTerms:
     ln_gamma_neutral: np.ndarray     # (n_neutral,)  gnmrln
@@ -103,17 +130,14 @@ def mr_terms(mixture: Mixture, st: MRState, cation_z, anion_z, smc, sma, xn, si:
         return MRTerms(np.zeros(nn), np.zeros(ngi), np.zeros(ngi), 0.0)
 
     # salt-free subgroup / main-group mole fractions and main-group molar masses
-    sub_x = np.array([np.sum(mixture.itab[:nn, s - 1] * xn[:nn]) for s in sr.solv_subs])
+    A, G, mw = _mr_maps(mixture)
+    sub_x = xn[:nn] @ A
     tot = float(sub_x.sum())
     if tot > 0.0:
         sub_x = sub_x / tot
-    mg_x = np.zeros(ngn); mg_mk = np.zeros(ngn)
-    for j in range(ngn):
-        mg_x[mixture.maingroup_index[j]] += sub_x[j]
-    for j in range(ngn):
-        i = mixture.maingroup_index[j]
-        if mg_x[i] > 0.0:
-            mg_mk[i] += mixture.subgroup_mw[j] * sub_x[j] / mg_x[i]
+    mg_x = G @ sub_x
+    with np.errstate(divide="ignore", invalid="ignore"):
+        mg_mk = np.where(mg_x > 0.0, (G @ (mw * sub_x)) / np.where(mg_x > 0.0, mg_x, 1.0), 0.0)
 
     SI = si
     SI2 = math.sqrt(SI)
@@ -145,14 +169,11 @@ def mr_terms(mixture: Mixture, st: MRState, cation_z, anion_z, smc, sma, xn, si:
     M = Bca + SI * BSca + 2.0 * Z * Cnca + Z * SI * CSca
     SumCA1 = float(np.sum(M * smc[:, None] * sma[None, :]))
     SumQ1 = 0.0
-    if st.QccaInteract:
-        for i in range(ngi):
-            for j in range(i, ngi):
-                SumQ1 += float(np.sum(2.0 * st.Qcca[i, j, :] * smc[i] * smc[j] * sma))
+    if st.QccaInteract:                                  # sum over i <= j of 2 Qcca[i, j, k] mc_i mc_j ma_k
+        SumQ1 = float(2.0 * np.einsum("ij,ijk,i,j,k->", _UPPER(ngi), st.Qcca, smc, smc, sma))
     SumRc = 0.0
-    if st.RccInteract:
-        for i in range(ngi):
-            SumRc += float(np.sum(st.Rcc[i, i:] * smc[i] * smc[i:]))
+    if st.RccInteract:                                   # sum over i <= j of Rcc[i, j] mc_i mc_j
+        SumRc = float(np.einsum("ij,ij,i,j->", _UPPER(ngi), st.Rcc, smc, smc))
     gk = SumBm - mg_mk / avg_mw * Sumkion1 - mg_mk * SumCA1 - mg_mk * SumQ1 - mg_mk * SumRc
     n_mg = len(mixture.imaingroup)
     gnmr = mixture.itabmg[:nn][:, np.array(mixture.imaingroup) - 1] @ gk[:n_mg]
@@ -171,15 +192,10 @@ def mr_terms(mixture: Mixture, st: MRState, cation_z, anion_z, smc, sma, xn, si:
     gamr = (SumBax / avg_mw + za2 / (2.0 * avg_mw) * Sumkion2 + SumABca + 0.5 * za2 * SumBsCA
             + za * SumCnca + 0.5 * za2 * Z * SumCsca)
     if st.QccaInteract:
-        for i in range(ngi):
-            gcmr[i] += float(np.sum(smc[None, :, None] * sma[None, None, :] * st.Qcca[i][None, :, :]))
-            s = 0.0
-            for j in range(ngi):
-                s += float(np.sum(smc[j] * smc[j:] * st.Qcca[j, j:, i]))
-            gamr[i] += s
+        gcmr = gcmr + np.einsum("ijk,j,k->i", st.Qcca, smc, sma)
+        gamr = gamr + np.einsum("jl,jli,j,l->i", _UPPER(ngi), st.Qcca, smc, smc)
     if st.RccInteract:
-        for i in range(ngi):
-            gcmr[i] += float(np.sum(st.Rcc[i, :] * smc))
+        gcmr = gcmr + st.Rcc @ smc
 
     tmolal = math.log(mwater / mean_solvent_mw + mwater * sum_ion_molalities)
     return MRTerms(gnmr, gcmr, gamr, tmolal)
