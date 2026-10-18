@@ -1,0 +1,42 @@
+# aiomfac-diagram run examples/diagrams/as_an_pinic.toml --workers 4
+# (NH4)2SO4 - NH4NO3 with pinic acid (organic/inorganic mass ratio 1)
+name = "(NH4)2SO4-NH4NO3 + pinic acid"
+output = "out/as_an_pinic"
+workers = 2
+
+[system]
+T_K = 298.15
+[[system.organics]]
+name = "pinic_acid"
+subgroups = [[1, 2], [2, 2], [3, 2], [4, 1], [137, 2]]
+
+[solver]
+inner_method = "rand"
+solids = "all"
+[system.options]
+fallback_inner = ["newton"]
+
+[feed_x0.salts_mass_g]
+"(NH4)2SO4" = 1.0
+[feed_x0.feed_mass_g]
+pinic_acid = 1.0
+[feed_x1.salts_mass_g]
+NH4NO3 = 1.0
+[feed_x1.feed_mass_g]
+pinic_acid = 1.0
+
+[axis]
+label = "mass fraction of NH4NO3 in the salt"
+x = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+
+[map]
+n = 20
+rh_min = 0.05
+rh_max = 0.95
+
+[lines]
+solve_timeout = 20
+rounds = 2
+
+[plot]
+labels = {ammonium_sulfate = "A", ammonium_nitrate = "D", AS_2AN = "E", AS_3AN = "F"}

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- `PhaseEquilibrium.tpd_critical` (1e-5), `tpd_critical_dist` (0.1): a near-critical incipient liquid (tiny TPD,
+  trial phase close to a current liquid) is not split off; the state is converged with a message. Solver benchmark:
+  14 of 21 failed points converge (6 before), converged points unchanged.
+- `diagram.check_topology` (`BoundaryCurves.check_topology`), `diagram.trace_until_clean` (ZPF tracing repeated
+  around the findings of the check), `trace_zpf(probe_at=...)`; snapped invariant lines horizontal as a whole, with
+  their junctions at the invariant RH.
+- `aiomfac-diagram` (`aiomfac_py.pipeline`): phase diagrams from configuration files (map, lines, check, plot;
+  resumable); examples in `examples/diagrams/`, UHAERO 2007 configurations in `tools/configs/`.
 - Faster AIOMFAC evaluation (same results to round-off): SR temperature-only terms cached per system, MR sums
   vectorized; 0.48 -> 0.29 ms per evaluation in the UHAERO 2007 organic systems, solves about 20 % faster.
 - `PhaseEquilibrium.warm_project` (default 0.2): a warm start whose component totals differ from the feed (the

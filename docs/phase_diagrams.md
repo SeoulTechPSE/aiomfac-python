@@ -505,6 +505,38 @@ phase) are pooled; if they agree within 2 `tol` the piece is set to their mean, 
 solves along a snapped line are not reported. In UHAERO 2007 Y = 0.85, pair 1 this sets the 4L | 3L+C line to
 RH 0.177836 (before: 0.1771-0.1778 along the line) and the lines at RH 0.338333, 0.426535, 0.552667 exactly flat.
 
+### 6.5b Topology check and repair (`check_topology`, `trace_until_clean`)
+
+`check_topology(bc)` (also `bc.check_topology()`) reports what a phase diagram cannot have: a line end inside the
+diagram that no other line reaches (`edge`, `reach`: 0.005 of the axis ranges), a line between states that differ
+by other than one phase on its sloped parts (segments with both |dx| and |dRH| above 0.3 of their length, adding up
+to more than 0.01; horizontal invariant and vertical single-composition parts are allowed), and failed solves
+farther than 0.01 from every line (unresolved regions). `rep.clean`, `rep.points()` and `rep.summary()` give the
+verdict, the positions and a text.
+
+`trace_until_clean(pe, feed_of_x, pm, rounds=2, ...)` runs the ZPF tracing and the check, and repeats while the
+check finds something, at most `rounds` times: the failed solves within `retry_radius` (0.02) of the findings are
+forgotten (they are solved again, warm-started from their neighbours) and the states around the findings are probed
+(`probe_at`; a `probe_n` × `probe_n` grid of half-width `probe_radius`, 7 × 7 and 0.012 by default; neighbouring
+grid points whose states differ with no line of a differing phase between them are checked against each other and
+seeded). The rest comes from the cache. The summaries of all rounds are in `bc.reports`.
+
+A line between the two states of a snapped invariant (6.5a) is horizontal as a whole, and the junctions at its ends
+are placed at its RH: in the NaCl–KCl diagram the two liquidus lines now meet the mutual deliquescence line at the
+eutonic point, without the short sloped piece (0.027 of the axis) that the check found there before.
+
+### 6.5c Configuration files (`aiomfac-diagram`)
+
+`aiomfac-diagram run diagram.toml [--steps map,lines,plot] [--workers N] [--force map,lines]` runs a phase diagram
+from a configuration file (module `aiomfac_py.pipeline`; the format of aiomfac-tool case files for the system, the
+solver options and the feeds at the two ends of the composition axis; see the module docstring and
+`examples/diagrams/*.toml`, `tools/configs/uhaero2007_*.json`): `phase_map`, `trace_until_clean` and the plot
+(regions labelled, failed solves, validity limit). The results go to the output directory (`map.pkl`,
+`lines_cache.pkl`, `lines.pkl`, `report.json` with the times, counts and topology reports, `diagram.png`). A step
+whose result exists and is newer than its input is skipped, and the solves of the lines are saved every 50 solves,
+so an interrupted run continues where it stopped. The exit status is 1 if the topology check is not clean.
+`aiomfac-diagram example` prints a small configuration (NaCl–KCl).
+
 ### 6.6 Convex hull for liquid–liquid equilibrium
 
 For a mixture of neutral components at fixed T and pressure, the equilibrium state of an overall composition z is

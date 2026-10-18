@@ -13,6 +13,7 @@ dependencies = ["numpy>=1.22"]
 
 [project.scripts]
 aiomfac-tool = "aiomfac_py.tool:main"
+aiomfac-diagram = "aiomfac_py.pipeline:main"
 
 [project.optional-dependencies]
 test = ["pytest>=7"]

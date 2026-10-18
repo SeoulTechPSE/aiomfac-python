@@ -1,0 +1,29 @@
+# aiomfac-diagram run examples/diagrams/nacl_kcl.toml
+name = "NaCl-KCl"
+output = "out/nacl_kcl"
+workers = 1
+
+[system]
+T_K = 298.15
+
+[feed_x0.salts]
+KCl = 1.0
+
+[feed_x1.salts]
+NaCl = 1.0
+
+[axis]
+label = "x(NaCl)"
+x = {start = 0.05, stop = 0.95, num = 5}
+
+[map]
+n = 16
+rh_min = 0.6
+rh_max = 0.95
+
+[lines]
+solve_timeout = 20
+rounds = 2
+
+[plot]
+labels = {halite = "H", sylvite = "S"}

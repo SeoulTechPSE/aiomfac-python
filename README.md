@@ -76,6 +76,12 @@ examples in [`notebooks/07_phase_diagrams.ipynb`](notebooks/07_phase_diagrams.ip
 * `plot_phase_map` fills the regions between the lines, `label_regions` names them (small regions are numbered and
   listed beside the panel), and `plot_validity` marks where the ionic strength of a liquid exceeds the range AIOMFAC
   was fitted to.
+* `check_topology` reports dangling line ends, lines between states that differ by more than one phase and
+  unresolved regions; `trace_until_clean` repeats the tracing around such findings until the check is clean.
+  `phase_map` and the ZPF tracing run in several processes with `workers=N`.
+* `aiomfac-diagram run diagram.toml` computes a diagram from a configuration file (aiomfac-tool case format for the
+  system and the feeds at the two ends of the axis): map, lines, check and plot, resumable after an interruption
+  ([`examples/diagrams/`](examples/diagrams)).
 * Scripts reproduce the inorganic and organic phase diagrams of UHAERO (Amundson et al., 2006, 2007):
   [`tools/uhaero2006_figures.py`](tools/uhaero2006_figures.py), [`tools/uhaero2007_figures.py`](tools/uhaero2007_figures.py)
   (`map`, `lines [--zpf]`, `plot`); the comparison with the papers is in
