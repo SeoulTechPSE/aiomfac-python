@@ -8,6 +8,10 @@
 - `diagram.check_topology` (`BoundaryCurves.check_topology`), `diagram.trace_until_clean` (ZPF tracing repeated
   around the findings of the check), `trace_zpf(probe_at=...)`; snapped invariant lines horizontal as a whole, with
   their junctions at the invariant RH.
+- Phase diagrams count a near-critical incipient liquid (`PhaseEquilibriumResult.near_critical`, `n_incipient`);
+  `check_topology` reports short sloped pieces at junctions as warnings (`minor`); `trace_until_clean` has a
+  per-round time budget, does not probe a finding twice and returns the round with the fewest findings. UHAERO 2007
+  Fig. 9 recomputed (report, README): failed solves 68/27/150/77 -> 3/0/43/1.
 - `aiomfac-diagram` (`aiomfac_py.pipeline`): phase diagrams from configuration files (map, lines, check, plot;
   resumable); examples in `examples/diagrams/`, UHAERO 2007 configurations in `tools/configs/`.
 - Faster AIOMFAC evaluation (same results to round-off): SR temperature-only terms cached per system, MR sums

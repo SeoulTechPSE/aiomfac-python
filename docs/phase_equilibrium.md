@@ -728,6 +728,9 @@ and −6.8e-6, trial phase 0.025–0.033 from a liquid; more than 15 min without
 at most about |TPD| per mole of the new liquid, so the state with one liquid fewer is accepted. `tpd_critical = None`
 restores the split. In the benchmark of `tools/solver_bench.py` 14 of 21 previously failed points converge (6
 before); the converged points keep their state and F.
+The result keeps the incipient liquid in `near_critical` (TPD, distance); `n_incipient` is 1 then, and the phase
+diagrams count it as a further liquid (`aiomfac_py.diagram.phase_state`; in the ZPF functions it is present with
+size −TPD, so the boundary of its region lies at TPD = 0).
 
 A repeat means that the added liquid vanished or merged back. This happens close to the RH where the new liquid
 appears: a large seed starts the inner solve far from the new state, and the Newton iteration returns to the old one.

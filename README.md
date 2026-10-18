@@ -104,8 +104,9 @@ Organic–inorganic: NH4+/H+/SO4²⁻/H2O (Y = 1) with two organics at organic/i
   <img src="docs/figs/phase_diagram_uhaero07_Y1.00.png" alt="UHAERO 2007 Fig. 8 with AIOMFAC: X-RH phase diagrams with two organics" width="900">
 </p>
 
-The same with nitrate (Y = 0.85; UHAERO 2007 Fig. 9; solids as above). Invariant lines are set to the invariant RH
-found from the stability of the appearing phase (e.g. the 4L | 3L+C line of (a) at RH 0.1778):
+The same with nitrate (Y = 0.85; UHAERO 2007 Fig. 9; solids as above), computed with `aiomfac-diagram` from
+[`tools/configs/`](tools/configs): invariant lines at the invariant RH, near-critical liquids counted, topology
+checked and repaired (one or two open line ends per panel remain, e.g. at the tip of the thin 4L+C region of (a)):
 
 <p align="center">
   <img src="docs/figs/phase_diagram_uhaero07_Y0.85.png" alt="UHAERO 2007 Fig. 9 with AIOMFAC: X-RH phase diagrams with two organics at Y = 0.85" width="900">

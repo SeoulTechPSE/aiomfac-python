@@ -519,7 +519,19 @@ check finds something, at most `rounds` times: the failed solves within `retry_r
 forgotten (they are solved again, warm-started from their neighbours) and the states around the findings are probed
 (`probe_at`; a `probe_n` × `probe_n` grid of half-width `probe_radius`, 7 × 7 and 0.012 by default; neighbouring
 grid points whose states differ with no line of a differing phase between them are checked against each other and
-seeded). The rest comes from the cache. The summaries of all rounds are in `bc.reports`.
+seeded). The rest comes from the cache. A finding that is still there after its surroundings were probed is not
+probed again; `round_time` (1800 s) limits the probing and the region-consistency check of each further round; the
+lines of the round with the fewest findings are returned. The summaries of all rounds are in `bc.reports`. A sloped
+piece shorter than `minor_sloped` (0.02) that ends at a junction is reported as a warning (`rep.minor`) and does not
+count against `rep.clean`: the junctions are located to within a few `h_min`, and a short piece of an invariant line
+next to one can come out sloped.
+
+UHAERO 2007 Fig. 9 (four organic pairs, Y = 0.85) recomputed with `aiomfac-diagram` from the earlier caches with
+their failed solves removed (`tools/configs/uhaero2007_Y0.85_P*.json`, two rounds): failed solves (a) 68 -> 3,
+(b) 27 -> 0, (c) 150 -> 43, (d) 77 -> 1; 1.9, 1.3, 2.0 and 0.8 h on two cores. Left: one or two line ends per panel
+that no line reaches (in (a) at the tip of the thin 4L+C region, which stays open: there the TPD of the fourth
+liquid is about 1e-6 and the corrector of its ZPF line loses it), and one or two sloped pieces of 2–3 % of the axis
+next to junctions in (a), (c), (d).
 
 A line between the two states of a snapped invariant (6.5a) is horizontal as a whole, and the junctions at its ends
 are placed at its RH: in the NaCl–KCl diagram the two liquidus lines now meet the mutual deliquescence line at the
