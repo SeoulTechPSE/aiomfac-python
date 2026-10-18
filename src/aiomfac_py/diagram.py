@@ -285,35 +285,67 @@ class PhaseMap:
         return out
 
 
+_MAP_ARGS: dict = {}
+
+
+def _map_worker(x):
+    """one trace of :func:`phase_map` in a forked process"""
+    return trace(_MAP_ARGS["pe"], _MAP_ARGS["feed_of_x"](float(x)), **_MAP_ARGS["trace_kw"])
+
+
 def phase_map(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], x_values: Sequence[float], *,
               x_label: str = "X", refine_x: bool = True, x_tol: float | None = None, verbose: bool = False,
-              **trace_kw) -> PhaseMap:
+              workers: int = 1, **trace_kw) -> PhaseMap:
     """:func:`trace` for the feed ``feed_of_x(x)`` at every ``x`` (keywords as :func:`trace`).
 
     ``refine_x``: where two neighbouring x have different boundary topologies (:attr:`Trace.signature`, e.g. on
     either side of a eutonic composition), x is bisected until the interval is narrower than ``x_tol`` (default
-    1/100 of the x range), so that boundary lines end close to where they meet."""
-    def run(x):
-        t = trace(pe, feed_of_x(float(x)), **trace_kw)
+    1/100 of the x range), so that boundary lines end close to where they meet.  ``workers`` > 1: the traces (and
+    each round of bisections) are computed in that many forked processes; the result is the same."""
+    def report(x, t):
         if verbose:
             bs = ", ".join(f"{b.rh:.4f} ({b.kind})" for b in t.boundaries)
             print(f"{x_label} = {x:.4g}: {t.n_solves} solves; boundaries {bs}", flush=True)
         return t
 
-    xs = sorted(float(x) for x in x_values)
-    res = {x: run(x) for x in xs}
-    if refine_x and len(xs) > 1:
-        tol = x_tol if x_tol is not None else (xs[-1] - xs[0]) / 100.0
-        stack = list(zip(xs[:-1], xs[1:]))
-        while stack:
-            a, b = stack.pop()
-            if b - a <= tol or res[a].signature == res[b].signature:
-                continue
-            m = 0.5 * (a + b)
-            if any(abs(m - k) < 1e-12 for k in res):
-                continue
-            res[m] = run(m)
-            stack += [(a, m), (m, b)]
+    pool = None
+    if workers and workers > 1:
+        import multiprocessing as mp
+        try:
+            ctx = mp.get_context("fork")
+            _MAP_ARGS.update(pe=pe, feed_of_x=feed_of_x, trace_kw=trace_kw)
+            pool = ctx.Pool(int(workers))
+        except ValueError:                                  # no fork (Windows): sequential
+            pool = None
+
+    def run_all(xs_):
+        if pool is None or len(xs_) < 2:
+            return [report(x, trace(pe, feed_of_x(float(x)), **trace_kw)) for x in xs_]
+        return [report(x, t) for x, t in zip(xs_, pool.map(_map_worker, xs_))]
+
+    try:
+        xs = sorted(float(x) for x in x_values)
+        res = dict(zip(xs, run_all(xs)))
+        if refine_x and len(xs) > 1:
+            tol = x_tol if x_tol is not None else (xs[-1] - xs[0]) / 100.0
+            todo = list(zip(xs[:-1], xs[1:]))
+            while todo:                                     # one round of bisections at a time
+                mids, nxt = [], []
+                for a, b in todo:
+                    if b - a <= tol or res[a].signature == res[b].signature:
+                        continue
+                    m = 0.5 * (a + b)
+                    if any(abs(m - k) < 1e-12 for k in res) or m in mids:
+                        continue
+                    mids.append(m)
+                    nxt += [(a, m), (m, b)]
+                res.update(zip(mids, run_all(mids)))
+                todo = nxt
+    finally:
+        if pool is not None:
+            pool.close()
+            pool.join()
+            _MAP_ARGS.clear()
     xs = sorted(res)
     return PhaseMap(np.asarray(xs, float), [res[x] for x in xs], x_label, trace_kw.get("mode", "equilibrium"))
 
@@ -886,7 +918,9 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
                          checkpoint_every=checkpoint_every, verbose=verbose,
                          seed_subdivide=solve_kw.pop("seed_subdivide", 0.004),
                          **{k: solve_kw.pop(k) for k in ("consistency_rounds", "consistency_k", "consistency_radius",
-                                                         "consistency_max", "consistency_time", "invariants") if k in solve_kw}, **solve_kw)
+                                                         "consistency_max", "consistency_time", "invariants", "workers") if k in solve_kw},
+                         **solve_kw)
+    solve_kw.pop("workers", None)                       # the state tracing runs in one process
     traces, xs = _regular_traces(pm)
     x_range = (float(pm.x[0]), float(pm.x[-1]))
     rh_range = (min(t.rh_range[0] if t.rh_range else t.rh[0] for t in pm.traces),

@@ -520,7 +520,7 @@ compositions are resolved only to the grid spacing.
 On one CPU thread (cloud VM, Xeon 2.1 GHz), one `PhaseEquilibrium.solve` takes about 0.05–0.15 s for single and
 mixed salts, 0.3–0.6 s for acid sulfate–nitrate systems and 1–3 s with two organics. A trace needs 40–90 solves; a
 phase map of 11–21 compositions with refinement 500–3000 solves (a few minutes for salts, 30–60 min for acid
-sulfate–nitrate systems with contour fields). Independent traces can be run in parallel processes.
+sulfate–nitrate systems with contour fields). `phase_map(..., workers=N)` computes the traces (and each round of bisections in x) in N forked processes.
 `ternary_lle` takes 5–15 s.
 
 `trace_boundaries` needs about four solves per point on a straight line and 10–20 per line end. Examples (same
@@ -530,6 +530,27 @@ phase maps); the UHAERO 2007 diagrams with two organics, 3600–4800 solves, abo
 is in compositions where the solver is slow or does not converge (very acidic, nearly dry particles); there
 `solve_timeout` keeps it bounded, and `show_failed=True` shows where the diagram is not resolved. With `cache`, a
 second call with other options only solves the new points (a minute instead of hours).
+
+`trace_boundaries(..., method="zpf", workers=N)` first traces the lines from the seeds on and between the traces in N
+forked processes (one task per phase, so that each line is traced by one process; each process has a copy of the
+cache, and the halving of segments between traces is done once), merges their solves into the cache and then runs
+the tracing as with one worker, which finds most solves in the cache (NaCl–KCl: 456 of 512 solves prefetched, the
+same curves, 49 s -> 36 s on two cores). The checks that follow (lost line ends, region consistency, invariant lines)
+run in the main process. Processes are started by fork (Linux, macOS); without fork (Windows) `workers` is ignored.
+With `verbose` the workers report their lines; the solves of each finished phase are merged and `checkpoint` is
+called. UHAERO 2007 Fig. 8 (b) (Y = 1, adipic acid/glutaraldehyde) from scratch with two workers: 2711 s (prefetch
+2307 s, 4024 solves; then 409 solves), against 5079 s in one process with the earlier solver; the same 19 lines and
+topology, no failed solves, lines within 3e-4 (median) of the earlier ones, at most 0.019 at one line end.
+
+Since 2026-10 one AIOMFAC evaluation of the UHAERO 2007 organic systems takes about 0.29 ms (0.48 ms before: the
+temperature-only parts of the SR term are cached, the MR sums vectorized), and a solve 1.3–1.4 s (median of
+`tools/solver_bench.py`, 1.7 s before). About half of a solve is the stability test: 25–45 tangent-plane-distance
+minimizations, most of which end at the current liquids; those handed from the successive substitution to the Newton
+method after an uphill first step cost most (50–120 activity evaluations each, with difference Hessians). Tried and
+not adopted: accelerating the substitution (dominant eigenvalue extrapolation; no fewer evaluations), keeping the
+substitution going after an uphill step while the TPD is positive (slower, and it missed a fourth liquid), reusing
+the stability-test Hessian over larger steps (no gain in the benchmark), exact Hessians by automatic differentiation
+(`hess_scheme="ad"`, needs jax; about 10 % faster after compilation).
 
 ## 8. Limitations
 

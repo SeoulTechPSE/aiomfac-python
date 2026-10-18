@@ -89,8 +89,21 @@ def sr_terms(system: SRSystem, T_K: float, x, xn=None, *, solvmixrefnd: bool = F
     if x.shape != (system.n_species,):
         raise ValueError(f"x must have {system.n_species} entries, got {x.shape}")
     xn = x[:system.n_neutral] / x[:system.n_neutral].sum() if xn is None else np.asarray(xn, dtype=float)
-    psi = psi_t(system, T_K)
-    ref = _residual_reference(system, psi, xn, solvmixrefnd)
+    if solvmixrefnd:
+        psi = psi_t(system, T_K)
+        ref = _residual_reference(system, psi, xn, solvmixrefnd)
+    else:                       # psi and the pure-component references depend on T only: cached per system
+        cache = system.__dict__.get("_sr_cache")
+        if cache is None:
+            cache = {}
+            object.__setattr__(system, "_sr_cache", cache)
+        hit = cache.get(float(T_K))
+        if hit is None:
+            psi = psi_t(system, T_K)
+            hit = cache[float(T_K)] = (psi, _residual_reference(system, psi, xn, False))
+            if len(cache) > 64:
+                cache.pop(next(iter(cache)))
+        psi, ref = hit
     lnR = _residual(system, psi, x)
     lnC, cinf = _combinatorial(system, x, solvmixrefnd)
     return SRTerms(lnC, lnR, ref, cinf, lnC + lnR - ref - cinf)

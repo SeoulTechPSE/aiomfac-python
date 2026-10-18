@@ -817,6 +817,11 @@ class PhaseEquilibrium:
         # organic diagrams 10 lets 6 more of 70 failed solves converge within a 20 s limit, but one of 80 converged
         # solves (rand converging after a long stall) then needs the slower Newton fallback
         self.rand_stall_iterations = None
+        # a warm start (init) whose component totals differ from the feed (e.g. the converged neighbour at another
+        # composition of a phase diagram) is moved onto the feed by scaling the species amounts of its liquids,
+        # n_j -> n_j exp(sum_c E_cj lambda_c), solids and gases unchanged; up to this relative change of a
+        # component total (larger mismatches, and warm_project = 0, discard the start as before)
+        self.warm_project = 0.2
         # retry a solve stopped at max_liquids with a negative TPD with one more liquid allowed (see _solve_exchange)
         self.liquid_exchange = True
         # a trial phase of the stability test with water below this mole fraction and ions is discarded: AIOMFAC
@@ -2580,7 +2585,9 @@ class PhaseEquilibrium:
         if K:
             tot = tot + (G @ g0)                                 # open: released amount, closed: gas amount
         if float(np.max(np.abs(tot[1:] - b[1:]))) > 1e-8:
-            return None
+            phases = self._project_start(phases, tot, b)
+            if phases is None:
+                return None
         free = self.lm.free
         # liquids smaller than 1 % of the largest are merged into it: such a liquid (e.g. a small salt liquid) may
         # disappear at the new RH, and its water cannot always be adjusted; the stability test re-creates it if needed
@@ -2603,6 +2610,39 @@ class PhaseEquilibrium:
             n[0] = self._water_guess_species(n, rh)
             out.append(n)
         return out, u0, g0, solid_act
+
+    def _project_start(self, phases, tot, b):
+        """Liquids of a warm start moved onto the feed b (component totals ``tot`` now): species amounts scaled by
+        exp(E^T lambda) (lambda_0 = 0: water is open), lambda from Newton on the component totals of the liquids; the
+        solids and gases keep their amounts.  None if the relative mismatch exceeds ``warm_project`` or the scaling
+        does not reach the feed."""
+        lim = float(self.warm_project or 0.0)
+        m = np.arange(len(b)) >= 1
+        ref = np.maximum(np.abs(b), 1e-300)
+        if lim <= 0.0 or np.any(np.abs(tot[m] - b[m]) > lim * ref[m] + 1e-8):
+            return None
+        E = self.E
+        L = sum(phases)
+        target = b[m] - (tot[m] - (E @ L)[m])              # what the liquids must hold
+        lam = np.zeros(len(b))
+        for _ in range(30):
+            w = np.exp(E.T @ lam)
+            Lw = L * w
+            r = (E @ Lw)[m] - target
+            if float(np.max(np.abs(r))) <= 1e-13 * max(1.0, float(np.max(np.abs(target)))):
+                out = [n * w for n in phases]
+                return out if all(np.all(np.isfinite(n)) for n in out) else None
+            J = (E[m] * Lw) @ E[m].T
+            try:
+                d = np.linalg.solve(J, r)
+            except np.linalg.LinAlgError:
+                return None
+            if not np.all(np.isfinite(d)):
+                return None
+            lam[m] -= np.clip(d, -1.0, 1.0)
+            if float(np.max(np.abs(lam))) > 5.0:
+                return None
+        return None
 
     def _water_guess_species(self, n: np.ndarray, rh: float) -> float:
         """Water amount of a liquid (species amounts n) at roughly a_w = RH: bisection on ln n_w."""

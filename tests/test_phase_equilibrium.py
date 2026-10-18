@@ -662,6 +662,29 @@ def test_incompatible_warm_start_is_ignored():
     assert a.gibbs == pytest.approx(b.gibbs, abs=1e-12)
 
 
+def test_warm_start_from_a_neighbouring_feed_is_projected():
+    """A previous result of a slightly different feed (a phase-diagram neighbour) is moved onto the new feed and used
+    as the start; the result equals the cold solve.  warm_project = 0 restores the old behaviour (start discarded)."""
+    pe = PhaseEquilibrium([PINIC], ["NH4+", "SO4--"], T_K=300.0)
+    f0 = _ansan_feed(False)
+    f1 = dict(f0, pinic_acid=1.04 * f0["pinic_acid"], **{"NH4+": 0.98 * f0["NH4+"], "SO4--": 0.98 * f0["SO4--"]})
+    prev = pe.solve(f0, 0.30, solids="none")
+    calls = []
+    orig = pe._project_start
+    pe._project_start = lambda *a: calls.append(orig(*a)) or calls[-1]
+    a = pe.solve(f1, 0.30, solids="none", init=prev)
+    assert calls and calls[0] is not None
+    assert "warm start discarded" not in (a.message or "")
+    b = pe.solve(f1, 0.30, solids="none")
+    _assert_equilibrium(a)
+    assert a.n_liquids == b.n_liquids
+    assert a.gibbs == pytest.approx(b.gibbs, abs=1e-10)
+    pe.warm_project = 0.0
+    calls.clear()
+    pe.solve(f1, 0.30, solids="none", init=prev)
+    assert calls == [None]
+
+
 def test_warm_drying_path_past_a_disappearing_salt_liquid():
     """Pinic acid + AS + AN (Seoul composition, 290 K) on the drying path: the small salt liquid of RH 0.20 disappears
     at lower RH.  Warm-started from it, the solves at 0.15-0.05 failed (a salt liquid without water); small liquids are
