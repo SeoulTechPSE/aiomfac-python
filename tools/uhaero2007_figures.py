@@ -46,6 +46,8 @@ LETTERS = {"ammonium_sulfate": "A", "letovicite": "B", "ammonium_bisulfate": "C"
            "AS_2AN": "E", "AS_3AN": "F", "AHS_AN": "G"}
 
 
+WORKERS = 1                                         # processes for map and lines --zpf (--workers N)
+
 def comp(key, idx):
     sub = smiles_to_components([SMILES[key][1]]).components[1].subgroups
     return Component(idx, SMILES[key][0], tuple(sub))
@@ -238,7 +240,7 @@ def run_map(Y, pair, out):
     t0 = time.time()
     pm = phase_map(pe, lambda X: with_organics(inorg_feed(X, Y), o1, o2, f1, 0.2), xs,
                    x_label="Ammonium fraction X", n=16, rh_min=0.02, rh_max=0.85, x_tol=0.05, refine_x=Y >= 1,
-                   verbose=True)
+                   verbose=True, workers=WORKERS)
     print(f"Y = {Y}, pair {pair}: {time.time() - t0:.0f} s", flush=True)
     pickle.dump(pm, open(os.path.join(out, f"u07_map_Y{Y:.2f}_P{pair}.pkl"), "wb"))
 
@@ -261,7 +263,7 @@ def run_lines(Y, pair, out, method="states"):
     try:
         bc = trace_boundaries(pe, lambda X: with_organics(inorg_feed(X, Y), o1, o2, f1, 0.2), pm, solve_timeout=20,
                               cache=cache, checkpoint=lambda c: _save(c, cf), checkpoint_every=50,
-                              verbose=True, method=method)
+                              verbose=True, method=method, workers=WORKERS)
     finally:
         _save(cache, cf)
     print(f"Y = {Y}, pair {pair}: lines {time.time() - t0:.0f} s, {bc.n_solves} solves", flush=True)
@@ -471,6 +473,10 @@ def plot_org(out):
 if __name__ == "__main__":
     zpf = "--zpf" in sys.argv                       # lines: zero-phase-fraction tracing (method="zpf")
     sys.argv = [a for a in sys.argv if a != "--zpf"]
+    if "--workers" in sys.argv:                     # map, lines --zpf: processes (forked)
+        i = sys.argv.index("--workers")
+        WORKERS = int(sys.argv[i + 1])
+        del sys.argv[i:i + 2]
     cmd = sys.argv[1]
     if cmd == "fig1":
         run_fig1(sys.argv[2] if len(sys.argv) > 2 else ".")

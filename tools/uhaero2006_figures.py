@@ -46,6 +46,8 @@ CURVE_AXES = {1.0: ((35, 80), (1, 2.4), (0, 35), (1, 1.8)), 0.85: ((35, 80), (1,
               0.2: ((30, 70), (1, 1.8), (0, 55), (1, 1.6))}
 
 
+WORKERS = 1                                         # processes for map and lines --zpf (--workers N)
+
 def feed(X, Y):
     f = {"NH4+": X, "H+": 1.0 - X, "SO4--": Y / (1.0 + Y), "NO3-": (1.0 - Y) / (1.0 + Y)}
     return {k: v for k, v in f.items() if v > 1e-12}
@@ -78,7 +80,7 @@ def run_map(Y, out):
     xs = np.linspace(0.0, 1.0, 11)
     xs[0] = 0.01
     pm = phase_map(pe, lambda X: feed(X, Y), xs, x_label="Ammonium fraction X", n=24, rh_min=0.02, rh_max=0.98,
-                   x_tol=0.02, verbose=True)
+                   x_tol=0.02, verbose=True, workers=WORKERS)
     rg = np.linspace(0.02, 0.98, 33)
     fx = np.linspace(0.0, 1.0, 15)
     fx[0] = 0.01
@@ -106,7 +108,7 @@ def run_lines(Y, out, method="states"):
     t0 = time.time()
     try:
         bc = trace_boundaries(system(Y), lambda X: feed(X, Y), pm, solve_timeout=20, cache=cache,
-                              checkpoint=lambda c: _save(c, cf), checkpoint_every=50, verbose=True, method=method)
+                              checkpoint=lambda c: _save(c, cf), checkpoint_every=50, verbose=True, method=method, workers=WORKERS)
     finally:
         _save(cache, cf)
     print(f"Y = {Y}: lines {time.time() - t0:.0f} s, {bc.n_solves} solves", flush=True)
@@ -229,6 +231,10 @@ def plot_all(out):
 if __name__ == "__main__":
     zpf = "--zpf" in sys.argv                       # lines: zero-phase-fraction tracing (method="zpf")
     sys.argv = [a for a in sys.argv if a != "--zpf"]
+    if "--workers" in sys.argv:                     # map, lines --zpf: processes (forked)
+        i = sys.argv.index("--workers")
+        WORKERS = int(sys.argv[i + 1])
+        del sys.argv[i:i + 2]
     cmd = sys.argv[1]
     if cmd == "fig1":
         out = sys.argv[2] if len(sys.argv) > 2 else "."

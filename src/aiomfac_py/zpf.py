@@ -62,11 +62,23 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
               h_max: float = 0.04, delta_max: float = 0.05, rh_samples: int = 40, max_liquids: int = 4,
               seed_subdivide: float | None = 0.004, consistency_rounds: int = 2, consistency_k: int = 8,
               consistency_radius: float = 0.01, consistency_max: int = 300, consistency_time: float = 1800.0,
-              invariants: bool = True,
+              invariants: bool = True, workers: int = 1, _prefetch: tuple | None = None,
               solve_timeout: float | None = None, cache: dict | None = None, checkpoint=None,
               checkpoint_every: int = 200, verbose: bool = False, **solve_kw) -> BoundaryCurves:
     """ZPF tracing of the boundary lines of ``pm`` (see the module docstring).  Arguments as for
-    :func:`aiomfac_py.diagram.trace_boundaries`; the cache is shared with it."""
+    :func:`aiomfac_py.diagram.trace_boundaries`; the cache is shared with it.
+
+    ``workers`` > 1: the lines from the seeds between and on the traces are first traced in that many processes
+    (forked; the phases are distributed among them, so that one line is traced by one process), each with a copy of
+    the cache; their solves are merged into the cache, and the tracing then runs as with one worker, finding most
+    solves in the cache.  The result is that of the sequential tracing, except where a solve not in the cache is
+    warm-started from another neighbour.  ``_prefetch`` (internal): (phases, subdivide) of such a worker; the
+    function then returns the new cache entries."""
+    if workers and workers > 1 and _prefetch is None:
+        cache = _parallel_prefetch(workers, pe, feed_of_x, pm, cache, verbose,
+                                   dict(tol=tol, h0=h0, h_min=h_min, h_max=h_max, delta_max=delta_max,
+                                        rh_samples=rh_samples, max_liquids=max_liquids, seed_subdivide=seed_subdivide,
+                                        solve_timeout=solve_timeout, **solve_kw))
     traces, xs = _regular_traces(pm)
     x_range = (float(pm.x[0]), float(pm.x[-1]))
     rh_range = (min(t.rh_range[0] if t.rh_range else t.rh[0] for t in pm.traces),
@@ -270,13 +282,16 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
             if not b.resolved and b.rh_hi - b.rh_lo > 1e-2:
                 continue
             for phase in sorted(_phases_of(b.below) ^ _phases_of(b.above)):
-                trace_from(phase, tr.to_unit(xv, b.rh), np.array([1.0, 0.0]))
+                if _prefetch is None or phase in _prefetch[0]:
+                    trace_from(phase, tr.to_unit(xv, b.rh), np.array([1.0, 0.0]))
 
     # seeds 2: a phase present on one trace and absent on the neighbouring one at the same RH, with no ZPF line of
     # that phase crossing between them (lines that cross no trace, e.g. vertical ones)
     levels = np.linspace(rh_range[0], rh_range[1], rh_samples + 2)[1:-1]
     def seed_segment(ua, ub, sa, sb):
         for phase in sorted(_phases_of(sa) ^ _phases_of(sb)):
+            if _prefetch is not None and phase not in _prefetch[0]:
+                continue
             if any(ph == phase and _crosses(P, ua, ub) for ph, P, _ in lines):
                 continue
             fa, s_a = f(ua, phase)
@@ -311,10 +326,13 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
             if sa == sb:
                 continue
             ua, ub = tr.to_unit(xa, r), tr.to_unit(xb, r)
-            if seed_subdivide:
+            if seed_subdivide and (_prefetch is None or _prefetch[1]):
                 subdivide(ua, ub, sa, sb)
             else:
                 seed_segment(ua, ub, sa, sb)
+
+    if _prefetch is not None:                               # a worker of the parallel prefetch: its new solves
+        return {k: v for k, v in tr.cache.items() if k not in _prefetch[2]}
 
     # lines that got lost (the corrector failed): look for the sign change of the same phase on circles around the
     # end, away from the line, and continue from there
@@ -664,3 +682,66 @@ def _near_seg(P, a, b, eps) -> bool:
 def _crosses(P, a, b) -> bool:
     from .diagram import _crosses_seg
     return _crosses_seg(P, a, b)
+
+
+_PREFETCH: dict = {}
+
+
+def _prefetch_worker(task):
+    """one worker of :func:`_parallel_prefetch` (forked: the system, feed function, map and cache are inherited)"""
+    phases, subdiv = task
+    g = _PREFETCH
+    cache = dict(g["cache"])
+    try:
+        return trace_zpf(g["pe"], g["feed_of_x"], g["pm"], cache=cache, consistency_rounds=0, invariants=False,
+                         _prefetch=(set(phases), subdiv, set(g["cache"])), verbose=False, **g["kw"])
+    except Exception as exc:                                # a worker that fails only loses its prefetch
+        if g["verbose"]:
+            print(f"ZPF prefetch {phases}: failed ({type(exc).__name__}: {exc})", flush=True)
+        return {}
+
+
+def _parallel_prefetch(workers, pe, feed_of_x, pm, cache, verbose, kw):
+    """solves of the seed lines traced in ``workers`` forked processes, merged into ``cache`` (returned)"""
+    import multiprocessing as mp
+    cache = {} if cache is None else cache
+    try:
+        ctx = mp.get_context("fork")
+    except ValueError:                                      # no fork (Windows): sequential
+        if verbose:
+            print("ZPF: no fork start method, workers ignored", flush=True)
+        return cache
+    # the phases that have seeds, weighted by their number of seeds on the traces
+    traces, xs = _regular_traces(pm)
+    weight: dict = {}
+    for t in traces:
+        for b in t.boundaries:
+            for ph in _phases_of(b.below) ^ _phases_of(b.above):
+                weight[ph] = weight.get(ph, 0) + 1
+    for ta, tb in zip(traces[:-1], traces[1:]):
+        for st_a, st_b in ((ta.results[0], tb.results[0]), (ta.results[-1], tb.results[-1])):
+            if _ok(st_a) and _ok(st_b):
+                for ph in _phases_of(phase_state(st_a)) ^ _phases_of(phase_state(st_b)):
+                    weight.setdefault(ph, 1)
+    for st in pm.states():                                  # every phase of the map can have a line between traces
+        for ph in _phases_of(st):
+            weight.setdefault(ph, 1)
+    order = sorted(weight, key=lambda ph: -weight[ph])
+    # tasks: one per phase (heaviest first, so the pool balances them); the segment halving between the traces is
+    # done once, by the task of the heaviest phase
+    tasks = [((ph,), k == 0) for k, ph in enumerate(order)]
+    _PREFETCH.clear()
+    _PREFETCH.update(pe=pe, feed_of_x=feed_of_x, pm=pm, cache=dict(cache), kw=kw, verbose=verbose)
+    t0 = time.time()
+    n0 = len(cache)
+    try:
+        with ctx.Pool(int(workers)) as pool:
+            for new in pool.imap_unordered(_prefetch_worker, tasks):
+                for k, v in new.items():
+                    cache.setdefault(k, v)
+    finally:
+        _PREFETCH.clear()
+    if verbose:
+        print(f"ZPF prefetch: {len(tasks)} phases on {workers} workers, {len(cache) - n0} solves added, "
+              f"{time.time() - t0:.0f} s", flush=True)
+    return cache

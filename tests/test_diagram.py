@@ -8,7 +8,7 @@ import pytest
 
 pytest.importorskip("scipy")
 
-from aiomfac_py.diagram import Boundary, PhaseState, phase_map, pie_composition, trace  # noqa: E402
+from aiomfac_py.diagram import Boundary, PhaseState, phase_map, phase_state, pie_composition, trace  # noqa: E402
 from aiomfac_py.phase_equilibrium import PhaseEquilibrium  # noqa: E402
 from aiomfac_py.sle import binary_saturation  # noqa: E402
 
@@ -240,10 +240,12 @@ def test_trace_boundaries_vertical_line():
     assert c.ends == ("edge", "edge")
 
 
-def test_trace_boundaries_zpf_nacl_kcl():
+@pytest.mark.parametrize("workers", [1, 2])
+def test_trace_boundaries_zpf_nacl_kcl(workers):
     """ZPF tracing (method="zpf"): the boundary lines are the zero-phase-fraction lines of L, halite and sylvite;
     the liquidus lines meet the mutual deliquescence line at the eutonic composition found by state tracing, and
-    every line ends on the edge (no line ends inside the diagram)."""
+    every line ends on the edge (no line ends inside the diagram).  The same with the seed lines traced in two
+    processes first (workers=2)."""
     from aiomfac_py.diagram import trace_boundaries
     from aiomfac_py.zpf import phase_functions
     pe = PhaseEquilibrium([], ["Na+", "K+", "Cl-"], T_K=T0)
@@ -251,7 +253,7 @@ def test_trace_boundaries_zpf_nacl_kcl():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         pm = phase_map(pe, feed, [0.1, 0.5, 0.9], x_label="x(NaCl)", n=12, rh_min=0.6, rh_max=0.95, refine_x=False)
-        bc = trace_boundaries(pe, feed, pm, method="zpf")
+        bc = trace_boundaries(pe, feed, pm, method="zpf", workers=workers)
         r = pe.solve(feed(0.5), 0.70)
     f = phase_functions(r, ["halite", "sylvite"], 2)
     assert f["halite"] > 0 and f["sylvite"] > 0 and f["L1"] < 0          # dry mixture below the mutual DRH
@@ -277,3 +279,17 @@ def test_zpf_near_seg():
     assert _near_seg(P, np.array([0.4, 0.5]), np.array([0.6, 0.5]), 0.01)       # crosses
     assert _near_seg(P, np.array([0.3, 0.5]), np.array([0.495, 0.5]), 0.01)     # ends next to the line
     assert not _near_seg(P, np.array([0.1, 0.5]), np.array([0.3, 0.5]), 0.01)
+
+
+def test_phase_map_workers_same_result():
+    """phase_map with the traces computed in two forked processes gives the same map."""
+    pe = PhaseEquilibrium([], ["Na+", "K+", "Cl-"], T_K=T0)
+    feed = lambda x: {"Na+": x, "K+": 1.0 - x, "Cl-": 1.0}
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        a = phase_map(pe, feed, [0.2, 0.8], n=8, rh_min=0.6, rh_max=0.95, x_tol=0.2)
+        b = phase_map(pe, feed, [0.2, 0.8], n=8, rh_min=0.6, rh_max=0.95, x_tol=0.2, workers=2)
+    assert np.allclose(a.x, b.x) and len(a.x) > 2
+    for ta, tb in zip(a.traces, b.traces):
+        assert np.allclose(ta.rh, tb.rh)
+        assert [phase_state(r) for r in ta.results] == [phase_state(r) for r in tb.results]
