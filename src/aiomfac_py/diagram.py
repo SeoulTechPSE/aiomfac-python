@@ -597,6 +597,7 @@ class BoundaryCurves:
     n_solves: int = 0
     seeds_skipped: int = 0
     failed: np.ndarray = field(default_factory=lambda: np.empty((0, 2)))   # (x, rh) of solves that did not converge
+    reports: list = field(default_factory=list)          # topology reports of trace_until_clean (summaries)
 
     def cleaned(self, min_extent: float = 0.004) -> "BoundaryCurves":
         """Without the lines whose ends are closer than ``min_extent`` (in diagram units), e.g. small loops left at
@@ -609,6 +610,72 @@ class BoundaryCurves:
     def to_records(self) -> list:
         return [{"left": c.left.label, "right": c.right.label, "kind": c.kind, "ends": list(c.ends),
                  "x": c.x.tolist(), "rh": c.rh.tolist()} for c in self.curves]
+
+    def check_topology(self, **kw) -> "TopologyReport":
+        """:func:`check_topology` of these lines"""
+        return check_topology(self, **kw)
+
+
+@dataclass
+class TopologyReport:
+    """Result of :func:`check_topology` (positions in diagram units)."""
+    dangling: list          # (curve, x, rh): a line end inside the diagram that no other line reaches
+    adjoining: list         # (curve, n_phases, x, rh, sloped_length): sides differ by n != 1 phases on a sloped part
+    failed_far: list        # (x, rh): failed solves farther than ``far`` from every line (unresolved regions)
+
+    @property
+    def clean(self) -> bool:
+        return not (self.dangling or self.adjoining or self.failed_far)
+
+    def points(self) -> list:
+        """(x, rh) of every finding"""
+        return ([(x, r) for _, x, r in self.dangling] + [(x, r) for _, _, x, r, _ in self.adjoining]
+                + [tuple(p) for p in self.failed_far])
+
+    def summary(self) -> str:
+        out = [f"dangling ends {len(self.dangling)}, sides != 1 phase apart {len(self.adjoining)}, "
+               f"failed solves away from lines {len(self.failed_far)}"]
+        out += [f"  dangling ({x:.3f}, {r:.3f}) {c.left.label} | {c.right.label}" for c, x, r in self.dangling]
+        out += [f"  {d} phases apart ({x:.3f}, {r:.3f}), sloped length {ln:.3f}: {c.left.label} | {c.right.label}"
+                for c, d, x, r, ln in self.adjoining]
+        return "\n".join(out)
+
+
+def check_topology(bc: "BoundaryCurves", *, edge: float = 0.005, reach: float = 0.005, slope: float = 0.3,
+                   min_sloped: float = 0.01, far: float = 0.01) -> TopologyReport:
+    """Topology check of traced boundary lines (lengths in the unit square of the diagram):
+
+    * a line end farther than ``edge`` from the edge that no other line reaches within ``reach`` (a boundary line
+      cannot end inside a phase diagram);
+    * a line whose two sides differ by other than one phase (law of adjoining phase regions) on its sloped parts,
+      i.e. segments with both |dx| and |dRH| above ``slope`` times their length, if these add up to more than
+      ``min_sloped`` (horizontal invariant and vertical single-composition parts are allowed);
+    * failed solves farther than ``far`` from every line (where the diagram is not resolved)."""
+    sx = bc.x_range[1] - bc.x_range[0]
+    sr = bc.rh_range[1] - bc.rh_range[0]
+    P = [np.c_[(c.x - bc.x_range[0]) / sx, (c.rh - bc.rh_range[0]) / sr] for c in bc.curves]
+    dang, adj = [], []
+    for i, (c, p) in enumerate(zip(bc.curves, P)):
+        for J in (p[0], p[-1]):
+            if min(J[0], J[1], 1 - J[0], 1 - J[1]) < edge:
+                continue
+            if not any(j != i and _dist_to_polyline(J, q) < reach for j, q in enumerate(P)):
+                dang.append((c, float(J[0] * sx + bc.x_range[0]), float(J[1] * sr + bc.rh_range[0])))
+        d = _phase_distance(c.left, c.right)
+        if d != 1 and len(p) > 1:
+            dd = np.diff(p, axis=0)
+            ln = np.hypot(dd[:, 0], dd[:, 1])
+            sl = (np.abs(dd[:, 0]) > slope * ln) & (np.abs(dd[:, 1]) > slope * ln)
+            if sl.any() and ln[sl].sum() > min_sloped:
+                k = int(np.argmax(np.where(sl, ln, 0.0)))
+                adj.append((c, d, float(c.x[k]), float(c.rh[k]), float(ln[sl].sum())))
+    F = np.asarray(getattr(bc, "failed", np.empty((0, 2))), dtype=float).reshape(-1, 2)
+    far_pts = []
+    for x, r in F:
+        q = np.array([(x - bc.x_range[0]) / sx, (r - bc.rh_range[0]) / sr])
+        if not P or min(_dist_to_polyline(q, p) for p in P) > far:
+            far_pts.append((float(x), float(r)))
+    return TopologyReport(dang, adj, far_pts)
 
 
 class _Tracer:
@@ -918,9 +985,11 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
                          checkpoint_every=checkpoint_every, verbose=verbose,
                          seed_subdivide=solve_kw.pop("seed_subdivide", 0.004),
                          **{k: solve_kw.pop(k) for k in ("consistency_rounds", "consistency_k", "consistency_radius",
-                                                         "consistency_max", "consistency_time", "invariants", "workers") if k in solve_kw},
+                                                         "consistency_max", "consistency_time", "invariants", "workers", "probe_at",
+                                                         "probe_radius", "probe_n") if k in solve_kw},
                          **solve_kw)
-    solve_kw.pop("workers", None)                       # the state tracing runs in one process
+    for k in ("workers", "probe_at", "probe_radius", "probe_n"):    # ZPF options; the state tracing has its own
+        solve_kw.pop(k, None)
     traces, xs = _regular_traces(pm)
     x_range = (float(pm.x[0]), float(pm.x[-1]))
     rh_range = (min(t.rh_range[0] if t.rh_range else t.rh[0] for t in pm.traces),
@@ -1326,10 +1395,47 @@ def trace_boundaries(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], p
     return BoundaryCurves(curves, x_range, rh_range, tr.n_solves, skipped, failed).cleaned(2.0 * h_min)
 
 
-def _join_junctions(polys: list, ends: list, snap: float) -> list:
+def trace_until_clean(pe: PhaseEquilibrium, feed_of_x: Callable[[float], dict], pm: PhaseMap, *, rounds: int = 2,
+                      retry_radius: float = 0.02, cache: dict | None = None, verbose: bool = False,
+                      **kw) -> BoundaryCurves:
+    """ZPF tracing (:func:`trace_boundaries` with ``method="zpf"``) repeated until :func:`check_topology` finds
+    nothing, at most ``rounds`` times after the first.  Each round (i) forgets the failed solves within
+    ``retry_radius`` (unit square) of the findings, so that they are solved again (warm-started from their
+    neighbours), and (ii) probes the states around the findings (``probe_at``; see :func:`aiomfac_py.zpf.trace_zpf`),
+    seeding lines that were missed; everything else comes from the cache.  The reports of all rounds are in
+    ``reports`` of the result (summaries, first one first).  Other keywords go to :func:`trace_boundaries`."""
+    cache = {} if cache is None else cache
+    kw.pop("method", None)
+    bc = trace_boundaries(pe, feed_of_x, pm, method="zpf", cache=cache, verbose=verbose, **kw)
+    reports = []
+    for k in range(int(rounds) + 1):
+        rep = check_topology(bc)
+        reports.append(rep.summary())
+        if verbose:
+            print(f"topology check {k}: {rep.summary()}", flush=True)
+        if rep.clean or k == rounds:
+            break
+        pts = rep.points()
+        x0, x1, r0, r1 = bc.x_range[0], bc.x_range[1], bc.rh_range[0], bc.rh_range[1]
+        U = np.array([((x - x0) / (x1 - x0), (r - r0) / (r1 - r0)) for x, r in pts])
+        drop = [key for key, v in cache.items() if v[0] is None and np.min(np.hypot(*(U - np.array(key)).T)) < retry_radius]
+        for key in drop:
+            del cache[key]
+        if verbose:
+            print(f"  retry {len(drop)} failed solves, probe {len(pts)} points", flush=True)
+        kw2 = dict(kw, probe_at=pts)
+        kw2.pop("workers", None)                         # the second and later rounds solve little
+        bc = trace_boundaries(pe, feed_of_x, pm, method="zpf", cache=cache, verbose=verbose, **kw2)
+    bc.reports = reports
+    return bc
+
+
+def _join_junctions(polys: list, ends: list, snap: float, fixed: dict | None = None) -> list:
     """Close the gaps (up to ``h_min``) between line ends at junctions: ends that are closer than ``snap`` to each
     other are joined at the point closest (least squares) to their tangent lines; a single end is extended along its
-    tangent to the nearest line it meets within ``snap`` (or joined to the nearest point of a line)."""
+    tangent to the nearest line it meets within ``snap`` (or joined to the nearest point of a line).  ``fixed``
+    {line index: y}: horizontal lines (snapped invariants) at that y; a junction with such a line lies at its y."""
+    fixed = fixed or {}
     polys = [np.asarray(P, float).copy() for P in polys]
     if snap <= 0:
         return polys
@@ -1370,6 +1476,19 @@ def _join_junctions(polys: list, ends: list, snap: float) -> list:
             J = np.linalg.solve(M, v) if np.linalg.cond(M) < 1e6 else es.mean(axis=0)
             if np.max(np.linalg.norm(es - J, axis=1)) > 1.5 * snap:
                 J = es.mean(axis=0)
+            ys = [fixed[k] for k, _ in g if k in fixed]
+            if ys:                                          # on the invariant: y fixed, x from the other tangents
+                y = float(np.mean(ys))
+                num = den = 0.0
+                for it, e in zip(g, es):
+                    if it[0] in fixed:
+                        continue
+                    t = outward(*it)
+                    n = np.array([-t[1], t[0]])
+                    num += n[0] * (n[0] * e[0] - n[1] * (y - e[1]))
+                    den += n[0] * n[0]
+                x = num / den if den > 1e-12 else float(J[0])
+                J = np.array([x, y]) if abs(x - J[0]) <= 1.5 * snap else np.array([float(J[0]), y])
             for it in g:
                 target[it] = J
             continue

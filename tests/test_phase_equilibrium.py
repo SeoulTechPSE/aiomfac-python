@@ -825,3 +825,19 @@ def test_concentrated_acid_sulfate_trial_liquid():
     ref = pe.solve(feed, 0.16, solids="none")
     assert res.status == "converged" and len(res.liquids) == 3 and not res.solids
     assert res.gibbs == pytest.approx(ref.gibbs, abs=1e-8)
+
+
+def test_near_critical_incipient_liquid_is_not_split():
+    """A negative TPD above -tpd_critical whose trial phase is close to a current liquid is not split off: the state
+    stays converged with one liquid fewer and a near-critical message.  Shown with deliberately wide limits on a
+    state that has several liquids (DLT + NaCl + H2SO4 at RH 0.95); tpd_critical = None splits as before."""
+    pe, feed = _dlt_nacl_acid(3.0)
+    full = pe.solve(feed, 0.95, solids="none")
+    _assert_equilibrium(full)
+    assert full.n_liquids >= 2
+    pe.tpd_critical, pe.tpd_critical_dist = 10.0, 10.0
+    r = pe.solve(feed, 0.95, solids="none")
+    assert r.status == "converged" and r.n_liquids == 1
+    assert "near-critical" in r.message and r.tpd_min < -pe.tol_tpd
+    pe.tpd_critical = None
+    assert pe.solve(feed, 0.95, solids="none").n_liquids == full.n_liquids
