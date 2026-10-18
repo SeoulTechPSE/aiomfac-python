@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Faster AIOMFAC evaluation (same results to round-off): SR temperature-only terms cached per system, MR sums
+  vectorized; 0.48 -> 0.29 ms per evaluation in the UHAERO 2007 organic systems, solves about 20 % faster.
+- `PhaseEquilibrium.warm_project` (default 0.2): a warm start whose component totals differ from the feed (the
+  neighbour at another composition, as passed by the phase-diagram tracing) is scaled onto the feed instead of being
+  discarded.
+- `phase_map(..., workers=N)` and `trace_boundaries(..., method="zpf", workers=N)`: forked processes (see
+  docs/phase_diagrams.md 7); `tools/uhaero2006_figures.py`, `uhaero2007_figures.py`: `--workers N`.
+- `tools/solver_bench.py`: solver benchmark on fixed points of the UHAERO 2007 organic diagrams.
 - ZPF tracing (`method="zpf"`): invariant lines are detected and set to the invariant RH* (root of the stability of
   the appearing phase next to the imposed lower state, warm-started; RH* pooled per pair of states; `invariants=True`).
   UHAERO 2007 Y = 0.85 pair 1: the 4L | 3L+C line at RH 0.177836, flat (see docs/phase_diagrams.md 6.5a).

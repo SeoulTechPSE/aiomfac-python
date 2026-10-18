@@ -553,6 +553,15 @@ remains the default until the RAND solver has been used more widely.
   1. maximize the margin t with `b_i − (V u0)_i − (G g)_i ≥ t`;
   2. among the g with margin `min(t*, 1e-6 Σ|b|)`, take the one closest in L1 to the reference state. The reference
      state is zero net transfer in the open mode, and nearly all of each volatile in the gas phase in the closed mode.
+* **Warm start (`init`).** A previous result is used as the start: its liquids (liquids below 1 % of the largest are
+  merged into it), its active solids and its gas amounts, with the water of every liquid adjusted to a_w = RH. Its
+  component totals must equal the feed. If they differ by at most `warm_project` (default 0.2, relative, per
+  component), the liquids are first moved onto the feed by scaling the species amounts,
+  `n_j -> n_j exp(Σ_c E_cj λ_c)` (λ_water = 0; Newton on λ for the component totals, solids and gases unchanged).
+  This is the case in phase-diagram tracing, where the start is the converged neighbour at another composition;
+  before, such a start was discarded and the solve ran from scratch. In the UHAERO 2007 benchmark (start 0.01 away)
+  the states and F are those of the cold solves (|ΔF| ≤ 3e-9), and 2 of 21 failed points converge. Larger
+  mismatches discard the start, as does `warm_project = 0`.
 
 ---
 
