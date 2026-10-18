@@ -695,10 +695,21 @@ class PhaseEquilibriumResult:
     # smallest TPD of the non-trivial minima (trial phases away from the liquids) in the final stability test, of
     # either sign: positive and going to zero where a further liquid is about to form (used by the ZPF tracing)
     tpd_nontrivial: float = float("nan")
+    # (TPD, distance) of an incipient liquid not split off next to a liquid-liquid critical point (tpd_critical), or
+    # None; the phase diagrams count it as a further liquid (it exists, with nearly the composition of a liquid)
+    near_critical: tuple | None = None
 
     @property
     def n_liquids(self) -> int:
         return len(self.liquids)
+
+    @property
+    def n_incipient(self) -> int:
+        """1 if a near-critical incipient liquid was not split off (see ``near_critical``), else 0"""
+        nc = getattr(self, "near_critical", None)
+        if nc is None and "near-critical" in (getattr(self, "message", "") or ""):
+            return 1                                       # results saved before the field existed
+        return 0 if nc is None else 1
 
     def summary(self) -> str:
         lines = [f"{self.status}: T={self.T_K} K, RH={self.rh:.4f}, {self.n_liquids} liquid phase(s), "
@@ -2517,7 +2528,8 @@ class PhaseEquilibrium:
             msg += ("; " if msg else "") + "inner Newton iteration stopped early (line search)"
         result = PhaseEquilibriumResult(status, self.T, rh, liquids, solid_amounts, si, F * scale, checks, tpd_min,
                                         n_outer, message=msg, names=self.names, gas=gas, p_gas=p_out,
-                                        tpd_nontrivial=tpd_nontriv)
+                                        tpd_nontrivial=tpd_nontriv,
+                                        near_critical=near_critical if tpd_min < -self.tol_tpd else None)
         if self._gas_mode == "open":
             result = self._complete_evaporation(result, feed, rh, solids, p_gas, max_liquids, max_outer, verbose)
         return result

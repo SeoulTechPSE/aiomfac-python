@@ -44,6 +44,9 @@ def phase_functions(res, solid_keys, max_liquids: int) -> dict:
     tots = sorted((float(L.total) for L in res.liquids), reverse=True)
     n = len(tots)
     tn = getattr(res, "tpd_nontrivial", float("nan"))
+    if getattr(res, "n_incipient", 0) and np.isfinite(tn) and tn < 0:
+        tots.append(-float(tn))                            # a near-critical incipient liquid: present, of size -TPD
+        n += 1
     for k in range(1, max_liquids + 1):
         if n >= k:
             out[f"L{k}"] = tots[k - 1]
@@ -63,6 +66,7 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
               seed_subdivide: float | None = 0.004, consistency_rounds: int = 2, consistency_k: int = 8,
               consistency_radius: float = 0.01, consistency_max: int = 300, consistency_time: float = 1800.0,
               invariants: bool = True, workers: int = 1, probe_at=(), probe_radius: float = 0.012, probe_n: int = 7,
+              probe_time: float = float("inf"),
               _prefetch: tuple | None = None,
               solve_timeout: float | None = None, cache: dict | None = None, checkpoint=None,
               checkpoint_every: int = 200, verbose: bool = False, **solve_kw) -> BoundaryCurves:
@@ -78,7 +82,7 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
     ``probe_at`` [(x, RH)]: points to examine (e.g. findings of :func:`aiomfac_py.diagram.check_topology`): the
     states on a ``probe_n`` x ``probe_n`` grid of half-width ``probe_radius`` (unit square) around each are solved,
     and neighbouring grid points whose states differ with no line of a differing phase between them are checked
-    against each other and seeded, as in the region-consistency check.  ``_prefetch`` (internal): (phases, subdivide) of such a worker; the
+    against each other and seeded, as in the region-consistency check; ``probe_time`` [s] limits this.  ``_prefetch`` (internal): (phases, subdivide) of such a worker; the
     function then returns the new cache entries."""
     if workers and workers > 1 and _prefetch is None:
         cache = _parallel_prefetch(workers, pe, feed_of_x, pm, cache, verbose, checkpoint,
@@ -93,6 +97,9 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
     tr.timeout = solve_timeout
     if cache is not None:
         tr.cache = cache
+        for k, (st, res) in list(cache.items()):          # states as phase_state gives them now (e.g. near-critical)
+            if st is not None and phase_state(res) != st:
+                cache[k] = (phase_state(res), res)
     tr.checkpoint = checkpoint
     tr.checkpoint_every = max(1, int(checkpoint_every))
     for xv, t in zip(pm.x, pm.traces):
@@ -451,6 +458,8 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
         """local grids around the points ``probe_at``: unexplained changes of state are seeded"""
         n_add = 0
         for xp, rp in probe_at:
+            if time.time() > deadline["t"]:
+                break
             c = tr.to_unit(float(xp), float(rp))
             g = np.linspace(-probe_radius, probe_radius, int(probe_n))
             G = [[np.clip(c + np.array([dx, dy]), 0.0, 1.0) for dx in g] for dy in g]
@@ -484,7 +493,9 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
         return n_add
 
     if len(probe_at):
+        deadline["t"] = time.time() + probe_time
         probe_seeds()
+        deadline["t"] = float("inf")
 
     if consistency_rounds:
         consistency_seeds()
