@@ -44,6 +44,9 @@ def phase_functions(res, solid_keys, max_liquids: int) -> dict:
     tots = sorted((float(L.total) for L in res.liquids), reverse=True)
     n = len(tots)
     tn = getattr(res, "tpd_nontrivial", float("nan"))
+    if getattr(res, "n_incipient", 0) and np.isfinite(tn) and tn < 0:
+        tots.append(-float(tn))                            # a near-critical incipient liquid: present, of size -TPD
+        n += 1
     for k in range(1, max_liquids + 1):
         if n >= k:
             out[f"L{k}"] = tots[k - 1]
@@ -62,7 +65,9 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
               h_max: float = 0.04, delta_max: float = 0.05, rh_samples: int = 40, max_liquids: int = 4,
               seed_subdivide: float | None = 0.004, consistency_rounds: int = 2, consistency_k: int = 8,
               consistency_radius: float = 0.01, consistency_max: int = 300, consistency_time: float = 1800.0,
-              invariants: bool = True, workers: int = 1, _prefetch: tuple | None = None,
+              invariants: bool = True, workers: int = 1, probe_at=(), probe_radius: float = 0.012, probe_n: int = 7,
+              probe_time: float = float("inf"),
+              _prefetch: tuple | None = None,
               solve_timeout: float | None = None, cache: dict | None = None, checkpoint=None,
               checkpoint_every: int = 200, verbose: bool = False, **solve_kw) -> BoundaryCurves:
     """ZPF tracing of the boundary lines of ``pm`` (see the module docstring).  Arguments as for
@@ -72,7 +77,12 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
     (forked; the phases are distributed among them, so that one line is traced by one process), each with a copy of
     the cache; their solves are merged into the cache, and the tracing then runs as with one worker, finding most
     solves in the cache.  The result is that of the sequential tracing, except where a solve not in the cache is
-    warm-started from another neighbour.  ``_prefetch`` (internal): (phases, subdivide) of such a worker; the
+    warm-started from another neighbour.
+
+    ``probe_at`` [(x, RH)]: points to examine (e.g. findings of :func:`aiomfac_py.diagram.check_topology`): the
+    states on a ``probe_n`` x ``probe_n`` grid of half-width ``probe_radius`` (unit square) around each are solved,
+    and neighbouring grid points whose states differ with no line of a differing phase between them are checked
+    against each other and seeded, as in the region-consistency check; ``probe_time`` [s] limits this.  ``_prefetch`` (internal): (phases, subdivide) of such a worker; the
     function then returns the new cache entries."""
     if workers and workers > 1 and _prefetch is None:
         cache = _parallel_prefetch(workers, pe, feed_of_x, pm, cache, verbose, checkpoint,
@@ -87,6 +97,9 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
     tr.timeout = solve_timeout
     if cache is not None:
         tr.cache = cache
+        for k, (st, res) in list(cache.items()):          # states as phase_state gives them now (e.g. near-critical)
+            if st is not None and phase_state(res) != st:
+                cache[k] = (phase_state(res), res)
     tr.checkpoint = checkpoint
     tr.checkpoint_every = max(1, int(checkpoint_every))
     for xv, t in zip(pm.x, pm.traces):
@@ -441,6 +454,49 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
                 break
         return 0
 
+    def probe_seeds():
+        """local grids around the points ``probe_at``: unexplained changes of state are seeded"""
+        n_add = 0
+        for xp, rp in probe_at:
+            if time.time() > deadline["t"]:
+                break
+            c = tr.to_unit(float(xp), float(rp))
+            g = np.linspace(-probe_radius, probe_radius, int(probe_n))
+            G = [[np.clip(c + np.array([dx, dy]), 0.0, 1.0) for dx in g] for dy in g]
+            S = [[tr.state(q) for q in row] for row in G]
+            by_phase: dict = {}
+            for ph, P, _ in lines:
+                if len(P) > 1:
+                    by_phase.setdefault(ph, []).append(P)
+            n0 = len(lines)
+            for i in range(len(g)):
+                for j in range(len(g)):
+                    for i2, j2 in ((i, j + 1), (i + 1, j)):
+                        if i2 >= len(g) or j2 >= len(g):
+                            continue
+                        (sa, ra), (sb, rb) = S[i][j], S[i2][j2]
+                        if sa is None or sb is None or sa == sb:
+                            continue
+                        a, b = G[i][j], G[i2][j2]
+                        if all(any(_near_seg(P, a, b, 2.5 * h_min) for P in by_phase.get(ph, []))
+                               for ph in _phases_of(sa) ^ _phases_of(sb)):
+                            continue
+                        sa2 = tr.state_min(a, [rb])[0]
+                        sb2 = tr.state_min(b, [ra])[0]
+                        if sa2 is None or sb2 is None or sa2 == sb2:
+                            continue
+                        subdivide(a, b, sa2, sb2)
+            n_add += len(lines) - n0
+            if verbose:
+                print(f"ZPF probe at ({xp:.4f}, {rp:.4f}): {len(lines) - n0} lines added, {tr.n_solves} solves",
+                      flush=True)
+        return n_add
+
+    if len(probe_at):
+        deadline["t"] = time.time() + probe_time
+        probe_seeds()
+        deadline["t"] = float("inf")
+
     if consistency_rounds:
         consistency_seeds()
         deadline["t"] = float("inf")
@@ -659,9 +715,20 @@ def trace_zpf(pe, feed_of_x, pm: PhaseMap, *, tol: float = 5.0e-4, h0: float = 0
     # free ends: the two sides of the tip of a closed region are joined, others are extended along their tangent to
     # the line or edge they meet (a line ends at the edge or at a junction)
     U = [np.c_[(c.x - x_range[0]) / sx, (c.rh - rh_range[0]) / sr] for c in curves]
-    U = _join_junctions(U, [c.ends for c in curves], 2.5 * h_min)
+    # a line between the two states of a snapped invariant lies at its RH as a whole (its sides differ by two
+    # phases, which only a horizontal line allows), and so do the junctions at its ends: the other lines that end
+    # there (e.g. the two liquidus lines at a eutonic point) are joined to it at that RH
+    fixed = {}
+    for i, c in enumerate(curves):
+        k = inv_fit.get(frozenset((c.left, c.right)))
+        if k is not None and k[0] == 0.0:
+            fixed[i] = float(k[1])
+            U[i][:, 1] = k[1]
+    U = _join_junctions(U, [c.ends for c in curves], 2.5 * h_min, fixed=fixed)
     U = _close_tips(U, [frozenset((c.left, c.right)) for c in curves], 15.0 * h_min, 2.5 * h_min)
     U = _extend_to_edge(U, 12.0 * h_min, 2.5 * h_min)
+    for i, y in fixed.items():
+        U[i][:, 1] = y
     curves = [BoundaryCurve(c.left, c.right, x_range[0] + P[:, 0] * sx, rh_range[0] + P[:, 1] * sr, c.ends)
               for c, P in zip(curves, U)]
     fk = [np.array(k) for k, v in tr.cache.items() if v[0] is None]

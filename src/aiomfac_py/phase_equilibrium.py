@@ -695,10 +695,21 @@ class PhaseEquilibriumResult:
     # smallest TPD of the non-trivial minima (trial phases away from the liquids) in the final stability test, of
     # either sign: positive and going to zero where a further liquid is about to form (used by the ZPF tracing)
     tpd_nontrivial: float = float("nan")
+    # (TPD, distance) of an incipient liquid not split off next to a liquid-liquid critical point (tpd_critical), or
+    # None; the phase diagrams count it as a further liquid (it exists, with nearly the composition of a liquid)
+    near_critical: tuple | None = None
 
     @property
     def n_liquids(self) -> int:
         return len(self.liquids)
+
+    @property
+    def n_incipient(self) -> int:
+        """1 if a near-critical incipient liquid was not split off (see ``near_critical``), else 0"""
+        nc = getattr(self, "near_critical", None)
+        if nc is None and "near-critical" in (getattr(self, "message", "") or ""):
+            return 1                                       # results saved before the field existed
+        return 0 if nc is None else 1
 
     def summary(self) -> str:
         lines = [f"{self.status}: T={self.T_K} K, RH={self.rh:.4f}, {self.n_liquids} liquid phase(s), "
@@ -782,6 +793,13 @@ class PhaseEquilibrium:
         self.k_mode = k_mode
         self._lnk = {s.key: s.ln_k(self.T, k_mode) for s in self.all_solids}
         self.tol_tpd = 1.0e-7
+        # near a liquid-liquid critical point the incipient liquid differs little from an existing one and its TPD is
+        # tiny; splitting it off is hardly possible (the free energy is flat, the inner solves stall until a time limit)
+        # and lowers F by at most about |TPD| per mole.  A TPD above -tpd_critical whose trial phase is within
+        # tpd_critical_dist (max norm of the mole fractions) of a current liquid is therefore not split: the state is
+        # reported converged, with a message (None: always split)
+        self.tpd_critical = 1.0e-5
+        self.tpd_critical_dist = 0.1
         self.seed_fractions = (0.5, 0.2, 0.05)              # size of a new liquid's seed (fraction of the most possible)
         # first seed: "linesearch" = minimize the Gibbs energy along the transfer direction (seed_fractions only for the
         # retries), "fixed" = seed_fractions throughout (the previous rule)
@@ -2235,6 +2253,7 @@ class PhaseEquilibrium:
         n_outer = 0
         tpd_min = float("nan")
         tpd_nontriv = float("nan")
+        near_critical = None
         inner_ok = True
         history = []
         act = np.ones(len(x), dtype=bool)                     # entries taking part (False: species absent from a liquid)
@@ -2327,6 +2346,11 @@ class PhaseEquilibrium:
                 print(f"  outer {n_outer}: {n_liq} liquid(s), TPD_min={tpd_min:.3e}")
             if best[1] is None or tpd_min > -self.tol_tpd or n_liq >= max_liquids or n_outer >= max_outer:
                 break
+            if self.tpd_critical and tpd_min > -self.tpd_critical:
+                d_crit = min(float(np.max(np.abs(best[1] - L.mole_fractions))) for L in liquids)
+                if d_crit < self.tpd_critical_dist:
+                    near_critical = (tpd_min, d_crit)
+                    break
             # an added phase that merges back gives the same phase count and the same TPD again.  Close to the
             # boundary where the new liquid appears, a large seed can make the inner solve fall back to the old state:
             # retry with smaller seeds; when all fail, stop and report the negative TPD (not converged)
@@ -2494,14 +2518,18 @@ class PhaseEquilibrium:
         if bad:
             status = "not_converged"
             msg = "equilibrium conditions violated: " + ", ".join(bad)
-        if tpd_min < -self.tol_tpd:
+        if near_critical is not None and tpd_min < -self.tol_tpd:
+            msg += ("; " if msg else "") + (f"near-critical: incipient liquid not split (TPD={near_critical[0]:.2e}, "
+                                            f"{near_critical[1]:.3f} from a liquid)")
+        elif tpd_min < -self.tol_tpd:
             status = "not_converged"
             msg += ("; " if msg else "") + f"stability test still negative (TPD={tpd_min:.2e})"
         if not inner_ok:
             msg += ("; " if msg else "") + "inner Newton iteration stopped early (line search)"
         result = PhaseEquilibriumResult(status, self.T, rh, liquids, solid_amounts, si, F * scale, checks, tpd_min,
                                         n_outer, message=msg, names=self.names, gas=gas, p_gas=p_out,
-                                        tpd_nontrivial=tpd_nontriv)
+                                        tpd_nontrivial=tpd_nontriv,
+                                        near_critical=near_critical if tpd_min < -self.tol_tpd else None)
         if self._gas_mode == "open":
             result = self._complete_evaporation(result, feed, rh, solids, p_gas, max_liquids, max_outer, verbose)
         return result

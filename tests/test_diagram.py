@@ -293,3 +293,32 @@ def test_phase_map_workers_same_result():
     for ta, tb in zip(a.traces, b.traces):
         assert np.allclose(ta.rh, tb.rh)
         assert [phase_state(r) for r in ta.results] == [phase_state(r) for r in tb.results]
+
+
+def test_check_topology_finds_dangling_ends_and_adjoining_violations():
+    """check_topology: a line end inside the diagram that no line reaches, a sloped line between states two phases
+    apart, and a failed solve away from the lines are reported; a clean set of lines gives none."""
+    from aiomfac_py.diagram import BoundaryCurve, BoundaryCurves, check_topology
+    L, LH, HS = PhaseState(1, ()), PhaseState(1, ("halite",)), PhaseState(0, ("halite", "sylvite"))
+    edge = BoundaryCurve(LH, L, np.array([0.0, 1.0]), np.array([0.2, 0.8]))
+    clean = BoundaryCurves([edge], (0.0, 1.0), (0.0, 1.0))
+    assert check_topology(clean).clean
+    inner = BoundaryCurve(HS, L, np.array([0.0, 0.6]), np.array([0.1, 0.5]))      # 3 phases apart, one end inside
+    bad = BoundaryCurves([edge, inner], (0.0, 1.0), (0.0, 1.0), failed=np.array([[0.9, 0.1]]))
+    rep = check_topology(bad)
+    assert len(rep.dangling) == 1 and abs(rep.dangling[0][1] - 0.6) < 1e-12
+    assert len(rep.adjoining) == 1 and rep.adjoining[0][1] == 3
+    assert rep.failed_far == [(0.9, 0.1)] and not rep.clean and len(rep.points()) == 3
+
+
+def test_trace_until_clean_nacl_kcl():
+    """trace_until_clean on a diagram that is clean after the first tracing: one report, no further round."""
+    from aiomfac_py.diagram import trace_until_clean
+    pe = PhaseEquilibrium([], ["Na+", "K+", "Cl-"], T_K=T0)
+    feed = lambda x: {"Na+": x, "K+": 1.0 - x, "Cl-": 1.0}
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        pm = phase_map(pe, feed, [0.1, 0.5, 0.9], n=12, rh_min=0.6, rh_max=0.95, refine_x=False)
+        bc = trace_until_clean(pe, feed, pm)
+    assert len(bc.reports) == 1 and bc.reports[0].startswith("dangling ends 0, sides != 1 phase apart 0")
+    assert len(bc.curves) == 5

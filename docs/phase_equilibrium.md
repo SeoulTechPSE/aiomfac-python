@@ -717,6 +717,20 @@ The loop stops when:
 * no trial has TPD < −1e-7 (stable);
 * `max_liquids` or `max_outer` is reached; or
 * the same (number of liquids, TPD) pair has repeated `len(seed_fractions)` times.
+* the TPD is above −`tpd_critical` (default 1e-5) and its trial phase lies within `tpd_critical_dist` (0.1, max
+  norm of the mole fractions) of a current liquid (near-critical; reported as converged, with the message
+  "near-critical: incipient liquid not split").
+
+Near a liquid–liquid critical point the incipient liquid differs little from an existing one and its TPD is tiny.
+Splitting it off is hardly possible there: the two liquids are nearly the same, the free energy is flat, and the
+inner solves stalled until the time limit (UHAERO 2007 Fig. 9 (a), the tip of the thin 4L+C region: TPD −2.5e-6
+and −6.8e-6, trial phase 0.025–0.033 from a liquid; more than 15 min without a limit). The split would lower F by
+at most about |TPD| per mole of the new liquid, so the state with one liquid fewer is accepted. `tpd_critical = None`
+restores the split. In the benchmark of `tools/solver_bench.py` 14 of 21 previously failed points converge (6
+before); the converged points keep their state and F.
+The result keeps the incipient liquid in `near_critical` (TPD, distance); `n_incipient` is 1 then, and the phase
+diagrams count it as a further liquid (`aiomfac_py.diagram.phase_state`; in the ZPF functions it is present with
+size −TPD, so the boundary of its region lies at TPD = 0).
 
 A repeat means that the added liquid vanished or merged back. This happens close to the RH where the new liquid
 appears: a large seed starts the inner solve far from the new state, and the Newton iteration returns to the old one.

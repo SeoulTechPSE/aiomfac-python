@@ -76,6 +76,12 @@ examples in [`notebooks/07_phase_diagrams.ipynb`](notebooks/07_phase_diagrams.ip
 * `plot_phase_map` fills the regions between the lines, `label_regions` names them (small regions are numbered and
   listed beside the panel), and `plot_validity` marks where the ionic strength of a liquid exceeds the range AIOMFAC
   was fitted to.
+* `check_topology` reports dangling line ends, lines between states that differ by more than one phase and
+  unresolved regions; `trace_until_clean` repeats the tracing around such findings until the check is clean.
+  `phase_map` and the ZPF tracing run in several processes with `workers=N`.
+* `aiomfac-diagram run diagram.toml` computes a diagram from a configuration file (aiomfac-tool case format for the
+  system and the feeds at the two ends of the axis): map, lines, check and plot, resumable after an interruption
+  ([`examples/diagrams/`](examples/diagrams)).
 * Scripts reproduce the inorganic and organic phase diagrams of UHAERO (Amundson et al., 2006, 2007):
   [`tools/uhaero2006_figures.py`](tools/uhaero2006_figures.py), [`tools/uhaero2007_figures.py`](tools/uhaero2007_figures.py)
   (`map`, `lines [--zpf]`, `plot`); the comparison with the papers is in
@@ -98,8 +104,9 @@ Organic–inorganic: NH4+/H+/SO4²⁻/H2O (Y = 1) with two organics at organic/i
   <img src="docs/figs/phase_diagram_uhaero07_Y1.00.png" alt="UHAERO 2007 Fig. 8 with AIOMFAC: X-RH phase diagrams with two organics" width="900">
 </p>
 
-The same with nitrate (Y = 0.85; UHAERO 2007 Fig. 9; solids as above). Invariant lines are set to the invariant RH
-found from the stability of the appearing phase (e.g. the 4L | 3L+C line of (a) at RH 0.1778):
+The same with nitrate (Y = 0.85; UHAERO 2007 Fig. 9; solids as above), computed with `aiomfac-diagram` from
+[`tools/configs/`](tools/configs): invariant lines at the invariant RH, near-critical liquids counted, topology
+checked and repaired (one or two open line ends per panel remain, e.g. at the tip of the thin 4L+C region of (a)):
 
 <p align="center">
   <img src="docs/figs/phase_diagram_uhaero07_Y0.85.png" alt="UHAERO 2007 Fig. 9 with AIOMFAC: X-RH phase diagrams with two organics at Y = 0.85" width="900">

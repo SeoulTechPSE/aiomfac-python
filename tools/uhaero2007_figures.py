@@ -98,6 +98,19 @@ def org_system(pair, ions):
     return pe, o1.name, o2.name, f1
 
 
+def pipeline_system(pair, Y):
+    """PhaseEquilibrium of pair ``pair`` (None: inorganic) at sulfate fraction Y, for aiomfac-diagram"""
+    return org_system(pair, ["NH4+", "H+", "SO4--"] + (["NO3-"] if Y < 1 else []))[0]
+
+
+def pipeline_feed(X, pair, Y, alpha=0.2):
+    """feed at ammonium fraction X (aiomfac-diagram)"""
+    if pair is None:
+        return inorg_feed(X, Y)
+    k1, k2, f1 = PAIRS[pair]
+    return with_organics(inorg_feed(X, Y), SMILES[k1][0], SMILES[k2][0], f1, alpha)
+
+
 def with_organics(feed, o1, o2, f1, alpha):
     feed = dict(feed)
     if o1 is not None and alpha > 0:
