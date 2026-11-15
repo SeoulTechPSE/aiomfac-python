@@ -5,7 +5,8 @@
 Maintenance release of the 1.3 line with the viscosity fixes below (code identical to commit 03a5ab2 of `main`). It
 also contains, in `papers/paper1_viscosity/`, the notebooks, scripts, result files and figures of the paper
 "Evaluating a structure-based viscosity pipeline for organic aerosol" (Yoo, in preparation). The later work on `main`
-(new phase-equilibrium solvers and tools) is not part of this release.
+(phase diagrams and ZPF tracing, `aiomfac-diagram`, near-critical liquids, solver speed-ups) is not part of this
+release.
 
 - **Fix, aquelec mixing rule** (`aquelec_viscosity`): ion molalities were multiplied by
   `lambda = w_w / (w_w + sum w_org)` as printed in Lilek and Zuend (2022) Eq. (20); the paper's own definition
