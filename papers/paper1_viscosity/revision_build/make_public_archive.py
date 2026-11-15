@@ -31,14 +31,18 @@ NOTEBOOKS = ["aiomfac_validation_01_pure_compounds.ipynb", "aiomfac_validation_0
              "aiomfac_validation_08_parameter_sensitivity.ipynb",
              "aiomfac_validation_09_oof_tg.ipynb",
              "aiomfac_validation_10_proxy_oc.ipynb",
-             "aiomfac_validation_11_llps_song2012.ipynb"]
+             "aiomfac_validation_11_llps_song2012.ipynb",
+             "aiomfac_validation_12_dynamics_metrics.ipynb",
+             "aiomfac_validation_13_oligomer_surrogate.ipynb",
+             "aiomfac_validation_14_ambient_oligomers.ipynb"]
 NB_CLEARED = ["aiomfac_validation_07_ambient_identified_samples.ipynb"]
 NB_DATA = ["literature_curves.json", "bimog_unified.json", "gervasi_supp.zip", "validation_results.json",
            "soa_validation_results.json", "glassy_regime_diagnosis.json", "revision_results.json",
            "ambient_pointwise_results.json", "ambient_phase_state_results.json", "parameter_sensitivity_results.json", "oof_tg_results.json", "proxy_oc_results.json", "llps_song2012_results.json",
+           "dynamics_metrics_results.json", "oligomer_surrogate_results.json", "ambient_oligomer_results.json",
            "fig_A_predicted_vs_measured.png", "fig_B_example_curves.png", "fig_C_tg_validation.png",
            "fig_D_apinene_soa.png"]
-BUILD = ["build_nb04.py", "build_nb05.py", "build_nb06.py", "build_nb07.py", "build_nb08.py", "build_nb09.py", "build_nb10.py", "build_nb11.py", "make_figs.py", "make_supplement.py",
+BUILD = ["build_nb04.py", "build_nb05.py", "build_nb06.py", "build_nb07.py", "build_nb08.py", "build_nb09.py", "build_nb10.py", "build_nb11.py", "build_nb12.py", "build_nb13.py", "build_nb14.py", "make_figs.py", "make_fig7.py", "make_supplement.py",
          "make_public_archive.py", "subgroup_names.json"]
 MEASURED_KEYS = {"log10_eta", "log10_lo", "log10_hi", "tau_mix_h", "censored"}
 
@@ -146,13 +150,13 @@ def main():
 README = """# paper_1 archive: code, notebooks, results and figures
 
 Material for "Evaluating a structure-based viscosity pipeline for organic aerosol" (K.-Y. Yoo). All calculations use
-`aiomfac_py` v1.3.1 (https://github.com/SeoulTechPSE/aiomfac-python), whose code is identical to commit 03a5ab2 of the
-main branch; this folder is part of that release. The notebook outputs print the version string 1.3.0, which the
-package carried at commit 03a5ab2 before the version number was raised for the release.
+the code of `aiomfac_py` v1.3.2 (https://github.com/SeoulTechPSE/aiomfac-python), which is identical to v1.3.1 and
+to commit 03a5ab2 of the main branch; this folder is part of release v1.3.2. The outputs of notebooks 01-11 print the
+version string 1.3.0, which the package carried at commit 03a5ab2, and those of notebooks 12-14 print 1.3.1.
 
-* `notebooks/aiomfac_validation_01..11*.ipynb` and `aiomfac_validation_03_ambient_pm25.ipynb`: the analyses, with
+* `notebooks/aiomfac_validation_01..14*.ipynb` and `aiomfac_validation_03_ambient_pm25.ipynb`: the analyses, with
   their result files (`*.json`) and the Gervasi et al. (2020) Supplement (`gervasi_supp.zip`, CC BY 4.0).
-* `revision_build/`: scripts that generate notebooks 04-11, the manuscript figures (`make_figs.py`) and the
+* `revision_build/`: scripts that generate notebooks 04-14, the manuscript figures (`make_figs.py`, `make_fig7.py`) and the
   Supplement text (`make_supplement.py`).
 * `figures_revised/`: the manuscript figures.
 * `ambient_data/ambient_data.py`: loader for the ambient PM2.5 data.
@@ -160,7 +164,7 @@ package carried at commit 03a5ab2 before the version number was raised for the r
 Not included: the ambient PM2.5 viscosity point values (Do et al., 2026a; Ullah et al., 2026). They were provided by
 the authors, who will publish them and asked that they not be deposited; they are available from the authors on
 request (see `ambient_data/README.md`). Notebook 07 is therefore archived without outputs, and the measured values are
-removed from `ambient_identified_samples_results.json`. To rerun notebooks 05-07, obtain the data file and set
+removed from `ambient_identified_samples_results.json`. To rerun notebooks 05-07 and 14, obtain the data file and set
 `AMBIENT_XLSX` to its location.
 
 Licences: the code in this folder is covered by the licence of the repository (GPL-3.0-or-later). The data files

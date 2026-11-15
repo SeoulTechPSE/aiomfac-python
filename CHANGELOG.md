@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.3.2 (2026-11)
+
+No code changes (identical to v1.3.1 and to commit 03a5ab2 of `main`). `papers/paper1_viscosity/` is updated: three
+new notebooks for the viscosity-pipeline paper (12: viscosity errors as RH errors and mixing-time classes; 13: alpha-pinene
+SOA as a monomer-dimer surrogate; 14: the same surrogate for ambient PM2.5), their result files and build scripts, and
+Fig. 7. The ambient PM2.5 point values are still not included.
+
 ## v1.3.1 (2026-11)
 
 Maintenance release of the 1.3 line with the viscosity fixes below (code identical to commit 03a5ab2 of `main`). It

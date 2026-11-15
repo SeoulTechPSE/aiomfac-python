@@ -1,5 +1,5 @@
 """Write supplement.txt (Supplement of the paper_1 manuscript) with every number taken from the result files of
-notebooks 08, 09 and 11. Run from paper_1/revision_build:  python make_supplement.py
+notebooks 08, 09, 11 and 13. Run from paper_1/revision_build:  python make_supplement.py
 Then build:  python build_docx.py supplement.txt ../aiomfac_soa_viscosity_supplement.docx ..
 """
 import json
@@ -8,6 +8,27 @@ NB = "../notebooks/"
 P = json.load(open(NB + "parameter_sensitivity_results.json"))
 O = json.load(open(NB + "oof_tg_results.json"))
 L = json.load(open(NB + "llps_song2012_results.json"))
+OL = json.load(open(NB + "oligomer_surrogate_results.json"))
+LABEL = {"pinyl-diaterpenyl ester": "C17", "pinonyl-pinyl ester": "C19"}
+
+
+def study_label(st):
+    t = st.split("_", 1)[1].replace("@", ", ").replace("ugm-3", " µg m^{−3}")
+    import re as _re
+    return _re.sub(r"([A-Za-z-]+)(\d{4})", r"\1 \2", t)
+
+
+inv_rows = []
+for st in dict.fromkeys(r["study"] for r in OL["inversion"]["results"]):
+    rr = {(r["dimer"], r["mixing"]): r for r in OL["inversion"]["results"] if r["study"] == st}
+    r0 = next(iter(rr.values()))
+    cells = []
+    for m in ("g2020", "mole_fraction"):
+        for d in ("pinyl-diaterpenyl ester", "pinonyl-pinyl ester"):
+            r = rr[(d, m)]
+            cells.append(f"{r['f_best']:.2f}{'*' if r['at_bound'] else ''} ({r['mae_f0']:.2f} → {r['mae_best']:.2f})")
+    inv_rows.append(f"| {study_label(st)} | {r0['T_K']:.0f} | {r0['n']} | {r0['rh_min'] * 100:.0f}{'' if round(r0['rh_min'] * 100) == round(r0['rh_max'] * 100) else f'–{r0["rh_max"] * 100:.0f}'} | " + " | ".join(cells) + " |")
+inv_rows = "\n".join(inv_rows)
 f2 = lambda v: f"{v:.2f}"
 f3 = lambda v: f"{v:.3f}"
 
@@ -126,10 +147,20 @@ TABLE: Table S4. Observed (Song et al., 2012, Table 2, and references therein) a
 | System | Observed LLPS | Predicted LLPS | Highest onset RH |
 {cls_rows}
 
+# S4 Dimer fraction that minimizes the error of each α-pinene data set
+
+For the monomer–dimer surrogate of Sect. 2.5 and 3.5 of the main paper (pinonic and pinic acid in equal mass plus the dimer C_{{17}}H_{{26}}O_{{8}} or C_{{19}}H_{{28}}O_{{7}}, predicted T_{{g}}), the dimer mass fraction f_{{d}} was varied from 0 to 0.9 in steps of 0.05 for each α-pinene data set separately, and the value with the lowest MAE was taken (Table S5). This is an inversion on the data, not a validation. Four data sets contain a single point, which is matched exactly unless f_{{d}} reaches the end of the range. For the two data sets with the most points, Zhang et al. (2015) and Renbaum-Wolff et al. (2013, semi-solid), the lowest MAE remains 0.8–1.4, because the measured viscosities between 25 and 55 % RH lie above the predicted curves for every f_{{d}} that fits the drier and more humid points.
+
+TABLE: Table S5. Dimer mass fraction f_{{d}} with the lowest MAE for each α-pinene data set, and in parentheses the MAE (log_{{10}} units) for monomers only and at that f_{{d}}. C17: C_{{17}}H_{{26}}O_{{8}}; C19: C_{{19}}H_{{28}}O_{{7}}. An asterisk marks the upper end of the search range (0.9).
+| Data set | T (K) | Points | RH (%) | G2020, C17 | G2020, C19 | Mole fraction, C17 | Mole fraction, C19 |
+{inv_rows}
+
 # References
 
 REF: Armeli Iapichino, G., Peters, J.-H., and Koop, T.: Machine-learning-based prediction of the glass transition temperature of organic compounds using experimental data, ACS Omega, 8, 12298–12309, https://doi.org/10.1021/acsomega.2c08146, 2023.
+REF: Renbaum-Wolff, L., Grayson, J. W., Bateman, A. P., Kuwata, M., Sellier, M., Murray, B. J., Shilling, J. E., Martin, S. T., and Bertram, A. K.: Viscosity of α-pinene secondary organic material and implications for particle growth and reactivity, P. Natl. Acad. Sci. USA, 110, 8014–8019, https://doi.org/10.1073/pnas.1219548110, 2013.
 REF: Song, M., Marcolli, C., Krieger, U. K., Zuend, A., and Peter, T.: Liquid-liquid phase separation and morphology of internally mixed dicarboxylic acids/ammonium sulfate/water particles, Atmos. Chem. Phys., 12, 2691–2712, https://doi.org/10.5194/acp-12-2691-2012, 2012.
+REF: Zhang, Y., Sanchez, M. S., Douet, C., Wang, Y., Bateman, A. P., Gong, Z., Kuwata, M., Renbaum-Wolff, L., Sato, B. B., Liu, P. F., Bertram, A. K., Geiger, F. M., and Martin, S. T.: Changing shapes and implied viscosities of suspended submicron particles, Atmos. Chem. Phys., 15, 7819–7829, https://doi.org/10.5194/acp-15-7819-2015, 2015.
 REF: Zuend, A., Marcolli, C., Peter, T., and Seinfeld, J. H.: Computation of liquid-liquid equilibria and phase stabilities: implications for RH-dependent gas/particle partitioning of organic-inorganic aerosols, Atmos. Chem. Phys., 10, 7795–7820, https://doi.org/10.5194/acp-10-7795-2010, 2010.
 """
 TEXT = TEXT.replace("(bias -", "(bias −").replace(" -> ", " → ").replace("mfd(AS)", "mf_{d}(AS)")
