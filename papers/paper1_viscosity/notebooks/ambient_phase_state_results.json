@@ -1,0 +1,7100 @@
+{
+ "sle": {
+  "Ansan": {
+   "T_K": 300.0,
+   "an_mass_frac": 0.22217299626743361,
+   "drh": 0.5269412231445312,
+   "full_dissolution_rh": 0.7600765991210938,
+   "erh": 0.2611599731445312,
+   "erh_salt": "ammonium_sulfate",
+   "ln_s_crit_as": 3.3657357505694967
+  },
+  "Seoul": {
+   "T_K": 290.0,
+   "an_mass_frac": 0.33124116480218,
+   "drh": 0.5720455932617188,
+   "full_dissolution_rh": 0.7449649047851563,
+   "erh": 0.20267425537109374,
+   "erh_salt": "ammonium_sulfate",
+   "ln_s_crit_as": 3.4501337550733933
+  },
+  "Beijing": {
+   "T_K": 290.0,
+   "an_mass_frac": 0.4752631435478759,
+   "drh": 0.5720455932617188,
+   "full_dissolution_rh": 0.7025137329101563,
+   "erh": 0.11477264404296876,
+   "erh_salt": "ammonium_sulfate",
+   "ln_s_crit_as": 3.4501337550733933
+  }
+ },
+ "grid": [
+  {
+   "site": "Ansan",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "oir": 1.149,
+   "rh": 0.05,
+   "s1": 3.9006862068442927,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 5.3910021214846555,
+    "x_org_phase": [
+     0.03568348538991517,
+     0.9495688689749225,
+     0.009831763756774933,
+     0.004915881878387399
+    ],
+    "aw_check": 0.05000000000617396,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.234790047988099e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007565410440257376
+    },
+    "log10_eta_org_phase": 5.373234757366204,
+    "x_org_phase": [
+     0.035926771862729454,
+     0.9629981799636196,
+     0.0007166987824339477,
+     0.00035834939121698735
+    ],
+    "aw_check": 0.0500000000000622,
+    "tpd_min": 0.0,
+    "max_si": 2.523457415248842e-10,
+    "ln_aw_resid": 1.2438938767900254e-12,
+    "log10_eta": 5.373234757366204,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0003066644243905241,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "oir": 1.149,
+   "rh": 0.1,
+   "s1": 2.6248504720602828,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 5.089425963815286,
+    "x_org_phase": [
+     0.06985103087982035,
+     0.9175222449169573,
+     0.008417816135481614,
+     0.004208908067740674
+    ],
+    "aw_check": 0.10000000000609532,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 6.09530204087605e-11
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007565341273021489
+    },
+    "log10_eta_org_phase": 5.073865045331734,
+    "x_org_phase": [
+     0.07021220330467785,
+     0.9287201150117705,
+     0.0007117877890345687,
+     0.0003558938945171311
+    ],
+    "aw_check": 0.10000000000006122,
+    "tpd_min": 0.0,
+    "max_si": 2.451053110474888e-10,
+    "ln_aw_resid": 6.119549311733863e-13,
+    "log10_eta": 5.073865045331734,
+    "solid_as": true,
+    "frac_as_dissolved": 0.00031580418294029354,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "oir": 1.149,
+   "rh": 0.15,
+   "s1": 1.6776183039163861,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 4.793749356016581,
+    "x_org_phase": [
+     0.10270346155399454,
+     0.8861534781895525,
+     0.007428706837635264,
+     0.003714353418817587
+    ],
+    "aw_check": 0.15000000000600586,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 4.0039083160081645e-11
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007565263111292245
+    },
+    "log10_eta_org_phase": 4.781488752124796,
+    "x_org_phase": [
+     0.10311691554492779,
+     0.895819544915069,
+     0.000709026360002348,
+     0.0003545131800009805
+    ],
+    "aw_check": 0.1500000000000602,
+    "tpd_min": 0.0,
+    "max_si": 2.373968105429114e-10,
+    "ln_aw_resid": 4.0123460109953157e-13,
+    "log10_eta": 4.781488752124796,
+    "solid_as": true,
+    "frac_as_dissolved": 0.00032613247384240485,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "oir": 1.149,
+   "rh": 0.2,
+   "s1": 0.9520118442592475,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 4.503851657060147,
+    "x_org_phase": [
+     0.1344372833567898,
+     0.8556678223053363,
+     0.006596596225249278,
+     0.003298298112624612
+    ],
+    "aw_check": 0.20000000000590734,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 2.953659539173259e-11
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007565175027082201
+    },
+    "log10_eta_org_phase": 4.494829635101779,
+    "x_org_phase": [
+     0.1348567032644629,
+     0.8640808260049669,
+     0.0007083138203803059,
+     0.00035415691018986776
+    ],
+    "aw_check": 0.20000000000005935,
+    "tpd_min": 0.0,
+    "max_si": 2.2926731346739615e-10,
+    "ln_aw_resid": 2.9665159217984183e-13,
+    "log10_eta": 4.494829635101779,
+    "solid_as": true,
+    "frac_as_dissolved": 0.000337771921357572,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "oir": 1.149,
+   "rh": 0.25,
+   "s1": 0.3822482360194329,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 4.218820297316779,
+    "x_org_phase": [
+     0.16522382544393802,
+     0.826025733678259,
+     0.005833627251868609,
+     0.002916813625934239
+    ],
+    "aw_check": 0.2500000000058003,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 2.3201218724011596e-11
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007565075814120865
+    },
+    "log10_eta_org_phase": 4.212782407986161,
+    "x_org_phase": [
+     0.16561469358615372,
+     0.8333208881357161,
+     0.0007096121854204436,
+     0.0003548060927096364
+    ],
+    "aw_check": 0.25000000000583933,
+    "tpd_min": 0.0,
+    "max_si": 2.2070939784124555e-08,
+    "ln_aw_resid": 2.3357316081273893e-11,
+    "log10_eta": 4.212782407986161,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0003508819220687243,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "oir": 1.149,
+   "rh": 0.3,
+   "s1": -0.07402185755698276,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.9377644799801454,
+    "x_org_phase": [
+     0.19521243347990444,
+     0.7971229995380975,
+     0.005109711321331954,
+     0.002554855660665977
+    ],
+    "aw_check": 0.30000000000568466,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.8949064539697247e-11
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007564963931869274
+    },
+    "log10_eta_org_phase": 3.934364163487198,
+    "x_org_phase": [
+     0.19555016696988228,
+     0.8033804213140731,
+     0.0007129411440301443,
+     0.0003564705720145446
+    ],
+    "aw_check": 0.30000000000572175,
+    "tpd_min": 0.0,
+    "max_si": 2.117926815869975e-08,
+    "ln_aw_resid": 1.9072521340035564e-11,
+    "log10_eta": 3.934364163487198,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0003656660427942147,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "oir": 1.149,
+   "rh": 0.35,
+   "s1": -0.44524856923963707,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.65986352190703,
+    "x_org_phase": [
+     0.22453477574296488,
+     0.7688176361381394,
+     0.004431725412597109,
+     0.0022158627062985733
+    ],
+    "aw_check": 0.3500000000055616,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.589040010685494e-11
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007564837422371124
+    },
+    "log10_eta_org_phase": 3.6586757067571325,
+    "x_org_phase": [
+     0.22480525515638083,
+     0.7741171776722553,
+     0.0007183781142430697,
+     0.00035918905712081426
+    ],
+    "aw_check": 0.35000000000559517,
+    "tpd_min": 0.0,
+    "max_si": 2.0257383367972004e-08,
+    "ln_aw_resid": 1.5986323376182554e-11,
+    "log10_eta": 3.6586757067571325,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0003823830078790044,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "oir": 1.149,
+   "rh": 0.4,
+   "s1": -0.7512724270433028,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.384305780051057,
+    "x_org_phase": [
+     0.25331178233138407,
+     0.7409655698238578,
+     0.0038150985631720258,
+     0.001907549281586034
+    ],
+    "aw_check": 0.40000000000543046,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.357602918972134e-11
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.0075646937907248414
+    },
+    "log10_eta_org_phase": 3.3848695978577075,
+    "x_org_phase": [
+     0.2535103094644941,
+     0.7454005959870434,
+     0.0007260630323088272,
+     0.0003630315161535445
+    ],
+    "aw_check": 0.40000000000546093,
+    "tpd_min": 0.0,
+    "max_si": 1.930256048054968e-08,
+    "ln_aw_resid": 1.3652301511513087e-11,
+    "log10_eta": 3.3848695978577075,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0004013624936184419,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "oir": 1.149,
+   "rh": 0.45,
+   "s1": -1.0063916396916532,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.110258553776055,
+    "x_org_phase": [
+     0.2816597688996668,
+     0.713440165590629,
+     0.0032667103398026512,
+     0.001633355169901356
+    ],
+    "aw_check": 0.450000000005291,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.175781694229272e-11
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007564529832732053
+    },
+    "log10_eta_org_phase": 3.1121216186920844,
+    "x_org_phase": [
+     0.2817885020745156,
+     0.7171071850127435,
+     0.000736208608494639,
+     0.00036810430424622507
+    ],
+    "aw_check": 0.4500000000053186,
+    "tpd_min": 0.0,
+    "max_si": 1.831908051641573e-08,
+    "ln_aw_resid": 1.1819101253252029e-11,
+    "log10_eta": 3.1121216186920844,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0004230279027854352,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "oir": 1.149,
+   "rh": 0.05,
+   "s1": 4.361061539077276,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 5.6800887021481525,
+    "x_org_phase": [
+     0.04602291391614273,
+     0.6782093801738089,
+     0.18384513727336568,
+     0.09192256863668281
+    ],
+    "aw_check": 0.050000000344514114,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 6.890282122640201e-09
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007550230575432045
+    },
+    "log10_eta_org_phase": 5.645900026572011,
+    "x_org_phase": [
+     0.0546560448176296,
+     0.9373683996772554,
+     0.005317037003409905,
+     0.0026585185017050325
+    ],
+    "aw_check": 0.05000000000401264,
+    "tpd_min": 0.0,
+    "max_si": 3.314284000022205e-09,
+    "ln_aw_resid": 8.025269337963437e-11,
+    "log10_eta": 5.645900026572011,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0023125317624098935,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "oir": 1.149,
+   "rh": 0.1,
+   "s1": 3.0593405440724903,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 5.218627399385846,
+    "x_org_phase": [
+     0.09068716036045085,
+     0.6595584361653603,
+     0.1665029356494593,
+     0.08325146782472957
+    ],
+    "aw_check": 0.10000000034038081,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 3.403807902202516e-09
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007549416930373566
+    },
+    "log10_eta_org_phase": 5.171061760008261,
+    "x_org_phase": [
+     0.10512319446180243,
+     0.8869791154212712,
+     0.005265126744617715,
+     0.0026325633723086645
+    ],
+    "aw_check": 0.10000000000394815,
+    "tpd_min": 0.0,
+    "max_si": 3.167341985910177e-09,
+    "ln_aw_resid": 3.948130711250997e-11,
+    "log10_eta": 5.171061760008261,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0024200468204367913,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "oir": 1.149,
+   "rh": 0.15,
+   "s1": 2.077213172233356,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 4.758338184433988,
+    "x_org_phase": [
+     0.1338457249096228,
+     0.6376763936966764,
+     0.1523185875958006,
+     0.07615929379790017
+    ],
+    "aw_check": 0.1500000003344887,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 2.229924689345353e-09
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.0075484786295544485
+    },
+    "log10_eta_org_phase": 4.718586636600706,
+    "x_org_phase": [
+     0.1521045015683348,
+     0.8400326126628698,
+     0.005241923845863763,
+     0.002620961922931772
+    ],
+    "aw_check": 0.1500000000038764,
+    "tpd_min": 0.0,
+    "max_si": 3.0139349210811517e-09,
+    "ln_aw_resid": 2.584266134419977e-11,
+    "log10_eta": 4.718586636600706,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0025440338906750105,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "oir": 1.149,
+   "rh": 0.2,
+   "s1": 1.3160926159412065,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 4.305734792129848,
+    "x_org_phase": [
+     0.1756920009806171,
+     0.6157960776506294,
+     0.13900794757916915,
+     0.06950397378958442
+    ],
+    "aw_check": 0.20000000032852522,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.6426260351920519e-09
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007547395132366311
+    },
+    "log10_eta_org_phase": 4.2856987795580075,
+    "x_org_phase": [
+     0.1961606121035892,
+     0.7959696442049206,
+     0.005246495794327035,
+     0.0026232478971632256
+    ],
+    "aw_check": 0.20000000000379792,
+    "tpd_min": 0.0,
+    "max_si": 2.8539082624901013e-09,
+    "ln_aw_resid": 1.8989476657793602e-11,
+    "log10_eta": 4.2856987795580075,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0026872072091155626,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "oir": 1.149,
+   "rh": 0.25,
+   "s1": 0.7130335872198671,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.8651941014409514,
+    "x_org_phase": [
+     0.2164764805360166,
+     0.5951824763455402,
+     0.12556069541229561,
+     0.06278034770614757
+    ],
+    "aw_check": 0.2500000003215996,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.2863983211985897e-09
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007546139442443632
+    },
+    "log10_eta_org_phase": 3.8698972389391506,
+    "x_org_phase": [
+     0.2377490599981701,
+     0.7543323503015985,
+     0.005279059800154615,
+     0.0026395299000769486
+    ],
+    "aw_check": 0.2500000000037121,
+    "tpd_min": 0.0,
+    "max_si": 2.6884246356884134e-09,
+    "ln_aw_resid": 1.484834477594177e-11,
+    "log10_eta": 3.8698972389391506,
+    "solid_as": true,
+    "frac_as_dissolved": 0.002853134075498245,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "oir": 1.149,
+   "rh": 0.3,
+   "s1": 0.226416280604001,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.4396145800159164,
+    "x_org_phase": [
+     0.2564371970109459,
+     0.5763574310450741,
+     0.11147024796265338,
+     0.0557351239813268
+    ],
+    "aw_check": 0.3000000003146061,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.0486871371284678e-09
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007544675958350368
+    },
+    "log10_eta_org_phase": 3.46901031058002,
+    "x_org_phase": [
+     0.27725186396141666,
+     0.7147366541888082,
+     0.005340987899850412,
+     0.0026704939499247703
+    ],
+    "aw_check": 0.30000000000361954,
+    "tpd_min": 0.0,
+    "max_si": 2.5183029411790514e-09,
+    "ln_aw_resid": 1.2065237697811426e-11,
+    "log10_eta": 3.46901031058002,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0030465188635817038,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "oir": 1.149,
+   "rh": 0.35,
+   "s1": -0.1722601480397036,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.0303092248546983,
+    "x_org_phase": [
+     0.29571239178278896,
+     0.5590320551638528,
+     0.09683703536890553,
+     0.048418517684452725
+    ],
+    "aw_check": 0.35000000030849554,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 8.814160512571334e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007542957239601923
+    },
+    "log10_eta_org_phase": 3.0811238189441936,
+    "x_org_phase": [
+     0.3149957145449116,
+     0.6768518719317954,
+     0.00543494234886237,
+     0.002717471174430614
+    ],
+    "aw_check": 0.35000000000352005,
+    "tpd_min": 0.0,
+    "max_si": 2.3438624791038976e-09,
+    "ln_aw_resid": 1.0057510380079293e-11,
+    "log10_eta": 3.0811238189441936,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0032736303590011977,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "oir": 1.149,
+   "rh": 0.4,
+   "s1": -0.5031521453804314,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 2.6372794633015713,
+    "x_org_phase": [
+     0.33433126808672486,
+     0.5424550489711986,
+     0.0821424552947178,
+     0.04107122764735888
+    ],
+    "aw_check": 0.4000000000030237,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 7.559175507765303e-12
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007540919065235339
+    },
+    "log10_eta_org_phase": 2.7045094408090273,
+    "x_org_phase": [
+     0.35126748198175245,
+     0.640384766351929,
+     0.005565167777546096,
+     0.002782583888772442
+    ],
+    "aw_check": 0.40000000000341274,
+    "tpd_min": 0.0,
+    "max_si": 2.165395904252243e-09,
+    "ln_aw_resid": 8.53173087733694e-12,
+    "log10_eta": 2.7045094408090273,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0035429547198012872,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "oir": 1.149,
+   "rh": 0.45,
+   "s1": -0.7809434409923193,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 2.259779334778265,
+    "x_org_phase": [
+     0.3722599857471027,
+     0.525827834599419,
+     0.06794145310231896,
+     0.03397072655115949
+    ],
+    "aw_check": 0.450000000002959,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 6.575517907947415e-12
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007538472688234331
+    },
+    "log10_eta_org_phase": 2.337558843051202,
+    "x_org_phase": [
+     0.3863269348157353,
+     0.6050660579857776,
+     0.005738004798991934,
+     0.002869002399495323
+    ],
+    "aw_check": 0.45000000000329843,
+    "tpd_min": 0.0,
+    "max_si": 1.9850246307795416e-09,
+    "ln_aw_resid": 7.329803430877746e-12,
+    "log10_eta": 2.337558843051202,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0038662189767146504,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "oir": 2.78,
+   "rh": 0.05,
+   "s1": 6.3669550692235655,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 6.721790629071221,
+    "x_org_phase": [
+     0.03698510510124408,
+     0.9488033288523194,
+     0.009474377364290935,
+     0.004737188682145452
+    ],
+    "aw_check": 0.0500000000032125,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 6.424993870268736e-11
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007562491375226746
+    },
+    "log10_eta_org_phase": 6.705288635777248,
+    "x_org_phase": [
+     0.037258811189268194,
+     0.9617392937398574,
+     0.0006679300472494788,
+     0.00033396502362482175
+    ],
+    "aw_check": 0.05000000000323271,
+    "tpd_min": 0.0,
+    "max_si": 1.4602355352666407e-08,
+    "ln_aw_resid": 6.465405988365092e-11,
+    "log10_eta": 6.705288635777248,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0006923896775376739,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "oir": 2.78,
+   "rh": 0.1,
+   "s1": 5.681908400001686,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 6.363971458246907,
+    "x_org_phase": [
+     0.07214833597987039,
+     0.9157354179802806,
+     0.008077497359899306,
+     0.004038748679949626
+    ],
+    "aw_check": 0.10000000000317885,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 3.178834973027733e-11
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007562346208261499
+    },
+    "log10_eta_org_phase": 6.350061902433726,
+    "x_org_phase": [
+     0.07255140927746237,
+     0.926456712620244,
+     0.0006612520681957329,
+     0.00033062603409789507
+    ],
+    "aw_check": 0.10000000000319867,
+    "tpd_min": 0.0,
+    "max_si": 1.4212697269089247e-08,
+    "ln_aw_resid": 3.198641351787046e-11,
+    "log10_eta": 6.350061902433726,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0007115720403254182,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "oir": 2.78,
+   "rh": 0.15,
+   "s1": 5.021558535149858,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 6.015890120803892,
+    "x_org_phase": [
+     0.10575543689190595,
+     0.8835853598904094,
+     0.007106135478456363,
+     0.0035530677392281375
+    ],
+    "aw_check": 0.15000000000313868,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 2.092459538971525e-11
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007562179978821463
+    },
+    "log10_eta_org_phase": 6.005406137462916,
+    "x_org_phase": [
+     0.10621466697689365,
+     0.8927999822829781,
+     0.0006569004934188093,
+     0.00032845024670932337
+    ],
+    "aw_check": 0.15000000000315866,
+    "tpd_min": 0.0,
+    "max_si": 1.3790675740255054e-08,
+    "ln_aw_resid": 2.105782215267027e-11,
+    "log10_eta": 6.005406137462916,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0007335375985318331,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "oir": 2.78,
+   "rh": 0.2,
+   "s1": 4.386675784891051,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 5.6766225603498155,
+    "x_org_phase": [
+     0.13805350969608135,
+     0.8525026550192994,
+     0.006295890189746137,
+     0.0031479450948730106
+    ],
+    "aw_check": 0.200000000003093,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.546496264381858e-11
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007561990909465711
+    },
+    "log10_eta_org_phase": 5.669416362317252,
+    "x_org_phase": [
+     0.13851876418964015,
+     0.8604991883050486,
+     0.0006546983368742523,
+     0.00032734916843712433
+    ],
+    "aw_check": 0.2000000000031124,
+    "tpd_min": 0.0,
+    "max_si": 1.3339713805793352e-08,
+    "ln_aw_resid": 1.556199613617082e-11,
+    "log10_eta": 5.669416362317252,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0007585212232008741,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "oir": 2.78,
+   "rh": 0.25,
+   "s1": 3.7773272552070503,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 5.344735682557327,
+    "x_org_phase": [
+     0.1692517833914132,
+     0.8224094512514641,
+     0.00555917690474856,
+     0.002779588452374199
+    ],
+    "aw_check": 0.25000000000304284,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.2171375018965591e-11
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007561776546870098
+    },
+    "log10_eta_org_phase": 5.340498585834203,
+    "x_org_phase": [
+     0.16968654789119006,
+     0.8293316298563921,
+     0.0006545481682785386,
+     0.00032727408413922414
+    ],
+    "aw_check": 0.25000000000306105,
+    "tpd_min": 0.0,
+    "max_si": 1.2862486659104277e-08,
+    "ln_aw_resid": 1.2244205649381001e-11,
+    "log10_eta": 5.340498585834203,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0007868470965850262,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "oir": 2.78,
+   "rh": 0.3,
+   "s1": 3.193306280469107,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 5.018939890434356,
+    "x_org_phase": [
+     0.19952826004183247,
+     0.7931749220431372,
+     0.00486454527668699,
+     0.002432272638343395
+    ],
+    "aw_check": 0.30000000000298704,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 9.956924174048254e-12
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.00756153366114631
+    },
+    "log10_eta_org_phase": 5.01727987335198,
+    "x_org_phase": [
+     0.1999068643461234,
+     0.7991085053418799,
+     0.0006564202079978297,
+     0.00032821010399882935
+    ],
+    "aw_check": 0.3000000000030048,
+    "tpd_min": 0.0,
+    "max_si": 1.2361121487503013e-08,
+    "ln_aw_resid": 1.0016210083563237e-11,
+    "log10_eta": 5.01727987335198,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0008189420161266375,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "oir": 2.78,
+   "rh": 0.35,
+   "s1": 2.6342890300722157,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 4.698085542296771,
+    "x_org_phase": [
+     0.22903637162578222,
+     0.7646389236918764,
+     0.004216469788227732,
+     0.0021082348941137393
+    ],
+    "aw_check": 0.35000000000292725,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 8.363754133711154e-12
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.00756125807959653
+    },
+    "log10_eta_org_phase": 4.698542334549144,
+    "x_org_phase": [
+     0.229344178194725,
+     0.7696653005483155,
+     0.0006603475046396839,
+     0.00033017375231971766
+    ],
+    "aw_check": 0.3500000000029432,
+    "tpd_min": 0.0,
+    "max_si": 1.1837348462551134e-08,
+    "ln_aw_resid": 8.409273277720786e-12,
+    "log10_eta": 4.698542334549144,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0008553573621142332,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "oir": 2.78,
+   "rh": 0.4,
+   "s1": 2.0999165171359304,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 4.381082575575479,
+    "x_org_phase": [
+     0.2579137115593907,
+     0.7366435958076986,
+     0.0036284617552739813,
+     0.0018142308776368421
+    ],
+    "aw_check": 0.4000000000028619,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 7.154610237591896e-12
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007560944436876033
+    },
+    "log10_eta_org_phase": 4.383172059600225,
+    "x_org_phase": [
+     0.2581458823317965,
+     0.740854477205649,
+     0.0006664269750365469,
+     0.00033321348751811703
+    ],
+    "aw_check": 0.40000000000287717,
+    "tpd_min": 0.0,
+    "max_si": 1.1292528273587621e-08,
+    "ln_aw_resid": 7.192801909639002e-12,
+    "log10_eta": 4.383172059600225,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0008968021112004897,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "oir": 2.78,
+   "rh": 0.45,
+   "s1": 1.5898501717107592,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 4.066860742439107,
+    "x_org_phase": [
+     0.2862894991341274,
+     0.7090508957060923,
+     0.0031064034398536598,
+     0.0015532017199266519
+    ],
+    "aw_check": 0.4500000000027916,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 6.203593194697987e-12
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007560585808817979
+    },
+    "log10_eta_org_phase": 4.07011668568622,
+    "x_org_phase": [
+     0.2864482136068232,
+     0.7125395470172562,
+     0.0006748262506137198,
+     0.0003374131253066738
+    ],
+    "aw_check": 0.4500000000028054,
+    "tpd_min": 0.0,
+    "max_si": 1.0727758709139223e-08,
+    "ln_aw_resid": 6.2342353501776415e-12,
+    "log10_eta": 4.07011668568622,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0009441912227916236,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "oir": 2.78,
+   "rh": 0.05,
+   "s1": 6.729807507726504,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 7.071242102000822,
+    "x_org_phase": [
+     0.04711750607939207,
+     0.6756772470508036,
+     0.18480349791320297,
+     0.09240174895660148
+    ],
+    "aw_check": 0.05000000018073066,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 3.614613053315452e-09
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.0075284470305889365
+    },
+    "log10_eta_org_phase": 7.048297423576734,
+    "x_org_phase": [
+     0.056510560431480956,
+     0.9360999879051842,
+     0.0049263011088898565,
+     0.002463150554444938
+    ],
+    "aw_check": 0.050000000002087805,
+    "tpd_min": 0.0,
+    "max_si": 1.9254806915558476e-09,
+    "ln_aw_resid": 4.175593204536199e-11,
+    "log10_eta": 7.048297423576734,
+    "solid_as": true,
+    "frac_as_dissolved": 0.005191009377977981,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "oir": 2.78,
+   "rh": 0.1,
+   "s1": 5.877177868809533,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 6.510194035751526,
+    "x_org_phase": [
+     0.09269013238735621,
+     0.6564307965765089,
+     0.16725271402408998,
+     0.08362635701204497
+    ],
+    "aw_check": 0.10000000017867394,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.934774118694804e-09
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007526688601836499
+    },
+    "log10_eta_org_phase": 6.48501883197298,
+    "x_org_phase": [
+     0.10831461731482064,
+     0.8843916160660864,
+     0.0048625110793953106,
+     0.0024312555396976774
+    ],
+    "aw_check": 0.10000000000205819,
+    "tpd_min": 0.0,
+    "max_si": 1.843300206916254e-09,
+    "ln_aw_resid": 2.0581758519711002e-11,
+    "log10_eta": 6.48501883197298,
+    "solid_as": true,
+    "frac_as_dissolved": 0.005423368153324878,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "oir": 2.78,
+   "rh": 0.15,
+   "s1": 5.08073514331926,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 5.9595429548049115,
+    "x_org_phase": [
+     0.13657692079521072,
+     0.6340623924313507,
+     0.15290712451562577,
+     0.07645356225781288
+    ],
+    "aw_check": 0.15000000017550885,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.3043217617081382e-09
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007524647477355218
+    },
+    "log10_eta_org_phase": 5.9519778758512505,
+    "x_org_phase": [
+     0.15625464698321037,
+     0.8365034391412874,
+     0.004827942583668182,
+     0.0024139712918340647
+    ],
+    "aw_check": 0.15000000000202446,
+    "tpd_min": 0.0,
+    "max_si": 1.756270268105098e-09,
+    "ln_aw_resid": 1.3496315176553253e-11,
+    "log10_eta": 5.9519778758512505,
+    "solid_as": true,
+    "frac_as_dissolved": 0.005693082342281712,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "oir": 2.78,
+   "rh": 0.2,
+   "s1": 4.338312607956531,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 5.424937919388209,
+    "x_org_phase": [
+     0.1790008597388253,
+     0.6117774254974458,
+     0.13948114317581917,
+     0.06974057158790956
+    ],
+    "aw_check": 0.20000000017226507,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 9.036627002245723e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007522279957579435
+    },
+    "log10_eta_org_phase": 5.4450394827052495,
+    "x_org_phase": [
+     0.20098740700600692,
+     0.7917811771098484,
+     0.004820943922763053,
+     0.002410471961381456
+    ],
+    "aw_check": 0.20000000000198584,
+    "tpd_min": 0.0,
+    "max_si": 1.6650401335471798e-09,
+    "ln_aw_resid": 9.929168598432625e-12,
+    "log10_eta": 5.4450394827052495,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0060059264054533636,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "oir": 2.78,
+   "rh": 0.25,
+   "s1": 3.6470612638610067,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 4.910175390710458,
+    "x_org_phase": [
+     0.22024204182343615,
+     0.5908226353095627,
+     0.1259568819113341,
+     0.062978440955667
+    ],
+    "aw_check": 0.2500000001690377,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 6.761506909924719e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007519527742353561
+    },
+    "log10_eta_org_phase": 4.960683143255697,
+    "x_org_phase": [
+     0.2430383250427239,
+     0.7496999783638766,
+     0.004841131062266423,
+     0.0024205655311331604
+    ],
+    "aw_check": 0.25000000000194417,
+    "tpd_min": 0.0,
+    "max_si": 1.570198665534761e-09,
+    "ln_aw_resid": 7.776668198289372e-12,
+    "log10_eta": 4.960683143255697,
+    "solid_as": true,
+    "frac_as_dissolved": 0.006369604125400234,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "oir": 2.78,
+   "rh": 0.3,
+   "s1": 3.004014234251873,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 4.417726567908439,
+    "x_org_phase": [
+     0.26056588216035037,
+     0.5717230511477233,
+     0.11180737779461751,
+     0.05590368889730869
+    ],
+    "aw_check": 0.3000000001660587,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 5.535292224578825e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007516313352689095
+    },
+    "log10_eta_org_phase": 4.4959320646508205,
+    "x_org_phase": [
+     0.2828383392747091,
+     0.7098276888627354,
+     0.00488931457503702,
+     0.002444657287518425
+    ],
+    "aw_check": 0.3000000000018982,
+    "tpd_min": 0.0,
+    "max_si": 1.4722432439828737e-09,
+    "ln_aw_resid": 6.327383061943692e-12,
+    "log10_eta": 4.4959320646508205,
+    "solid_as": true,
+    "frac_as_dissolved": 0.006794353575662908,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "oir": 2.78,
+   "rh": 0.35,
+   "s1": 2.4062808600276577,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.9483186329674256,
+    "x_org_phase": [
+     0.3001304487840358,
+     0.5542047899645982,
+     0.09710984083424407,
+     0.04855492041712195
+    ],
+    "aw_check": 0.35000000016263494,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 4.6467141245898347e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.00751253313797258
+    },
+    "log10_eta_org_phase": 4.04821952469809,
+    "x_org_phase": [
+     0.32074993457147644,
+     0.6717987077544709,
+     0.004967571782701793,
+     0.0024837858913508305
+    ],
+    "aw_check": 0.3500000000018477,
+    "tpd_min": 0.0,
+    "max_si": 1.3715877600350979e-09,
+    "ln_aw_resid": 5.279332526697544e-12,
+    "log10_eta": 4.04821952469809,
+    "solid_as": true,
+    "frac_as_dissolved": 0.007293871148303243,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "oir": 2.78,
+   "rh": 0.4,
+   "s1": 1.8511323373922852,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.501110524156757,
+    "x_org_phase": [
+     0.3389751349827596,
+     0.5375240153346021,
+     0.08233389978842551,
+     0.041166949894212664
+    ],
+    "aw_check": 0.40000000015986226,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 3.996555308916072e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.0075080465306875165
+    },
+    "log10_eta_org_phase": 3.615276546579918,
+    "x_org_phase": [
+     0.357086447092599,
+     0.6352943384685159,
+     0.00507947629259017,
+     0.002539738146294949
+    ],
+    "aw_check": 0.40000000000179364,
+    "tpd_min": 0.0,
+    "max_si": 1.2686305617126692e-09,
+    "ln_aw_resid": 4.483968751856082e-12,
+    "log10_eta": 3.615276546579918,
+    "solid_as": true,
+    "frac_as_dissolved": 0.007886731434951265,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "oir": 2.78,
+   "rh": 0.45,
+   "s1": 1.3360445005539894,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.074389476621025,
+    "x_org_phase": [
+     0.37706951167184694,
+     0.520880737371094,
+     0.06803316730470604,
+     0.034016583652352904
+    ],
+    "aw_check": 0.45000000015666475,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 3.4814384708425905e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007502659175338507
+    },
+    "log10_eta_org_phase": 3.1950369215708574,
+    "x_org_phase": [
+     0.39212728708828454,
+     0.6000269086347567,
+     0.00523053618463921,
+     0.0026152680923194165
+    ],
+    "aw_check": 0.4500000000017354,
+    "tpd_min": 0.0,
+    "max_si": 1.1637282526510973e-09,
+    "ln_aw_resid": 3.856470698337944e-12,
+    "log10_eta": 3.1950369215708574,
+    "solid_as": true,
+    "frac_as_dissolved": 0.008598616570769204,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "oir": 4.37,
+   "rh": 0.05,
+   "s1": 6.574710582345821,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 6.721790629073388,
+    "x_org_phase": [
+     0.03698510510080219,
+     0.9488033288556598,
+     0.00947437736235861,
+     0.004737188681179297
+    ],
+    "aw_check": 0.0500000000025104,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 5.020783788722838e-11
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007559494500364789
+    },
+    "log10_eta_org_phase": 6.705288635780254,
+    "x_org_phase": [
+     0.03725881118878236,
+     0.9617392937417466,
+     0.0006679300463139272,
+     0.00033396502315702125
+    ],
+    "aw_check": 0.05000000000252612,
+    "tpd_min": 0.0,
+    "max_si": 1.1410434846981232e-08,
+    "ln_aw_resid": 5.0522253047802224e-11,
+    "log10_eta": 6.705288635780254,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0010883967217969032,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "oir": 4.37,
+   "rh": 0.1,
+   "s1": 6.074273112843139,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 6.3639714582488,
+    "x_org_phase": [
+     0.07214833597949519,
+     0.9157354179832878,
+     0.008077497358144638,
+     0.004038748679072306
+    ],
+    "aw_check": 0.10000000000248407,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 2.4840574042173102e-11
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007559266306250384
+    },
+    "log10_eta_org_phase": 6.350061902436885,
+    "x_org_phase": [
+     0.07255140927702447,
+     0.9264567126220375,
+     0.0006612520672919344,
+     0.0003306260336459781
+    ],
+    "aw_check": 0.10000000000249962,
+    "tpd_min": 0.0,
+    "max_si": 1.1105863367832924e-08,
+    "ln_aw_resid": 2.4996005265620624e-11,
+    "log10_eta": 6.350061902436885,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0011185502920740054,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "oir": 4.37,
+   "rh": 0.15,
+   "s1": 5.575320010065137,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 6.015890120806047,
+    "x_org_phase": [
+     0.10575543689157828,
+     0.8835853598931688,
+     0.007106135476835247,
+     0.003553067738417602
+    ],
+    "aw_check": 0.15000000000245264,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.6350920617469455e-11
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.00755900500313785
+    },
+    "log10_eta_org_phase": 6.005406137466245,
+    "x_org_phase": [
+     0.1062146669764933,
+     0.8927999822846893,
+     0.0006569004925450062,
+     0.00032845024627247094
+    ],
+    "aw_check": 0.15000000000246794,
+    "tpd_min": 0.0,
+    "max_si": 1.0776052522531998e-08,
+    "ln_aw_resid": 1.6452839091130045e-11,
+    "log10_eta": 6.005406137466245,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0011530788853649065,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "oir": 4.37,
+   "rh": 0.2,
+   "s1": 5.079608747074346,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 5.676622560352418,
+    "x_org_phase": [
+     0.1380535096957867,
+     0.8525026550218483,
+     0.006295890188243358,
+     0.0031479450941216463
+    ],
+    "aw_check": 0.20000000000241683,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.2084111489230054e-11
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007558707796992338
+    },
+    "log10_eta_org_phase": 5.66941636232079,
+    "x_org_phase": [
+     0.13851876418926934,
+     0.8604991883066871,
+     0.0006546983360290203,
+     0.00032734916801453246
+    ],
+    "aw_check": 0.2000000000024322,
+    "tpd_min": 0.0,
+    "max_si": 1.0423641089163382e-08,
+    "ln_aw_resid": 1.2160938922534115e-11,
+    "log10_eta": 5.66941636232079,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0011923517054324975,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "oir": 4.37,
+   "rh": 0.25,
+   "s1": 4.588197986958812,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 5.344735682560414,
+    "x_org_phase": [
+     0.16925178339113936,
+     0.8224094512538255,
+     0.00555917690335682,
+     0.0027795884516783687
+    ],
+    "aw_check": 0.2500000000023775,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 9.509948384334166e-12
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007558370831329499
+    },
+    "log10_eta_org_phase": 5.340498585837988,
+    "x_org_phase": [
+     0.16968654789084187,
+     0.8293316298579673,
+     0.0006545481674606151,
+     0.0003272740837302909
+    ],
+    "aw_check": 0.25000000000239214,
+    "tpd_min": 0.0,
+    "max_si": 1.00506949707313e-08,
+    "ln_aw_resid": 9.568568160034374e-12,
+    "log10_eta": 5.340498585837988,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0012368783481199843,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "oir": 4.37,
+   "rh": 0.3,
+   "s1": 4.101766754852727,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 5.018939890437922,
+    "x_org_phase": [
+     0.19952826004157023,
+     0.7931749220453305,
+     0.004864545275399518,
+     0.0024322726376997065
+    ],
+    "aw_check": 0.3000000000023342,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 7.780665001178022e-12
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007557989028950788
+    },
+    "log10_eta_org_phase": 5.0172798733560136,
+    "x_org_phase": [
+     0.19990686434579197,
+     0.7991085053433988,
+     0.0006564202072061728,
+     0.00032821010360298996
+    ],
+    "aw_check": 0.30000000000234794,
+    "tpd_min": 0.0,
+    "max_si": 9.658888383556885e-09,
+    "ln_aw_resid": 7.826628234397504e-12,
+    "log10_eta": 5.0172798733560136,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0012873297144425908,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "oir": 4.37,
+   "rh": 0.35,
+   "s1": 3.6207354636240647,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 4.698085542300866,
+    "x_org_phase": [
+     0.22903637162552393,
+     0.7646389236939206,
+     0.004216469787037075,
+     0.0021082348935184737
+    ],
+    "aw_check": 0.35000000000228687,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 6.534106589128896e-12
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007557555830615402
+    },
+    "log10_eta_org_phase": 4.698542334553494,
+    "x_org_phase": [
+     0.22934417819440558,
+     0.7696653005497844,
+     0.0006603475038733477,
+     0.0003301737519366315
+    ],
+    "aw_check": 0.35000000000229986,
+    "tpd_min": 0.0,
+    "max_si": 9.2496353076843e-09,
+    "ln_aw_resid": 6.5711880381513765e-12,
+    "log10_eta": 4.698542334553494,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0013445725424802626,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "oir": 4.37,
+   "rh": 0.4,
+   "s1": 3.145325747035075,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 4.38108257558009,
+    "x_org_phase": [
+     0.25791371155913073,
+     0.7366435958096047,
+     0.003628461754176428,
+     0.0018142308770881356
+    ],
+    "aw_check": 0.40000000000223623,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 5.590528040499976e-12
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007557062802310234
+    },
+    "log10_eta_org_phase": 4.383172059604861,
+    "x_org_phase": [
+     0.2581458823314843,
+     0.7408544772070735,
+     0.000666426974294788,
+     0.00033321348714732276
+    ],
+    "aw_check": 0.4000000000022484,
+    "tpd_min": 0.0,
+    "max_si": 8.823886982201046e-09,
+    "ln_aw_resid": 5.620948151374705e-12,
+    "log10_eta": 4.383172059604861,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0014097213027257482,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "oir": 4.37,
+   "rh": 0.45,
+   "s1": 2.6755912502882833,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 4.066860742444139,
+    "x_org_phase": [
+     0.28628949913386115,
+     0.7090508957078758,
+     0.0031064034388421347,
+     0.0015532017194209763
+    ],
+    "aw_check": 0.450000000002182,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 4.848899060050371e-12
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007556499059643505
+    },
+    "log10_eta_org_phase": 4.070116685691177,
+    "x_org_phase": [
+     0.2864482136065145,
+     0.7125395470186414,
+     0.0006748262498961232,
+     0.00033741312494800583
+    ],
+    "aw_check": 0.450000000002192,
+    "tpd_min": 0.0,
+    "max_si": 8.383367361419758e-09,
+    "ln_aw_resid": 4.871103520542874e-12,
+    "log10_eta": 4.070116685691177,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0014842142587069569,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "oir": 4.37,
+   "rh": 0.05,
+   "s1": 6.930811900135097,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 7.071242102551885,
+    "x_org_phase": [
+     0.047117506050349756,
+     0.6756772473372751,
+     0.1848034977415835,
+     0.09240174887079172
+    ],
+    "aw_check": 0.05000000014106195,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 4.727523261749411e-09
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007505978749984988
+    },
+    "log10_eta_org_phase": 7.048297423579629,
+    "x_org_phase": [
+     0.056510560431050794,
+     0.9360999879074692,
+     0.004926301107653387,
+     0.002463150553826698
+    ],
+    "aw_check": 0.050000000001629456,
+    "tpd_min": 0.0,
+    "max_si": 1.5010983844820913e-09,
+    "ln_aw_resid": 3.2589042575636995e-11,
+    "log10_eta": 7.048297423579629,
+    "solid_as": true,
+    "frac_as_dissolved": 0.008159967976983682,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "oir": 4.37,
+   "rh": 0.1,
+   "s1": 6.242448647144633,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 6.510194036351271,
+    "x_org_phase": [
+     0.09269013236593279,
+     0.6564307968426584,
+     0.1672527138609392,
+     0.0836263569304696
+    ],
+    "aw_check": 0.10000000013932794,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 2.928306042093709e-09
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.00750321460119075
+    },
+    "log10_eta_org_phase": 6.485018831975886,
+    "x_org_phase": [
+     0.1083146173144823,
+     0.8843916160681835,
+     0.00486251107822275,
+     0.002431255539111383
+    ],
+    "aw_check": 0.10000000000160655,
+    "tpd_min": 0.0,
+    "max_si": 1.4387038504981575e-09,
+    "ln_aw_resid": 1.6065371255535865e-11,
+    "log10_eta": 6.485018831975886,
+    "solid_as": true,
+    "frac_as_dissolved": 0.00852522259865405,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "oir": 4.37,
+   "rh": 0.15,
+   "s1": 5.577388587987917,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 5.959542955435349,
+    "x_org_phase": [
+     0.13657692078093703,
+     0.6340623926873001,
+     0.15290712435450862,
+     0.0764535621772543
+    ],
+    "aw_check": 0.15000000013700177,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.9503472170612213e-09
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007500006070981109
+    },
+    "log10_eta_org_phase": 5.951977875854281,
+    "x_org_phase": [
+     0.15625464698294375,
+     0.8365034391432326,
+     0.004827942582549105,
+     0.002413971291274474
+    ],
+    "aw_check": 0.15000000000157987,
+    "tpd_min": 0.0,
+    "max_si": 1.3707661949968752e-09,
+    "ln_aw_resid": 1.0532463790013935e-11,
+    "log10_eta": 5.951977875854281,
+    "solid_as": true,
+    "frac_as_dissolved": 0.008949197780556115,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "oir": 4.37,
+   "rh": 0.2,
+   "s1": 4.937517581668328,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 5.424937920040287,
+    "x_org_phase": [
+     0.17900085973022534,
+     0.6117774257415478,
+     0.13948114301881798,
+     0.06974057150940897
+    ],
+    "aw_check": 0.20000000013447605,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.337293609182666e-09
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007496284466153879
+    },
+    "log10_eta_org_phase": 5.44503948270853,
+    "x_org_phase": [
+     0.20098740700579684,
+     0.7917811771116637,
+     0.004820943921692968,
+     0.0024104719608465
+    ],
+    "aw_check": 0.2000000000015501,
+    "tpd_min": 0.0,
+    "max_si": 1.2995635956247753e-09,
+    "ln_aw_resid": 7.750466934908218e-12,
+    "log10_eta": 5.44503948270853,
+    "solid_as": true,
+    "frac_as_dissolved": 0.009440970642426714,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "oir": 4.37,
+   "rh": 0.25,
+   "s1": 4.3234513036315825,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 4.910175391379578,
+    "x_org_phase": [
+     0.22024204181953555,
+     0.5908226355437226,
+     0.12595688175782788,
+     0.06297844087891391
+    ],
+    "aw_check": 0.2500000001318636,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 9.21659637498351e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007491958142219877
+    },
+    "log10_eta_org_phase": 4.9606831432592084,
+    "x_org_phase": [
+     0.24303832504255726,
+     0.7496999783655808,
+     0.00484113106124131,
+     0.002420565530620634
+    ],
+    "aw_check": 0.2500000000015174,
+    "tpd_min": 0.0,
+    "max_si": 1.225468199139712e-09,
+    "ln_aw_resid": 6.069589275625731e-12,
+    "log10_eta": 4.9606831432592084,
+    "solid_as": true,
+    "frac_as_dissolved": 0.01001265108706546,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "oir": 4.37,
+   "rh": 0.3,
+   "s1": 3.735146024752261,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 4.417726568581799,
+    "x_org_phase": [
+     0.2605658821596559,
+     0.5717230513682456,
+     0.11180737764806561,
+     0.05590368882403278
+    ],
+    "aw_check": 0.30000000012937106,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 6.490143977799789e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007486905306668401
+    },
+    "log10_eta_org_phase": 4.495932064654647,
+    "x_org_phase": [
+     0.28283833927457663,
+     0.7098276888643431,
+     0.004889314574053568,
+     0.0024446572870267702
+    ],
+    "aw_check": 0.3000000000014816,
+    "tpd_min": 0.0,
+    "max_si": 1.1489187656810174e-09,
+    "ln_aw_resid": 4.938716102742546e-12,
+    "log10_eta": 4.495932064654647,
+    "solid_as": true,
+    "frac_as_dissolved": 0.010680332776837526,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "oir": 4.37,
+   "rh": 0.35,
+   "s1": 3.1721703494788915,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.948318633650903,
+    "x_org_phase": [
+     0.3001304487875466,
+     0.5542047901817672,
+     0.09710984068712417,
+     0.04855492034356204
+    ],
+    "aw_check": 0.3500000001268283,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 4.773832440463366e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.0074809630267006115
+    },
+    "log10_eta_org_phase": 4.048219524702171,
+    "x_org_phase": [
+     0.32074993457136985,
+     0.6717987077559945,
+     0.004967571781757115,
+     0.002483785890878513
+    ],
+    "aw_check": 0.3500000000014428,
+    "tpd_min": 0.0,
+    "max_si": 1.070265237546053e-09,
+    "ln_aw_resid": 4.122480135038131e-12,
+    "log10_eta": 4.048219524702171,
+    "solid_as": true,
+    "frac_as_dissolved": 0.011465545651781177,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "oir": 4.37,
+   "rh": 0.4,
+   "s1": 2.633856594000171,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.5011105248363075,
+    "x_org_phase": [
+     0.338975134987715,
+     0.537524015538968,
+     0.08233389964887806,
+     0.04116694982443899
+    ],
+    "aw_check": 0.4000000001243112,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 3.650429958312884e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.00747391033827079
+    },
+    "log10_eta_org_phase": 3.6152765465843197,
+    "x_org_phase": [
+     0.3570864470925105,
+     0.6352943384699669,
+     0.005079476291681615,
+     0.002539738145840772
+    ],
+    "aw_check": 0.4000000000014004,
+    "tpd_min": 0.0,
+    "max_si": 9.897904995614937e-10,
+    "ln_aw_resid": 3.500866263550506e-12,
+    "log10_eta": 3.6152765465843197,
+    "solid_as": true,
+    "frac_as_dissolved": 0.012397487900897479,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "oir": 4.37,
+   "rh": 0.45,
+   "s1": 2.119392730555068,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.074389477322704,
+    "x_org_phase": [
+     0.3770695116806419,
+     0.5208807375782711,
+     0.06803316716072473,
+     0.03401658358036231
+    ],
+    "aw_check": 0.45000000012215485,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 2.881008764887838e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.00746544172572608
+    },
+    "log10_eta_org_phase": 3.1950369215755474,
+    "x_org_phase": [
+     0.39212728708820777,
+     0.6000269086361428,
+     0.005230536183766257,
+     0.002615268091883034
+    ],
+    "aw_check": 0.45000000000135476,
+    "tpd_min": 0.0,
+    "max_si": 9.082943563942791e-10,
+    "ln_aw_resid": 3.010591775876037e-12,
+    "log10_eta": 3.1950369215755474,
+    "solid_as": true,
+    "frac_as_dissolved": 0.013516530362555653,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "oir": 0.68,
+   "rh": 0.05,
+   "s1": 2.7021948837705714,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 5.680088705540722,
+    "x_org_phase": [
+     0.04602291363214468,
+     0.6782093811975011,
+     0.18384513678023617,
+     0.09192256839011799
+    ],
+    "aw_check": 0.050000000005317444,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.063487076180536e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007557373995957508
+    },
+    "log10_eta_org_phase": 5.6459000265625265,
+    "x_org_phase": [
+     0.05465604481963774,
+     0.9373683996667718,
+     0.0053170370090602865,
+     0.0026585185045301623
+    ],
+    "aw_check": 0.050000000006188414,
+    "tpd_min": 0.0,
+    "max_si": 5.097607710946583e-09,
+    "ln_aw_resid": 1.237681068744223e-10,
+    "log10_eta": 5.6459000265625265,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0013686001741752723,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "oir": 0.68,
+   "rh": 0.1,
+   "s1": 1.2639673601825683,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 5.218627397378472,
+    "x_org_phase": [
+     0.09068716049015203,
+     0.6595584354670069,
+     0.16650293602856078,
+     0.08325146801428043
+    ],
+    "aw_check": 0.10000000052420568,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 5.24205656660115e-09
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007556892465374501
+    },
+    "log10_eta_org_phase": 5.171061759998958,
+    "x_org_phase": [
+     0.10512319446340945,
+     0.8869791154115766,
+     0.005265126750009618,
+     0.0026325633750044005
+    ],
+    "aw_check": 0.10000000000608907,
+    "tpd_min": 0.0,
+    "max_si": 4.871787459559407e-09,
+    "ln_aw_resid": 6.089040383017164e-11,
+    "log10_eta": 5.171061759998958,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0014322296254135128,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "oir": 0.68,
+   "rh": 0.15,
+   "s1": 0.4662046606766528,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 4.758338182373579,
+    "x_org_phase": [
+     0.13384572501702421,
+     0.6376763929951258,
+     0.15231858799189993,
+     0.07615929399594998
+    ],
+    "aw_check": 0.15000000051471513,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 3.4314342478580784e-09
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007556337161147236
+    },
+    "log10_eta_org_phase": 4.718586636590669,
+    "x_org_phase": [
+     0.15210450156962374,
+     0.8400326126538469,
+     0.005241923851019805,
+     0.002620961925509618
+    ],
+    "aw_check": 0.15000000000597816,
+    "tpd_min": 0.0,
+    "max_si": 4.635906811212287e-09,
+    "ln_aw_resid": 3.985434204878402e-11,
+    "log10_eta": 4.718586636590669,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0015056075260044153,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "oir": 0.68,
+   "rh": 0.2,
+   "s1": -0.04854708214806783,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 4.305734795822818,
+    "x_org_phase": [
+     0.17569200079553948,
+     0.6157960787107649,
+     0.13900794699579708,
+     0.06950397349789857
+    ],
+    "aw_check": 0.20000000000003618,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.8074430840897548e-13
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007555695926953951
+    },
+    "log10_eta_org_phase": 4.285698779546982,
+    "x_org_phase": [
+     0.19616061210462532,
+     0.7959696441964755,
+     0.005246495799266633,
+     0.0026232478996326275
+    ],
+    "aw_check": 0.20000000000585658,
+    "tpd_min": 0.0,
+    "max_si": 4.39030327370471e-09,
+    "ln_aw_resid": 2.928279840830328e-11,
+    "log10_eta": 4.285698779546982,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0015903402123047042,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "oir": 0.68,
+   "rh": 0.25,
+   "s1": -0.4132443410054125,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.8651941051094822,
+    "x_org_phase": [
+     0.21647648038666872,
+     0.5951824774198654,
+     0.1255606947956438,
+     0.06278034739782196
+    ],
+    "aw_check": 0.25000000000494194,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.9767742998055837e-11
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.00755495278583334
+    },
+    "log10_eta_org_phase": 3.8698972389269817,
+    "x_org_phase": [
+     0.23774905999900753,
+     0.7543323502936583,
+     0.005279059804890173,
+     0.0026395299024439935
+    ],
+    "aw_check": 0.25000000000572425,
+    "tpd_min": 0.0,
+    "max_si": 4.1352166552099945e-09,
+    "ln_aw_resid": 2.2897017615264303e-11,
+    "log10_eta": 3.8698972389269817,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0016885388799817889,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "oir": 0.68,
+   "rh": 0.3,
+   "s1": -0.6887074821027973,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.4396145837227188,
+    "x_org_phase": [
+     0.25643719689492944,
+     0.5763574321637255,
+     0.11147024729423002,
+     0.05573512364711507
+    ],
+    "aw_check": 0.30000000000484234,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.6141310510420226e-11
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007554086668179986
+    },
+    "log10_eta_org_phase": 3.469010310566674,
+    "x_org_phase": [
+     0.2772518639620928,
+     0.7147366541812601,
+     0.005340987904432173,
+     0.0026704939522150706
+    ],
+    "aw_check": 0.300000000005582,
+    "tpd_min": 0.0,
+    "max_si": 3.883846619312514e-09,
+    "ln_aw_resid": 1.8606893803507774e-11,
+    "log10_eta": 3.469010310566674,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0018029876666963744,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "oir": 0.68,
+   "rh": 0.35,
+   "s1": -0.9068629413765767,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.0303092286130315,
+    "x_org_phase": [
+     0.2957123916990686,
+     0.5590320563319029,
+     0.09683703464601902,
+     0.048418517323009544
+    ],
+    "aw_check": 0.350000000004746,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.3560264022771662e-11
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007553069497815184
+    },
+    "log10_eta_org_phase": 3.081123818929591,
+    "x_org_phase": [
+     0.3149957145454694,
+     0.6768518719246337,
+     0.005434942353265258,
+     0.002717471176631648
+    ],
+    "aw_check": 0.35000000000542847,
+    "tpd_min": 0.0,
+    "max_si": 3.6145624687788924e-09,
+    "ln_aw_resid": 1.5510037698618362e-11,
+    "log10_eta": 3.081123818929591,
+    "solid_as": true,
+    "frac_as_dissolved": 0.001937396558700947,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "oir": 0.68,
+   "rh": 0.4,
+   "s1": -1.0862335777491328,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 2.6372794632791914,
+    "x_org_phase": [
+     0.3343312680868436,
+     0.5424550489634588,
+     0.08214245529979836,
+     0.04107122764989921
+    ],
+    "aw_check": 0.4000000000046492,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.1622924844800764e-11
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007551863267554543
+    },
+    "log10_eta_org_phase": 2.704509440793159,
+    "x_org_phase": [
+     0.3512674819822263,
+     0.6403847663451218,
+     0.005565167781768897,
+     0.0027825838908831905
+    ],
+    "aw_check": 0.4000000000052626,
+    "tpd_min": 0.0,
+    "max_si": 3.33600928825728e-09,
+    "ln_aw_resid": 1.3156475908715493e-11,
+    "log10_eta": 2.704509440793159,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0020967878253420435,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "oir": 0.68,
+   "rh": 0.45,
+   "s1": -1.23845422102484,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 2.2597793347560087,
+    "x_org_phase": [
+     0.3722599857472133,
+     0.5258278345921602,
+     0.06794145310708437,
+     0.03397072655354223
+    ],
+    "aw_check": 0.45000000000458695,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.019329065599095e-11
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.0075504154552299
+    },
+    "log10_eta_org_phase": 2.3375588430340053,
+    "x_org_phase": [
+     0.3863269348161493,
+     0.6050660579792457,
+     0.0057380048030709644,
+     0.0028690024015339682
+    ],
+    "aw_check": 0.45000000000508744,
+    "tpd_min": 0.0,
+    "max_si": 3.0613396678758065e-09,
+    "ln_aw_resid": 1.1305401059757969e-11,
+    "log10_eta": 2.3375588430340053,
+    "solid_as": true,
+    "frac_as_dissolved": 0.002288101745920339,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "oir": 1.67,
+   "rh": 0.05,
+   "s1": 4.986642785084657,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 5.6800887030147855,
+    "x_org_phase": [
+     0.046022913847574634,
+     0.678209380505897,
+     0.18384513709768563,
+     0.09192256854884279
+    ],
+    "aw_check": 0.05000000026019075,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 5.203814712473331e-09
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007542295133867596
+    },
+    "log10_eta_org_phase": 5.645900026576267,
+    "x_org_phase": [
+     0.05465604481672204,
+     0.9373683996820232,
+     0.005317037000836394,
+     0.0026585185004182393
+    ],
+    "aw_check": 0.050000000003028316,
+    "tpd_min": 0.0,
+    "max_si": 2.502055493347477e-09,
+    "ln_aw_resid": 6.056621870698109e-11,
+    "log10_eta": 5.645900026576267,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0033611210107359476,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "oir": 1.67,
+   "rh": 0.1,
+   "s1": 3.990262962792241,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 5.218627400299552,
+    "x_org_phase": [
+     0.09068716030167472,
+     0.6595584364858429,
+     0.16650293547498823,
+     0.08325146773749406
+    ],
+    "aw_check": 0.10000000025685016,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 2.5685014115595095e-09
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007541112551406727
+    },
+    "log10_eta_org_phase": 5.171061760012441,
+    "x_org_phase": [
+     0.10512319446107692,
+     0.8869791154256792,
+     0.005265126742162642,
+     0.0026325633710812717
+    ],
+    "aw_check": 0.10000000000297986,
+    "tpd_min": 0.0,
+    "max_si": 2.391265005452503e-09,
+    "ln_aw_resid": 2.97983859809392e-11,
+    "log10_eta": 5.171061760012441,
+    "solid_as": true,
+    "frac_as_dissolved": 0.003517387457114951,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "oir": 1.67,
+   "rh": 0.15,
+   "s1": 3.1270093860531487,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 4.758338185373019,
+    "x_org_phase": [
+     0.13384572486103638,
+     0.6376763940190034,
+     0.15231858741330687,
+     0.07615929370665336
+    ],
+    "aw_check": 0.1500000002525448,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.683632122606582e-09
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007539748789554879
+    },
+    "log10_eta_org_phase": 4.718586636605219,
+    "x_org_phase": [
+     0.15210450156775368,
+     0.8400326126669739,
+     0.005241923843514951,
+     0.0026209619217574687
+    ],
+    "aw_check": 0.15000000000292574,
+    "tpd_min": 0.0,
+    "max_si": 2.2750566291973584e-09,
+    "ln_aw_resid": 1.95048421858246e-11,
+    "log10_eta": 4.718586636605219,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0036975949482184363,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "oir": 1.67,
+   "rh": 0.2,
+   "s1": 2.3766394810769182,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 4.305734793077539,
+    "x_org_phase": [
+     0.17569200093922308,
+     0.6157960779572904,
+     0.13900794740232447,
+     0.06950397370116213
+    ],
+    "aw_check": 0.20000000024753423,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.2376710767370014e-09
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.00753817399381595
+    },
+    "log10_eta_org_phase": 4.285698779562989,
+    "x_org_phase": [
+     0.1961606121031223,
+     0.795969644208762,
+     0.005246495792077255,
+     0.0026232478960384834
+    ],
+    "aw_check": 0.20000000000286636,
+    "tpd_min": 0.0,
+    "max_si": 2.1541417954962228e-09,
+    "ln_aw_resid": 1.433164698028122e-11,
+    "log10_eta": 4.285698779562989,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0039056884571603266,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "oir": 1.67,
+   "rh": 0.25,
+   "s1": 1.7222161258925452,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.86519410240689,
+    "x_org_phase": [
+     0.21647648050478724,
+     0.5951824766666426,
+     0.12556069521904678,
+     0.0627803476095233
+    ],
+    "aw_check": 0.25000000024271285,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 9.708513992734424e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007536348926652599
+    },
+    "log10_eta_org_phase": 3.8698972389446404,
+    "x_org_phase": [
+     0.2377490599977935,
+     0.7543323503052116,
+     0.005279059797996683,
+     0.002639529898998223
+    ],
+    "aw_check": 0.2500000000028016,
+    "tpd_min": 0.0,
+    "max_si": 2.029136900172368e-09,
+    "ln_aw_resid": 1.1206369165961405e-11,
+    "log10_eta": 3.8698972389446404,
+    "solid_as": true,
+    "frac_as_dissolved": 0.004146852832125318,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "oir": 1.67,
+   "rh": 0.3,
+   "s1": 1.1498526835658167,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.439614581000077,
+    "x_org_phase": [
+     0.25643719699019657,
+     0.5763574313830047,
+     0.11147024775119924,
+     0.05573512387559946
+    ],
+    "aw_check": 0.3000000002380872,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 7.936240553618745e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007534221843592953
+    },
+    "log10_eta_org_phase": 3.46901031058605,
+    "x_org_phase": [
+     0.27725186396111057,
+     0.7147366541922231,
+     0.00534098789777774,
+     0.002670493948888707
+    ],
+    "aw_check": 0.30000000000273164,
+    "tpd_min": 0.0,
+    "max_si": 1.900566412582627e-09,
+    "ln_aw_resid": 9.105605158765684e-12,
+    "log10_eta": 3.46901031058605,
+    "solid_as": true,
+    "frac_as_dissolved": 0.004427925587626878,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "oir": 1.67,
+   "rh": 0.35,
+   "s1": 0.6481588967594398,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.0303092258570317,
+    "x_org_phase": [
+     0.2957123917709476,
+     0.5590320555130428,
+     0.09683703514400652,
+     0.048418517572003085
+    ],
+    "aw_check": 0.35000000023363054,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 6.675160424407522e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007531723792844766
+    },
+    "log10_eta_org_phase": 3.081123818950795,
+    "x_org_phase": [
+     0.314995714544659,
+     0.6768518719350359,
+     0.005434942346870185,
+     0.0027174711734348064
+    ],
+    "aw_check": 0.350000000002656,
+    "tpd_min": 0.0,
+    "max_si": 1.7689143899657367e-09,
+    "ln_aw_resid": 7.588818462522795e-12,
+    "log10_eta": 3.081123818950795,
+    "solid_as": true,
+    "frac_as_dissolved": 0.004758018013492148,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "oir": 1.67,
+   "rh": 0.4,
+   "s1": 0.20773588867137596,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 2.637279460467172,
+    "x_org_phase": [
+     0.3343312681352358,
+     0.542455048099168,
+     0.0821424558437309,
+     0.0410712279218652
+    ],
+    "aw_check": 0.40000000022916393,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 5.729098306872515e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007528761433234729
+    },
+    "log10_eta_org_phase": 2.7045094408162154,
+    "x_org_phase": [
+     0.3512674819815386,
+     0.6403847663550145,
+     0.00556516777563142,
+     0.0027825838878154136
+    ],
+    "aw_check": 0.40000000000257496,
+    "tpd_min": 0.0,
+    "max_si": 1.634620924728658e-09,
+    "ln_aw_resid": 6.437295141381583e-12,
+    "log10_eta": 2.7045094408162154,
+    "solid_as": true,
+    "frac_as_dissolved": 0.005149464212362636,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "oir": 1.67,
+   "rh": 0.45,
+   "s1": -0.17923700892108524,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 2.2597793347890014,
+    "x_org_phase": [
+     0.3722599857471584,
+     0.5258278346032359,
+     0.06794145309973727,
+     0.033970726549868394
+    ],
+    "aw_check": 0.45000000000224405,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 4.986788759708816e-12
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007525205776497257
+    },
+    "log10_eta_org_phase": 2.3375588430589636,
+    "x_org_phase": [
+     0.3863269348155482,
+     0.6050660579887328,
+     0.005738004797146291,
+     0.0028690023985727554
+    ],
+    "aw_check": 0.4500000000024898,
+    "tpd_min": 0.0,
+    "max_si": 1.4980230805816674e-09,
+    "ln_aw_resid": 5.53290746552193e-12,
+    "log10_eta": 2.3375588430589636,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0056193086936516335,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "oir": 2.09,
+   "rh": 0.05,
+   "s1": 6.501561998549808,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 7.071242101533713,
+    "x_org_phase": [
+     0.04711750610825475,
+     0.6756772468785008,
+     0.18480349800882961,
+     0.0924017490044148
+    ],
+    "aw_check": 0.050000000216744604,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 4.334892000912305e-09
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007538197416511435
+    },
+    "log10_eta_org_phase": 7.048297423574112,
+    "x_org_phase": [
+     0.056510560431871464,
+     0.9360999879031178,
+     0.004926301110007196,
+     0.002463150555003619
+    ],
+    "aw_check": 0.050000000002503625,
+    "tpd_min": 0.0,
+    "max_si": 2.3089783696139676e-09,
+    "ln_aw_resid": 5.007239067822411e-11,
+    "log10_eta": 7.048297423574112,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0039025933821793877,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "oir": 2.09,
+   "rh": 0.1,
+   "s1": 5.479185063401973,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 6.51019403525613,
+    "x_org_phase": [
+     0.09269013241063241,
+     0.6564307964074086,
+     0.16725271412130605,
+     0.083626357060653
+    ],
+    "aw_check": 0.1000000002142009,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 2.1420087925605458e-09
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007536875432305411
+    },
+    "log10_eta_org_phase": 6.485018831970355,
+    "x_org_phase": [
+     0.10831461731512765,
+     0.8843916160641834,
+     0.004862511080459274,
+     0.0024312555402296768
+    ],
+    "aw_check": 0.10000000000246814,
+    "tpd_min": 0.0,
+    "max_si": 2.2104331975913993e-09,
+    "ln_aw_resid": 2.468114601583693e-11,
+    "log10_eta": 6.485018831970355,
+    "solid_as": true,
+    "frac_as_dissolved": 0.004077280375163179,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "oir": 2.09,
+   "rh": 0.15,
+   "s1": 4.561932801471062,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 5.959542954290891,
+    "x_org_phase": [
+     0.13657692081327283,
+     0.6340623922639598,
+     0.15290712461517833,
+     0.07645356230758911
+    ],
+    "aw_check": 0.1500000002104095,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.4027299322094677e-09
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.0075353409178571884
+    },
+    "log10_eta_org_phase": 5.951977875848451,
+    "x_org_phase": [
+     0.15625464698345218,
+     0.8365034391395224,
+     0.004827942584683577,
+     0.002413971292341846
+    ],
+    "aw_check": 0.15000000000242752,
+    "tpd_min": 0.0,
+    "max_si": 2.106050916994562e-09,
+    "ln_aw_resid": 1.6183498985355982e-11,
+    "log10_eta": 5.951977875848451,
+    "solid_as": true,
+    "frac_as_dissolved": 0.004280051114351351,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "oir": 2.09,
+   "rh": 0.2,
+   "s1": 3.7387764121119833,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 5.424937918860776,
+    "x_org_phase": [
+     0.17900085975250393,
+     0.6117774253337216,
+     0.13948114327584965,
+     0.06974057163792476
+    ],
+    "aw_check": 0.2000000002066037,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.033018337537328e-09
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007533561019896262
+    },
+    "log10_eta_org_phase": 5.445039482702231,
+    "x_org_phase": [
+     0.20098740700619944,
+     0.7917811771082156,
+     0.004820943923723419,
+     0.0024104719618616532
+    ],
+    "aw_check": 0.20000000000238158,
+    "tpd_min": 0.0,
+    "max_si": 1.9930453121208558e-09,
+    "ln_aw_resid": 1.1907808072919579e-11,
+    "log10_eta": 5.445039482702231,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0045152468309079185,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "oir": 2.09,
+   "rh": 0.25,
+   "s1": 2.999531530239072,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 4.910175390172849,
+    "x_org_phase": [
+     0.2202420418330912,
+     0.5908226351483727,
+     0.1259568820123575,
+     0.06297844100617868
+    ],
+    "aw_check": 0.2500000002027024,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 8.108096416492572e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007531491908449354
+    },
+    "log10_eta_org_phase": 4.96068314325246,
+    "x_org_phase": [
+     0.24303832504287548,
+     0.7496999783623377,
+     0.004841131063191228,
+     0.0024205655315955197
+    ],
+    "aw_check": 0.250000000002331,
+    "tpd_min": 0.0,
+    "max_si": 1.8812067736906357e-09,
+    "ln_aw_resid": 9.324097050011915e-12,
+    "log10_eta": 4.96068314325246,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0047886592175024,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "oir": 2.09,
+   "rh": 0.3,
+   "s1": 2.3352175390592915,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 4.417726567356985,
+    "x_org_phase": [
+     0.26056588216563503,
+     0.5717230509837888,
+     0.1118073779003842,
+     0.05590368895019197
+    ],
+    "aw_check": 0.30000000019894935,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 6.631646343180364e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007529075334924516
+    },
+    "log10_eta_org_phase": 4.4959320646473815,
+    "x_org_phase": [
+     0.2828383392748301,
+     0.7098276888612811,
+     0.004889314575925981,
+     0.002444657287962799
+    ],
+    "aw_check": 0.300000000002276,
+    "tpd_min": 0.0,
+    "max_si": 1.764492135736262e-09,
+    "ln_aw_resid": 7.58682006107847e-12,
+    "log10_eta": 4.4959320646473815,
+    "solid_as": true,
+    "frac_as_dissolved": 0.005107985243074025,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "oir": 2.09,
+   "rh": 0.35,
+   "s1": 1.7380171163271982,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.9483186324145274,
+    "x_org_phase": [
+     0.3001304487871555,
+     0.5542047898073587,
+     0.09710984093699059,
+     0.048554920468495175
+    ],
+    "aw_check": 0.35000000019532995,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 5.580857997955491e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007526233374939683
+    },
+    "log10_eta_org_phase": 4.048219524694365,
+    "x_org_phase": [
+     0.3207499345715742,
+     0.6717987077530914,
+     0.00496757178355633,
+     0.0024837858917780013
+    ],
+    "aw_check": 0.35000000000221587,
+    "tpd_min": 0.0,
+    "max_si": 1.6441532857403018e-09,
+    "ln_aw_resid": 6.331157820227418e-12,
+    "log10_eta": 4.048219524694365,
+    "solid_as": true,
+    "frac_as_dissolved": 0.005483521835470085,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "oir": 2.09,
+   "rh": 0.4,
+   "s1": 1.2011567963618588,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.5011105235880597,
+    "x_org_phase": [
+     0.33897513498181325,
+     0.5375240151723985,
+     0.08233389989719221,
+     0.041166949948595925
+    ],
+    "aw_check": 0.40000000019169973,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 4.792491958838241e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007522860350038193
+    },
+    "log10_eta_org_phase": 3.6152765465759593,
+    "x_org_phase": [
+     0.35708644709268017,
+     0.635294338467202,
+     0.005079476293411999,
+     0.0025397381467058204
+    ],
+    "aw_check": 0.400000000002152,
+    "tpd_min": 0.0,
+    "max_si": 1.5208692361046161e-09,
+    "ln_aw_resid": 5.380029755031046e-12,
+    "log10_eta": 3.6152765465759593,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0059292333459528244,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "oir": 2.09,
+   "rh": 0.45,
+   "s1": 0.7187783055507238,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.074389476036476,
+    "x_org_phase": [
+     0.37706951166809155,
+     0.5208807372073453,
+     0.06803316741637555,
+     0.034016583708187574
+    ],
+    "aw_check": 0.45000000018786696,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 4.1748215995340843e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.0075188101440382534
+    },
+    "log10_eta_org_phase": 3.1950369215666123,
+    "x_org_phase": [
+     0.39212728708835454,
+     0.6000269086335007,
+     0.005230536185430053,
+     0.0026152680927147153
+    ],
+    "aw_check": 0.45000000000208185,
+    "tpd_min": 0.0,
+    "max_si": 1.3951378108334467e-09,
+    "ln_aw_resid": 4.626299343613027e-12,
+    "log10_eta": 3.1950369215666123,
+    "solid_as": true,
+    "frac_as_dissolved": 0.006464427566784747,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "oir": 3.26,
+   "rh": 0.05,
+   "s1": 6.817726034124191,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 7.0712421022155,
+    "x_org_phase": [
+     0.0471175060670119,
+     0.6756772471446688,
+     0.18480349785887956,
+     0.09240174892943978
+    ],
+    "aw_check": 0.050000000164677615,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 3.4714036090122136e-09
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007521664153425462
+    },
+    "log10_eta_org_phase": 7.048297423577904,
+    "x_org_phase": [
+     0.05651056043130679,
+     0.9360999879061058,
+     0.004926301108391531,
+     0.0024631505541958336
+    ],
+    "aw_check": 0.05000000000190242,
+    "tpd_min": 0.0,
+    "max_si": 1.7544521668799717e-09,
+    "ln_aw_resid": 3.8048231232323815e-11,
+    "log10_eta": 7.048297423577904,
+    "solid_as": true,
+    "frac_as_dissolved": 0.006087298766359756,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "oir": 3.26,
+   "rh": 0.1,
+   "s1": 6.035373931452708,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 6.510194035981084,
+    "x_org_phase": [
+     0.09269013237766058,
+     0.6564307966647808,
+     0.1672527139717057,
+     0.08362635698585284
+    ],
+    "aw_check": 0.1000000001628025,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 2.193630166402727e-09
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007519602111075521
+    },
+    "log10_eta_org_phase": 6.485018831974139,
+    "x_org_phase": [
+     0.1083146173146837,
+     0.8843916160669352,
+     0.0048625110789208125,
+     0.002431255539460422
+    ],
+    "aw_check": 0.10000000000187541,
+    "tpd_min": 0.0,
+    "max_si": 1.6795751733855724e-09,
+    "ln_aw_resid": 1.8753887331968144e-11,
+    "log10_eta": 6.485018831974139,
+    "solid_as": true,
+    "frac_as_dissolved": 0.006359777042480864,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "oir": 3.26,
+   "rh": 0.15,
+   "s1": 5.293542681093856,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 5.959542955045481,
+    "x_org_phase": [
+     0.13657692078814307,
+     0.6340623925186148,
+     0.1529071244621614,
+     0.07645356223108069
+    ],
+    "aw_check": 0.1500000001599291,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.4748642307438331e-09
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007517208562223409
+    },
+    "log10_eta_org_phase": 5.951977875852489,
+    "x_org_phase": [
+     0.15625464698310257,
+     0.8365034391420745,
+     0.004827942583215302,
+     0.002413971291607674
+    ],
+    "aw_check": 0.15000000000184466,
+    "tpd_min": 0.0,
+    "max_si": 1.6002661695768694e-09,
+    "ln_aw_resid": 1.2297718399167934e-11,
+    "log10_eta": 5.951977875852489,
+    "solid_as": true,
+    "frac_as_dissolved": 0.006676060587798687,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "oir": 3.26,
+   "rh": 0.2,
+   "s1": 4.592141119970696,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 5.424937919635895,
+    "x_org_phase": [
+     0.17900085973382834,
+     0.6117774255814781,
+     0.13948114312312898,
+     0.06974057156156446
+    ],
+    "aw_check": 0.20000000015694097,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.0188647703301967e-09
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007514432262054741
+    },
+    "log10_eta_org_phase": 5.445039482706557,
+    "x_org_phase": [
+     0.20098740700592196,
+     0.7917811771105829,
+     0.004820943922330028,
+     0.002410471961164995
+    ],
+    "aw_check": 0.2000000000018096,
+    "tpd_min": 0.0,
+    "max_si": 1.5171459921692332e-09,
+    "ln_aw_resid": 9.047873561485176e-12,
+    "log10_eta": 5.445039482706557,
+    "solid_as": true,
+    "frac_as_dissolved": 0.007042920892086894,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "oir": 3.26,
+   "rh": 0.25,
+   "s1": 3.930119800236836,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 4.910175390963261,
+    "x_org_phase": [
+     0.2202420418200003,
+     0.5908226353899153,
+     0.1259568818600562,
+     0.06297844093002808
+    ],
+    "aw_check": 0.2500000001538513,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 7.056899509194636e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007511204844199999
+    },
+    "log10_eta_org_phase": 4.960683143257098,
+    "x_org_phase": [
+     0.24303832504265646,
+     0.749699978364566,
+     0.004841131061851684,
+     0.0024205655309257846
+    ],
+    "aw_check": 0.2500000000017714,
+    "tpd_min": 0.0,
+    "max_si": 1.4307297846460898e-09,
+    "ln_aw_resid": 7.085665387762674e-12,
+    "log10_eta": 4.960683143257098,
+    "solid_as": true,
+    "frac_as_dissolved": 0.007469391887412477,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "oir": 3.26,
+   "rh": 0.3,
+   "s1": 3.306046183504933,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 4.417726568158088,
+    "x_org_phase": [
+     0.2605658821573603,
+     0.5717230512198399,
+     0.11180737774853318,
+     0.055903688874266534
+    ],
+    "aw_check": 0.300000000150806,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 5.026867810897784e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007507435452003598
+    },
+    "log10_eta_org_phase": 4.495932064652368,
+    "x_org_phase": [
+     0.28283833927465546,
+     0.7098276888633857,
+     0.004889314574639241,
+     0.002444657287319531
+    ],
+    "aw_check": 0.3000000000017293,
+    "tpd_min": 0.0,
+    "max_si": 1.3414643007525484e-09,
+    "ln_aw_resid": 5.764277943853813e-12,
+    "log10_eta": 4.495932064652368,
+    "solid_as": true,
+    "frac_as_dissolved": 0.007967479372244145,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "oir": 3.26,
+   "rh": 0.35,
+   "s1": 2.718331270495331,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.9483186332291393,
+    "x_org_phase": [
+     0.3001304487842122,
+     0.5542047900441444,
+     0.09710984078109576,
+     0.04855492039054782
+    ],
+    "aw_check": 0.3500000001481928,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 4.234081973919501e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.0075030025383432996
+    },
+    "log10_eta_org_phase": 4.048219524699735,
+    "x_org_phase": [
+     0.3207499345714336,
+     0.6717987077550867,
+     0.004967571782319847,
+     0.002483785891159849
+    ],
+    "aw_check": 0.35000000000168413,
+    "tpd_min": 0.0,
+    "max_si": 1.2497549939372021e-09,
+    "ln_aw_resid": 4.8119286333303535e-12,
+    "log10_eta": 4.048219524699735,
+    "solid_as": true,
+    "frac_as_dissolved": 0.00855324458331599,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "oir": 3.26,
+   "rh": 0.4,
+   "s1": 2.1653465273440435,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.501110524422689,
+    "x_org_phase": [
+     0.3389751349842611,
+     0.537524015413373,
+     0.08233389973491055,
+     0.0411669498674552
+    ],
+    "aw_check": 0.4000000001456647,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 3.6416170079434096e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007497741265052273
+    },
+    "log10_eta_org_phase": 3.615276546581692,
+    "x_org_phase": [
+     0.3570864470925631,
+     0.6352943384691023,
+     0.005079476292223012,
+     0.002539738146111366
+    ],
+    "aw_check": 0.40000000000163466,
+    "tpd_min": 0.0,
+    "max_si": 1.1559495860513636e-09,
+    "ln_aw_resid": 4.086619931342739e-12,
+    "log10_eta": 3.615276546581692,
+    "solid_as": true,
+    "frac_as_dissolved": 0.009248469235992414,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "oir": 3.26,
+   "rh": 0.45,
+   "s1": 1.6454929592076122,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.0743894768927458,
+    "x_org_phase": [
+     0.37706951167445046,
+     0.5208807374493318,
+     0.06803316725081188,
+     0.03401658362540584
+    ],
+    "aw_check": 0.4500000001427508,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 3.17224024826146e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007491423718851734
+    },
+    "log10_eta_org_phase": 3.1950369215727457,
+    "x_org_phase": [
+     0.39212728708825384,
+     0.6000269086353174,
+     0.005230536184285948,
+     0.0026152680921428177
+    ],
+    "aw_check": 0.45000000000158236,
+    "tpd_min": 0.0,
+    "max_si": 1.0603616040771868e-09,
+    "ln_aw_resid": 3.5162983635927958e-12,
+    "log10_eta": 3.1950369215727457,
+    "solid_as": true,
+    "frac_as_dissolved": 0.010083269790931135,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "oir": 2.69,
+   "rh": 0.05,
+   "s1": 6.708619810042061,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 7.071242101952803,
+    "x_org_phase": [
+     0.047117506082262374,
+     0.6756772470314824,
+     0.18480349792417022,
+     0.09240174896208511
+    ],
+    "aw_check": 0.05000000018437841,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 3.68756802870962e-09
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007529718820057089
+    },
+    "log10_eta_org_phase": 7.04829742357646,
+    "x_org_phase": [
+     0.056510560431520536,
+     0.9360999879049747,
+     0.004926301109003062,
+     0.0024631505545016762
+    ],
+    "aw_check": 0.05000000000212997,
+    "tpd_min": 0.0,
+    "max_si": 1.9643482673803447e-09,
+    "ln_aw_resid": 4.2599257454867256e-11,
+    "log10_eta": 7.04829742357646,
+    "solid_as": true,
+    "frac_as_dissolved": 0.005022955117656671,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "oir": 2.69,
+   "rh": 0.1,
+   "s1": 5.8394499988168596,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 6.510194035700387,
+    "x_org_phase": [
+     0.0926901323896422,
+     0.6564307965579883,
+     0.16725271403491293,
+     0.08362635701745644
+    ],
+    "aw_check": 0.10000000018227799,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.8889534381116846e-09
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007528017318854183
+    },
+    "log10_eta_org_phase": 6.485018831972736,
+    "x_org_phase": [
+     0.1083146173148518,
+     0.8843916160658934,
+     0.0048625110795031444,
+     0.0024312555397515935
+    ],
+    "aw_check": 0.1000000000020999,
+    "tpd_min": 0.0,
+    "max_si": 1.8805175472369484e-09,
+    "ln_aw_resid": 2.099875828776021e-11,
+    "log10_eta": 6.485018831972736,
+    "solid_as": true,
+    "frac_as_dissolved": 0.005247791486608141,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "oir": 2.69,
+   "rh": 0.15,
+   "s1": 5.03052500230523,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 5.959542954751657,
+    "x_org_phase": [
+     0.13657692079695985,
+     0.6340623924132288,
+     0.15290712452654098,
+     0.07645356226327045
+    ],
+    "aw_check": 0.1500000001790574,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.274452321453623e-09
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.0075260422739424305
+    },
+    "log10_eta_org_phase": 5.951977875850942,
+    "x_org_phase": [
+     0.15625464698323488,
+     0.8365034391411085,
+     0.004827942583771087,
+     0.002413971291885519
+    ],
+    "aw_check": 0.1500000000020652,
+    "tpd_min": 0.0,
+    "max_si": 1.7917148043000708e-09,
+    "ln_aw_resid": 1.3768097772981491e-11,
+    "log10_eta": 5.951977875850942,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0055087739212473065,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "oir": 2.69,
+   "rh": 0.2,
+   "s1": 4.2790813696710766,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 5.424937919333922,
+    "x_org_phase": [
+     0.17900085974020943,
+     0.6117774254804673,
+     0.1394811431862155,
+     0.06974057159310769
+    ],
+    "aw_check": 0.20000000017578692,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 8.837757192736717e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007523751400490314
+    },
+    "log10_eta_org_phase": 5.445039482704948,
+    "x_org_phase": [
+     0.20098740700602646,
+     0.7917811771096813,
+     0.004820943922861453,
+     0.0024104719614306603
+    ],
+    "aw_check": 0.2000000000020263,
+    "tpd_min": 0.0,
+    "max_si": 1.6986496931270523e-09,
+    "ln_aw_resid": 1.0131451233519329e-11,
+    "log10_eta": 5.445039482704948,
+    "solid_as": true,
+    "frac_as_dissolved": 0.005811489939209619,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "oir": 2.69,
+   "rh": 0.25,
+   "s1": 3.5817570067214937,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 4.910175390654437,
+    "x_org_phase": [
+     0.2202420418242761,
+     0.590822635292077,
+     0.1259568819224314,
+     0.06297844096121563
+    ],
+    "aw_check": 0.25000000017244955,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 6.897982185449791e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007521088285757355
+    },
+    "log10_eta_org_phase": 4.960683143255356,
+    "x_org_phase": [
+     0.24303832504273906,
+     0.7496999783637199,
+     0.004841131062360653,
+     0.002420565531180222
+    ],
+    "aw_check": 0.2500000000019831,
+    "tpd_min": 0.0,
+    "max_si": 1.6018897597280812e-09,
+    "ln_aw_resid": 7.932321466341818e-12,
+    "log10_eta": 4.960683143255356,
+    "solid_as": true,
+    "frac_as_dissolved": 0.006163393920022784,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "oir": 2.69,
+   "rh": 0.3,
+   "s1": 2.935150508463555,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 4.417726567858107,
+    "x_org_phase": [
+     0.2605658821619986,
+     0.571723051136879,
+     0.1118073778007483,
+     0.05590368890037407
+    ],
+    "aw_check": 0.30000000016976436,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 5.658813417852571e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.0075179779590676225
+    },
+    "log10_eta_org_phase": 4.495932064650473,
+    "x_org_phase": [
+     0.2828383392747212,
+     0.7098276888625877,
+     0.004889314575127401,
+     0.0024446572875636155
+    ],
+    "aw_check": 0.3000000000019359,
+    "tpd_min": 0.0,
+    "max_si": 1.5019519239434231e-09,
+    "ln_aw_resid": 6.45306030833126e-12,
+    "log10_eta": 4.495932064650473,
+    "solid_as": true,
+    "frac_as_dissolved": 0.006574392488803914,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "oir": 2.69,
+   "rh": 0.35,
+   "s1": 2.3360047525708696,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.9483186329135087,
+    "x_org_phase": [
+     0.3001304487849081,
+     0.5542047899510251,
+     0.0971098408427113,
+     0.04855492042135556
+    ],
+    "aw_check": 0.35000000016617805,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 4.747946480421206e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007514320125403068
+    },
+    "log10_eta_org_phase": 4.048219524697693,
+    "x_org_phase": [
+     0.3207499345714866,
+     0.6717987077543306,
+     0.004967571782788613,
+     0.0024837858913941933
+    ],
+    "aw_check": 0.3500000000018857,
+    "tpd_min": 0.0,
+    "max_si": 1.3992780545368788e-09,
+    "ln_aw_resid": 5.387912338505885e-12,
+    "log10_eta": 4.048219524697693,
+    "solid_as": true,
+    "frac_as_dissolved": 0.0070577386292382605,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "oir": 2.69,
+   "rh": 0.4,
+   "s1": 1.781282434504523,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.501110524097719,
+    "x_org_phase": [
+     0.3389751349825424,
+     0.5375240153174428,
+     0.08233389980000988,
+     0.04116694990000485
+    ],
+    "aw_check": 0.4000000001630886,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 4.077215232101139e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.0075099787679941245
+    },
+    "log10_eta_org_phase": 3.615276546579508,
+    "x_org_phase": [
+     0.3570864470926074,
+     0.6352943384683822,
+     0.005079476292673602,
+     0.0025397381463366712
+    ],
+    "aw_check": 0.4000000000018305,
+    "tpd_min": 0.0,
+    "max_si": 1.2942425187123519e-09,
+    "ln_aw_resid": 4.576228285202433e-12,
+    "log10_eta": 3.615276546579508,
+    "solid_as": true,
+    "frac_as_dissolved": 0.007631405597256075,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "oir": 2.69,
+   "rh": 0.45,
+   "s1": 1.2682000761706427,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.074389476560542,
+    "x_org_phase": [
+     0.3770695116713606,
+     0.520880737353907,
+     0.06803316731648833,
+     0.03401658365824404
+    ],
+    "aw_check": 0.4500000001598262,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 3.5516933838408704e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007504765823429775
+    },
+    "log10_eta_org_phase": 3.1950369215704253,
+    "x_org_phase": [
+     0.3921272870882917,
+     0.6000269086346293,
+     0.005230536184719491,
+     0.0026152680923595562
+    ],
+    "aw_check": 0.4500000000017709,
+    "tpd_min": 0.0,
+    "max_si": 1.1872170191384868e-09,
+    "ln_aw_resid": 3.93529653308633e-12,
+    "log10_eta": 3.1950369215704253,
+    "solid_as": true,
+    "frac_as_dissolved": 0.008320244091988881,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "oir": 7.63,
+   "rh": 0.05,
+   "s1": 7.042353051903012,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 7.071242104149272,
+    "x_org_phase": [
+     0.047117505921809966,
+     0.6756772474307562,
+     0.18480349776495586,
+     0.09240174888247793
+    ],
+    "aw_check": 0.05000000000111429,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.4376810852922972e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007459911709249653
+    },
+    "log10_eta_org_phase": 7.048297423581786,
+    "x_org_phase": [
+     0.056510560430729016,
+     0.9360999879091633,
+     0.004926301106738566,
+     0.002463150553369305
+    ],
+    "aw_check": 0.0500000000012872,
+    "tpd_min": 0.0,
+    "max_si": 1.1871175431554803e-09,
+    "ln_aw_resid": 2.574385149500813e-11,
+    "log10_eta": 7.048297423581786,
+    "solid_as": true,
+    "frac_as_dissolved": 0.01424726673975089,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "oir": 7.63,
+   "rh": 0.1,
+   "s1": 6.4489399874746525,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 6.510194037939226,
+    "x_org_phase": [
+     0.09269013224644813,
+     0.6564307969767844,
+     0.16725271385117835,
+     0.08362635692558917
+    ],
+    "aw_check": 0.10000000000110074,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 7.852740679936687e-11
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.00745508551810576
+    },
+    "log10_eta_org_phase": 6.485018831978058,
+    "x_org_phase": [
+     0.10831461731422941,
+     0.8843916160697504,
+     0.0048625110773467956,
+     0.0024312555386734004
+    ],
+    "aw_check": 0.10000000000126905,
+    "tpd_min": 0.0,
+    "max_si": 1.1364522933821064e-09,
+    "ln_aw_resid": 1.269029326067539e-11,
+    "log10_eta": 6.485018831978058,
+    "solid_as": true,
+    "frac_as_dissolved": 0.014884999637505053,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "oir": 7.63,
+   "rh": 0.15,
+   "s1": 5.865392610931495,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 5.959542957001085,
+    "x_org_phase": [
+     0.1365769206716554,
+     0.6340623928484648,
+     0.15290712431991987,
+     0.07645356215995994
+    ],
+    "aw_check": 0.1500000000010822,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 4.8434811716902004e-11
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.00744948343904426
+    },
+    "log10_eta_org_phase": 5.951977875856588,
+    "x_org_phase": [
+     0.15625464698274447,
+     0.8365034391446858,
+     0.0048279425817131065,
+     0.0024139712908565567
+    ],
+    "aw_check": 0.15000000000124777,
+    "tpd_min": 0.0,
+    "max_si": 1.0827885532638248e-09,
+    "ln_aw_resid": 8.318457034306448e-12,
+    "log10_eta": 5.951977875856588,
+    "solid_as": true,
+    "frac_as_dissolved": 0.015625258364691804,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "oir": 7.63,
+   "rh": 0.2,
+   "s1": 5.29570765692548,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 5.424937920919877,
+    "x_org_phase": [
+     0.17900085975912655,
+     0.6117774262739717,
+     0.1394811426446012,
+     0.0697405713223006
+    ],
+    "aw_check": 0.2000000001062337,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 3.112218482925755e-09
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007442985534048648
+    },
+    "log10_eta_org_phase": 5.445039482710992,
+    "x_org_phase": [
+     0.20098740700563958,
+     0.7917811771130201,
+     0.004820943920893584,
+     0.0024104719604467967
+    ],
+    "aw_check": 0.20000000000122423,
+    "tpd_min": 0.0,
+    "max_si": 1.0265384375873765e-09,
+    "ln_aw_resid": 6.121103623968338e-12,
+    "log10_eta": 5.445039482710992,
+    "solid_as": true,
+    "frac_as_dissolved": 0.01648389153081183,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "oir": 7.63,
+   "rh": 0.25,
+   "s1": 4.741808420224233,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 4.910175392241622,
+    "x_org_phase": [
+     0.22024204184905782,
+     0.5908226359882317,
+     0.12595688144180703,
+     0.0629784407209035
+    ],
+    "aw_check": 0.25000000010407697,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.9748682689169073e-09
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007435431792260233
+    },
+    "log10_eta_org_phase": 4.960683143261866,
+    "x_org_phase": [
+     0.2430383250424328,
+     0.7496999783668533,
+     0.004841131060475923,
+     0.002420565530237951
+    ],
+    "aw_check": 0.25000000000119854,
+    "tpd_min": 0.0,
+    "max_si": 9.680776458242946e-10,
+    "ln_aw_resid": 4.794165064936351e-12,
+    "log10_eta": 4.960683143261866,
+    "solid_as": true,
+    "frac_as_dissolved": 0.01748204297073267,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "oir": 7.63,
+   "rh": 0.3,
+   "s1": 4.204483990692774,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 4.417726569416205,
+    "x_org_phase": [
+     0.2605658821890623,
+     0.5717230517484191,
+     0.1118073773750124,
+     0.055903688687506184
+    ],
+    "aw_check": 0.30000000010217603,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.3173553359280277e-09
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.0074266095645127385
+    },
+    "log10_eta_org_phase": 4.495932064657499,
+    "x_org_phase": [
+     0.2828383392744773,
+     0.7098276888655429,
+     0.004889314573319779,
+     0.002444657286659851
+    ],
+    "aw_check": 0.3000000000011701,
+    "tpd_min": 0.0,
+    "max_si": 9.076770723925875e-10,
+    "ln_aw_resid": 3.9004355301131e-12,
+    "log10_eta": 4.495932064657499,
+    "solid_as": true,
+    "frac_as_dissolved": 0.018647812145286404,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "oir": 7.63,
+   "rh": 0.35,
+   "s1": 3.683846934592081,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.9483186344532597,
+    "x_org_phase": [
+     0.3001304488166565,
+     0.5542047905140267,
+     0.0971098404462112,
+     0.04855492022310557
+    ],
+    "aw_check": 0.3500000001004275,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 9.174592197069842e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007416234370885085
+    },
+    "log10_eta_org_phase": 4.0482195247052335,
+    "x_org_phase": [
+     0.3207499345712894,
+     0.6717987077571314,
+     0.004967571781052832,
+     0.002483785890526382
+    ],
+    "aw_check": 0.3500000000011391,
+    "tpd_min": 0.0,
+    "max_si": 8.456204902973496e-10,
+    "ln_aw_resid": 3.254729818991109e-12,
+    "log10_eta": 4.0482195247052335,
+    "solid_as": true,
+    "frac_as_dissolved": 0.020018790231244813,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "oir": 7.63,
+   "rh": 0.4,
+   "s1": 3.1795859395718824,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.5011105256045525,
+    "x_org_phase": [
+     0.33897513501548315,
+     0.5375240158310631,
+     0.08233389943563599,
+     0.04116694971781798
+    ],
+    "aw_check": 0.40000000009857023,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 6.608249503159414e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007403920409164731
+    },
+    "log10_eta_org_phase": 3.6152765465875945,
+    "x_org_phase": [
+     0.3570864470924436,
+     0.6352943384710489,
+     0.005079476291005071,
+     0.002539738145502518
+    ],
+    "aw_check": 0.4000000000011055,
+    "tpd_min": 0.0,
+    "max_si": 7.821437109090112e-10,
+    "ln_aw_resid": 2.7637891975018647e-12,
+    "log10_eta": 3.6152765465875945,
+    "solid_as": true,
+    "frac_as_dissolved": 0.021645957132972165,
+    "liquid_splits": false
+   }
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "oir": 7.63,
+   "rh": 0.45,
+   "s1": 2.6911098384233165,
+   "s2": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.0743894780376926,
+    "x_org_phase": [
+     0.37706951170333475,
+     0.5208807378233781,
+     0.06803316698219153,
+     0.034016583491095743
+    ],
+    "aw_check": 0.45000000009642016,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 4.905035266844493e-10
+   },
+   "s3": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.007389134250420093
+    },
+    "log10_eta_org_phase": 3.1950369215790215,
+    "x_org_phase": [
+     0.39212728708815026,
+     0.6000269086371786,
+     0.005230536183114114,
+     0.00261526809155703
+    ],
+    "aw_check": 0.4500000000010703,
+    "tpd_min": 0.0,
+    "max_si": 7.174781047059042e-10,
+    "ln_aw_resid": 2.3785418079569354e-12,
+    "log10_eta": 3.1950369215790215,
+    "solid_as": true,
+    "frac_as_dissolved": 0.023599800149488762,
+    "liquid_splits": false
+   }
+  }
+ ],
+ "scores": [
+  {
+   "site": "Ansan",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "scenario": "s1",
+   "n_grid_missing": 0,
+   "mean_offset": 6.036945574522405,
+   "sd": 0.5862197185197795,
+   "n_within_1": 0,
+   "n": 29,
+   "censored_shortfall": 4.72355534795383
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "scenario": "s2",
+   "n_grid_missing": 0,
+   "mean_offset": 2.1068559578026465,
+   "sd": 0.5189073803615915,
+   "n_within_1": 2,
+   "n": 29,
+   "censored_shortfall": 2.7574503917941255
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "scenario": "s3",
+   "n_grid_missing": 0,
+   "mean_offset": 2.1107784058141954,
+   "sd": 0.5185167454944362,
+   "n_within_1": 2,
+   "n": 29,
+   "censored_shortfall": 2.774117408075428
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "scenario": "s1",
+   "n_grid_missing": 0,
+   "mean_offset": 5.73192047343491,
+   "sd": 0.6039694252434291,
+   "n_within_1": 0,
+   "n": 29,
+   "censored_shortfall": 4.27604113067301
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "scenario": "s2",
+   "n_grid_missing": 0,
+   "mean_offset": 2.583921588417055,
+   "sd": 0.5674611335394242,
+   "n_within_1": 0,
+   "n": 29,
+   "censored_shortfall": 2.5471663383646526
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "scenario": "s3",
+   "n_grid_missing": 0,
+   "mean_offset": 2.558413105130755,
+   "sd": 0.556368989543488,
+   "n_within_1": 0,
+   "n": 29,
+   "censored_shortfall": 2.5876782804211835
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "scenario": "s1",
+   "n_grid_missing": 0,
+   "mean_offset": 3.061205496834031,
+   "sd": 0.8410508434346886,
+   "n_within_1": 0,
+   "n": 18,
+   "censored_shortfall": 2.3168567597798115
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "scenario": "s2",
+   "n_grid_missing": 0,
+   "mean_offset": 0.9976575354739113,
+   "sd": 0.6982193249773754,
+   "n_within_1": 8,
+   "n": 18,
+   "censored_shortfall": 1.6355416500840279
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "scenario": "s3",
+   "n_grid_missing": 0,
+   "mean_offset": 0.9973917194961227,
+   "sd": 0.697196343107726,
+   "n_within_1": 8,
+   "n": 18,
+   "censored_shortfall": 1.6494095491476384
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "scenario": "s1",
+   "n_grid_missing": 0,
+   "mean_offset": 3.2798799988452982,
+   "sd": 0.8642038375307539,
+   "n_within_1": 0,
+   "n": 18,
+   "censored_shortfall": 2.1200127855191315
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "scenario": "s2",
+   "n_grid_missing": 0,
+   "mean_offset": 1.7439005020918508,
+   "sd": 0.7813615327408637,
+   "n_within_1": 6,
+   "n": 18,
+   "censored_shortfall": 1.4892861149833392
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "scenario": "s3",
+   "n_grid_missing": 0,
+   "mean_offset": 1.6475116632638516,
+   "sd": 0.7692648953292734,
+   "n_within_1": 6,
+   "n": 18,
+   "censored_shortfall": 1.5134692862529193
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "scenario": "s1",
+   "n_grid_missing": 0,
+   "mean_offset": 2.493543621040735,
+   "sd": 0.6331613003682232,
+   "n_within_1": 0,
+   "n": 10,
+   "censored_shortfall": 2.9447467657876683
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "scenario": "s2",
+   "n_grid_missing": 0,
+   "mean_offset": 1.4396961592677182,
+   "sd": 0.6511095838536526,
+   "n_within_1": 2,
+   "n": 10,
+   "censored_shortfall": 2.3396027494041007
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinonic acid",
+   "oir_label": "oir_mean",
+   "scenario": "s3",
+   "n_grid_missing": 0,
+   "mean_offset": 1.4397197370343477,
+   "sd": 0.6515220745609379,
+   "n_within_1": 2,
+   "n": 10,
+   "censored_shortfall": 2.3466759265702173
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "scenario": "s1",
+   "n_grid_missing": 0,
+   "mean_offset": 2.9234024709290454,
+   "sd": 0.6332250989784944,
+   "n_within_1": 0,
+   "n": 10,
+   "censored_shortfall": 3.091895495819367
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "scenario": "s2",
+   "n_grid_missing": 0,
+   "mean_offset": 2.161514022083045,
+   "sd": 0.6325216909657128,
+   "n_within_1": 1,
+   "n": 10,
+   "censored_shortfall": 2.5998080810560302
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_mean",
+   "scenario": "s3",
+   "n_grid_missing": 0,
+   "mean_offset": 2.067452931767119,
+   "sd": 0.6340791791677818,
+   "n_within_1": 1,
+   "n": 10,
+   "censored_shortfall": 2.578049231579114
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "scenario": "s1",
+   "n_grid_missing": 0,
+   "mean_offset": 6.6860268444727,
+   "sd": 0.5219147678093841,
+   "n_within_1": 0,
+   "n": 29,
+   "censored_shortfall": 5.998126361295494
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "scenario": "s2",
+   "n_grid_missing": 0,
+   "mean_offset": 2.583921585253901,
+   "sd": 0.567461133552082,
+   "n_within_1": 0,
+   "n": 29,
+   "censored_shortfall": 2.547166337564719
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "scenario": "s3",
+   "n_grid_missing": 0,
+   "mean_offset": 2.5584131051440555,
+   "sd": 0.5563689895440446,
+   "n_within_1": 0,
+   "n": 29,
+   "censored_shortfall": 2.5876782804305902
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "scenario": "s1",
+   "n_grid_missing": 0,
+   "mean_offset": 4.818073867578831,
+   "sd": 0.6591245180159913,
+   "n_within_1": 0,
+   "n": 29,
+   "censored_shortfall": 3.5024101993249417
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "scenario": "s2",
+   "n_grid_missing": 0,
+   "mean_offset": 2.5839215878616386,
+   "sd": 0.5674611337279675,
+   "n_within_1": 0,
+   "n": 29,
+   "censored_shortfall": 2.547166337475108
+  },
+  {
+   "site": "Ansan",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "scenario": "s3",
+   "n_grid_missing": 0,
+   "mean_offset": 2.558413105124745,
+   "sd": 0.5563689895432341,
+   "n_within_1": 0,
+   "n": 29,
+   "censored_shortfall": 2.58767828041696
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "scenario": "s1",
+   "n_grid_missing": 0,
+   "mean_offset": 3.9367635749562613,
+   "sd": 0.8596410045082339,
+   "n_within_1": 0,
+   "n": 18,
+   "censored_shortfall": 2.515558702937181
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "scenario": "s2",
+   "n_grid_missing": 0,
+   "mean_offset": 1.7439005026512038,
+   "sd": 0.7813615327463336,
+   "n_within_1": 6,
+   "n": 18,
+   "censored_shortfall": 1.4892861154782526
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "scenario": "s3",
+   "n_grid_missing": 0,
+   "mean_offset": 1.6475116632675757,
+   "sd": 0.769264895329436,
+   "n_within_1": 6,
+   "n": 18,
+   "censored_shortfall": 1.5134692862555523
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "scenario": "s1",
+   "n_grid_missing": 0,
+   "mean_offset": 2.9723038228174548,
+   "sd": 0.8589685096613425,
+   "n_within_1": 0,
+   "n": 18,
+   "censored_shortfall": 1.962600025931661
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "scenario": "s2",
+   "n_grid_missing": 0,
+   "mean_offset": 1.74390050183231,
+   "sd": 0.7813615327362188,
+   "n_within_1": 6,
+   "n": 18,
+   "censored_shortfall": 1.4892861147539755
+  },
+  {
+   "site": "Seoul",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "scenario": "s3",
+   "n_grid_missing": 0,
+   "mean_offset": 1.6475116632621898,
+   "sd": 0.7692648953292013,
+   "n_within_1": 6,
+   "n": 18,
+   "censored_shortfall": 1.5134692862517558
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "scenario": "s1",
+   "n_grid_missing": 0,
+   "mean_offset": 3.7471327521452054,
+   "sd": 0.6337106535260726,
+   "n_within_1": 0,
+   "n": 10,
+   "censored_shortfall": 3.7530788849921737
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "scenario": "s2",
+   "n_grid_missing": 0,
+   "mean_offset": 2.1615140228142864,
+   "sd": 0.6325216909647133,
+   "n_within_1": 1,
+   "n": 10,
+   "censored_shortfall": 2.5998080817631397
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_min",
+   "scenario": "s3",
+   "n_grid_missing": 0,
+   "mean_offset": 2.0674529317715638,
+   "sd": 0.6340791791677629,
+   "n_within_1": 1,
+   "n": 10,
+   "censored_shortfall": 2.5780492315827113
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "scenario": "s1",
+   "n_grid_missing": 0,
+   "mean_offset": 2.420820293242293,
+   "sd": 0.6323000429644343,
+   "n_within_1": 0,
+   "n": 10,
+   "censored_shortfall": 2.7311980190443435
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "scenario": "s2",
+   "n_grid_missing": 0,
+   "mean_offset": 2.1615140212770743,
+   "sd": 0.6325216909645588,
+   "n_within_1": 1,
+   "n": 10,
+   "censored_shortfall": 2.599808080143888
+  },
+  {
+   "site": "Beijing",
+   "proxy": "pinic acid",
+   "oir_label": "oir_max",
+   "scenario": "s3",
+   "n_grid_missing": 0,
+   "mean_offset": 2.067452931764086,
+   "sd": 0.6340791791677955,
+   "n_within_1": 1,
+   "n": 10,
+   "censored_shortfall": 2.578049231576641
+  }
+ ],
+ "path": [
+  {
+   "site": "Ansan",
+   "rh": 0.8,
+   "eq": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": -0.17126754851920242,
+    "x_org_phase": [
+     0.6171468697831253,
+     0.3542102625539406,
+     0.01560132308641964,
+     0.00255977850990522,
+     0.010481766066609308
+    ],
+    "aw_check": 0.8000000000021902,
+    "tpd_min": 0.0,
+    "max_si": -0.4292034181388655,
+    "ln_aw_resid": 2.7376989564231735e-12
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": -0.17126754851921241,
+    "x_org_phase": [
+     0.6171468697831257,
+     0.3542102625539401,
+     0.015601323086419835,
+     0.0025597785099051454,
+     0.010481766066609187
+    ],
+    "aw_check": 0.8000000000021912,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 2.738920201750261e-12
+   }
+  },
+  {
+   "site": "Ansan",
+   "rh": 0.7,
+   "eq": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {
+     "ammonium_sulfate": 0.004140471889949884
+    },
+    "log10_eta_org_phase": 0.4291784494265674,
+    "x_org_phase": [
+     0.5404381680851603,
+     0.3927634667010067,
+     0.03479425044591342,
+     0.002790135677994427,
+     0.02921397908992504
+    ],
+    "aw_check": 0.7000000000000257,
+    "tpd_min": 0.0,
+    "max_si": 7.792252953997547e-12,
+    "ln_aw_resid": 3.68594044175552e-14
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 0.4868062997890501,
+    "x_org_phase": [
+     0.5456242931819981,
+     0.40858129771815926,
+     0.025544530938842572,
+     0.005294652777842106,
+     0.014955225383157949
+    ],
+    "aw_check": 0.7000000000000255,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 3.6415315207705135e-14
+   }
+  },
+  {
+   "site": "Ansan",
+   "rh": 0.6,
+   "eq": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {
+     "ammonium_sulfate": 0.0052454864048206646
+    },
+    "log10_eta_org_phase": 1.0693567745547563,
+    "x_org_phase": [
+     0.46308502207766894,
+     0.4219497510360409,
+     0.0586221251813694,
+     0.002279023476448874,
+     0.05406407822847188
+    ],
+    "aw_check": 0.6000000000000025,
+    "tpd_min": 0.0,
+    "max_si": 1.075112221471386e-13,
+    "ln_aw_resid": 4.218847493575595e-15
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 1.1574051264976852,
+    "x_org_phase": [
+     0.475236278392296,
+     0.4558022192946218,
+     0.039418933174483244,
+     0.009876364035883614,
+     0.01966620510271554
+    ],
+    "aw_check": 0.6000000000000002,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 3.3306690738754696e-16
+   }
+  },
+  {
+   "site": "Ansan",
+   "rh": 0.5,
+   "eq": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_nitrate": 0.0018256854963486762,
+     "ammonium_sulfate": 0.005861066566229863
+    },
+    "log10_eta_org_phase": 1.8046886111813654,
+    "x_org_phase": [
+     0.38997003851400697,
+     0.4620554829075876,
+     0.07493519621583071,
+     0.0018959138532561052,
+     0.0711433685093187
+    ],
+    "aw_check": 0.5000000000028205,
+    "tpd_min": 0.0,
+    "max_si": 1.2193064752308302e-09,
+    "ln_aw_resid": 5.640932165817958e-12
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 1.8607031856635043,
+    "x_org_phase": [
+     0.40334760168184247,
+     0.4966843383136207,
+     0.05842580490534698,
+     0.016883549806156615,
+     0.024658705293033243
+    ],
+    "aw_check": 0.5000000000029314,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 5.862754726138064e-12
+   }
+  },
+  {
+   "site": "Ansan",
+   "rh": 0.45,
+   "eq": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_nitrate": 0.0018888611494127826,
+     "ammonium_sulfate": 0.005864736624168894
+    },
+    "log10_eta_org_phase": 2.2127078807717915,
+    "x_org_phase": [
+     0.35691536574323945,
+     0.4954458333655551,
+     0.07468852319194531,
+     0.0017382454926854174,
+     0.07121203220657461
+    ],
+    "aw_check": 0.45000000000297335,
+    "tpd_min": 0.0,
+    "max_si": 1.420486436809476e-09,
+    "ln_aw_resid": 6.607492331056619e-12
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 2.2301160521620536,
+    "x_org_phase": [
+     0.36647115033673067,
+     0.5151168560037599,
+     0.06986000353585102,
+     0.02130801341219213,
+     0.027243976711466243
+    ],
+    "aw_check": 0.450000000003011,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 6.6910921248108934e-12
+   }
+  },
+  {
+   "site": "Ansan",
+   "rh": 0.4,
+   "eq": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_nitrate": 0.0019419603488288642,
+     "ammonium_sulfate": 0.005867568518550339
+    },
+    "log10_eta_org_phase": 2.623955428201758,
+    "x_org_phase": [
+     0.3232995917917521,
+     0.5289182724821473,
+     0.0746975386804725,
+     0.0016129416348447188,
+     0.07147165541078324
+    ],
+    "aw_check": 0.4000000000031148,
+    "tpd_min": 0.0,
+    "max_si": 1.6290063048485237e-09,
+    "ln_aw_resid": 7.786993272418385e-12
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 2.6137321774387567,
+    "x_org_phase": [
+     0.3289143088987561,
+     0.5325927426398677,
+     0.08236035484068116,
+     0.026227761219985334,
+     0.029904832400709937
+    ],
+    "aw_check": 0.40000000000308344,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 7.708500504577387e-12
+   }
+  },
+  {
+   "site": "Ansan",
+   "rh": 0.35,
+   "eq": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_nitrate": 0.001987359148159134,
+     "ammonium_sulfate": 0.005869805264828571
+    },
+    "log10_eta_org_phase": 3.040952527277429,
+    "x_org_phase": [
+     0.2888457507346554,
+     0.5627990844506899,
+     0.07493370942717312,
+     0.001512254039691317,
+     0.07190920134779043
+    ],
+    "aw_check": 0.35000000000324644,
+    "tpd_min": 0.0,
+    "max_si": 1.8437398691117934e-09,
+    "ln_aw_resid": 9.275691326138258e-12
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.0127953201512394,
+    "x_org_phase": [
+     0.29066924193756843,
+     0.5494929546228613,
+     0.09565539799198045,
+     0.031472992544390094,
+     0.032709412903199675
+    ],
+    "aw_check": 0.35000000000315024,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 9.000800105241069e-12
+   }
+  },
+  {
+   "site": "Ansan",
+   "rh": 0.3,
+   "eq": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_nitrate": 0.0020266920982025425,
+     "ammonium_sulfate": 0.0058716044949930915
+    },
+    "log10_eta_org_phase": 3.4657812883980177,
+    "x_org_phase": [
+     0.2532922813431014,
+     0.5973762077518536,
+     0.0753812447605111,
+     0.0014309786159770687,
+     0.07251928752855674
+    ],
+    "aw_check": 0.3000000000033682,
+    "tpd_min": 0.0,
+    "max_si": 2.0633917213741526e-09,
+    "ln_aw_resid": 1.1227463403429283e-11
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.428039076603553,
+    "x_org_phase": [
+     0.25171779452592674,
+     0.5661867783183051,
+     0.10945872157900934,
+     0.036822016002249984,
+     0.0358146895745088
+    ],
+    "aw_check": 0.3000000000032126,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.070876720632441e-11
+   }
+  },
+  {
+   "site": "Ansan",
+   "rh": 0.25,
+   "eq": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_nitrate": 0.0020611278641145896,
+     "ammonium_sulfate": 0.005873072801869737
+    },
+    "log10_eta_org_phase": 3.9001656558235123,
+    "x_org_phase": [
+     0.2163747106764695,
+     0.6329237307745883,
+     0.07603354122276045,
+     0.001365523896578194,
+     0.07330249342960359
+    ],
+    "aw_check": 0.25000000000348127,
+    "tpd_min": 0.0,
+    "max_si": 2.2864355270213466e-09,
+    "ln_aw_resid": 1.3925083308663488e-11
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {
+     "ammonium_sulfate": 0.00581481917151028
+    },
+    "log10_eta_org_phase": 3.8745290375052366,
+    "x_org_phase": [
+     0.19981285482793915,
+     0.5356629258165302,
+     0.1329193050204479,
+     0.0013143906853652749,
+     0.13029052364971755
+    ],
+    "aw_check": 0.250000000003191,
+    "tpd_min": 0.0,
+    "max_si": 1.9788460176028977e-09,
+    "ln_aw_resid": 4.269384845656532e-11
+   }
+  },
+  {
+   "site": "Ansan",
+   "rh": 0.2,
+   "eq": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_nitrate": 0.0020915273031961623,
+     "ammonium_sulfate": 0.005874284657520571
+    },
+    "log10_eta_org_phase": 4.345373707974608,
+    "x_org_phase": [
+     0.17781102029117885,
+     0.6697195701010077,
+     0.07689139575234817,
+     0.0013133818968827386,
+     0.07426463195858245
+    ],
+    "aw_check": 0.2000000000035867,
+    "tpd_min": 0.0,
+    "max_si": 2.5111326767968123e-09,
+    "ln_aw_resid": 1.7933432516770154e-11
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {
+     "ammonium_sulfate": 0.005832914018366713
+    },
+    "log10_eta_org_phase": 4.337017422569369,
+    "x_org_phase": [
+     0.16113478037916995,
+     0.5513318521826428,
+     0.1443827507538959,
+     0.0012321340696046634,
+     0.14191848261468668
+    ],
+    "aw_check": 0.2000000000032595,
+    "tpd_min": 0.0,
+    "max_si": 2.1669324529183243e-09,
+    "ln_aw_resid": 5.4725113329823216e-11
+   }
+  },
+  {
+   "site": "Ansan",
+   "rh": 0.15,
+   "eq": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_nitrate": 0.002118539267549042,
+     "ammonium_sulfate": 0.005875293442938572
+    },
+    "log10_eta_org_phase": 4.8017883880591485,
+    "x_org_phase": [
+     0.13728767992563737,
+     0.7080605644851922,
+     0.07796228563553637,
+     0.001272815681901973,
+     0.07541665427173203
+    ],
+    "aw_check": 0.15000000000368335,
+    "tpd_min": 0.0,
+    "max_si": 2.735489654237533e-09,
+    "ln_aw_resid": 2.4555690814054287e-11
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {
+     "ammonium_sulfate": 0.005847088384349242
+    },
+    "log10_eta_org_phase": 4.8102735643681935,
+    "x_org_phase": [
+     0.12163567064992668,
+     0.5642328581632584,
+     0.1576419458486966,
+     0.001152420510578449,
+     0.15533710482753982
+    ],
+    "aw_check": 0.15000000000331393,
+    "tpd_min": 0.0,
+    "max_si": 2.3653173170101738e-09,
+    "ln_aw_resid": 7.125855461254105e-11
+   }
+  },
+  {
+   "site": "Ansan",
+   "rh": 0.1,
+   "eq": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_nitrate": 0.002142661185988544,
+     "ammonium_sulfate": 0.005876138171593025
+    },
+    "log10_eta_org_phase": 5.26756771749433,
+    "x_org_phase": [
+     0.09444420649802221,
+     0.7482776305024016,
+     0.07926041821510554,
+     0.001242673430634881,
+     0.07677507135383575
+    ],
+    "aw_check": 0.1000000000037723,
+    "tpd_min": 0.0,
+    "max_si": 2.9572491538898404e-09,
+    "ln_aw_resid": 3.772271384150372e-11
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {
+     "ammonium_sulfate": 0.005858611805543977
+    },
+    "log10_eta_org_phase": 5.289406342402655,
+    "x_org_phase": [
+     0.08129103649207146,
+     0.5715716240627237,
+     0.17410218994345716,
+     0.0010670404417096324,
+     0.17196810906003804
+    ],
+    "aw_check": 0.1000000000033485,
+    "tpd_min": 0.0,
+    "max_si": 2.5817717269616125e-09,
+    "ln_aw_resid": 9.934719713555751e-11
+   }
+  },
+  {
+   "site": "Ansan",
+   "rh": 0.05,
+   "eq": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_nitrate": 0.0021642785815747744,
+     "ammonium_sulfate": 0.005876847729684483
+    },
+    "log10_eta_org_phase": 5.733807204793158,
+    "x_org_phase": [
+     0.048854166424364874,
+     0.79075317298755,
+     0.08080747206746462,
+     0.001222283546843603,
+     0.07836290497377699
+    ],
+    "aw_check": 0.05000000000385341,
+    "tpd_min": 0.0,
+    "max_si": 3.1738261324631978e-09,
+    "ln_aw_resid": 7.706812965579957e-11
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {
+     "ammonium_sulfate": 0.0058685376961537345
+    },
+    "log10_eta_org_phase": 5.7626819838863135,
+    "x_org_phase": [
+     0.04031212749698216,
+     0.5656206541399302,
+     0.19751142334868432,
+     0.0009556283342812471,
+     0.19560016668012198
+    ],
+    "aw_check": 0.0500000000033408,
+    "tpd_min": 0.0,
+    "max_si": 4.046810039848303e-09,
+    "ln_aw_resid": 1.7758772230536124e-10
+   }
+  },
+  {
+   "site": "Seoul",
+   "rh": 0.8,
+   "eq": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 0.3264729005396109,
+    "x_org_phase": [
+     0.6199841985382073,
+     0.34586778573070526,
+     0.01808115105728708,
+     0.002014286383486615,
+     0.01405257829031375
+    ],
+    "aw_check": 0.8000000000011483,
+    "tpd_min": 0.0,
+    "max_si": -0.5275923901113146,
+    "ln_aw_resid": 1.4354073485378649e-12
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 0.326472900539619,
+    "x_org_phase": [
+     0.6199841985382073,
+     0.34586778573070515,
+     0.018081151057287054,
+     0.00201428638348662,
+     0.014052578290313745
+    ],
+    "aw_check": 0.8000000000011483,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.4353518373866336e-12
+   }
+  },
+  {
+   "site": "Seoul",
+   "rh": 0.7,
+   "eq": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {
+     "ammonium_sulfate": 0.003044316982237514
+    },
+    "log10_eta_org_phase": 1.0079972147199379,
+    "x_org_phase": [
+     0.5441694354498051,
+     0.3866960574560197,
+     0.035831473958889366,
+     0.0025284408236035264,
+     0.03077459231168232
+    ],
+    "aw_check": 0.7000000000000137,
+    "tpd_min": 0.0,
+    "max_si": 4.493322380838549e-12,
+    "ln_aw_resid": 1.965094753586527e-14
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 1.0621808251762466,
+    "x_org_phase": [
+     0.5482003250860243,
+     0.3989120880913284,
+     0.028566955806095553,
+     0.004246324789543692,
+     0.020074306227008065
+    ],
+    "aw_check": 0.7000000000000134,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.9206858326015208e-14
+   }
+  },
+  {
+   "site": "Seoul",
+   "rh": 0.6,
+   "eq": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {
+     "ammonium_sulfate": 0.004377482186506425
+    },
+    "log10_eta_org_phase": 1.719976760712474,
+    "x_org_phase": [
+     0.4671714433336771,
+     0.4163359051112196,
+     0.05928758791916989,
+     0.002082524283236458,
+     0.05512253935269712
+    ],
+    "aw_check": 0.6000000000000022,
+    "tpd_min": 0.0,
+    "max_si": 6.175615574477433e-14,
+    "ln_aw_resid": 3.774758283725532e-15
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 1.8168201016192338,
+    "x_org_phase": [
+     0.4777169054733147,
+     0.44554471178810273,
+     0.04236513397625594,
+     0.007991885213929309,
+     0.026381363548397218
+    ],
+    "aw_check": 0.6000000000000003,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 9.992007221626409e-16
+   }
+  },
+  {
+   "site": "Seoul",
+   "rh": 0.5,
+   "eq": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_nitrate": 0.002202715474871473,
+     "ammonium_sulfate": 0.005007226204207571
+    },
+    "log10_eta_org_phase": 2.5875940211302173,
+    "x_org_phase": [
+     0.39896784119473283,
+     0.47321012627087317,
+     0.06476302044775546,
+     0.0017040083611170632,
+     0.0613550037255214
+    ],
+    "aw_check": 0.500000000001524,
+    "tpd_min": 0.0,
+    "max_si": 7.517733380257852e-10,
+    "ln_aw_resid": 3.0478952695034423e-12
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 2.612175520806837,
+    "x_org_phase": [
+     0.405888970218006,
+     0.4866576564293932,
+     0.06060501412274289,
+     0.013756654892884858,
+     0.033091704336973046
+    ],
+    "aw_check": 0.5000000000015411,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 3.082090138661897e-12
+   }
+  },
+  {
+   "site": "Seoul",
+   "rh": 0.45,
+   "eq": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_nitrate": 0.00232929008205187,
+     "ammonium_sulfate": 0.005014928248316424
+    },
+    "log10_eta_org_phase": 3.0436591449930526,
+    "x_org_phase": [
+     0.3659350528852048,
+     0.5065982365911468,
+     0.06451479947149351,
+     0.001562888419338448,
+     0.06138902263281659
+    ],
+    "aw_check": 0.45000000000160095,
+    "tpd_min": 0.0,
+    "max_si": 8.739929058254603e-10,
+    "ln_aw_resid": 3.557709682411314e-12
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.0316099517831847,
+    "x_org_phase": [
+     0.36905784302680256,
+     0.5054441053478039,
+     0.07146833478725724,
+     0.01743861794912086,
+     0.03659109888901537
+    ],
+    "aw_check": 0.45000000000158435,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 3.520850277993759e-12
+   }
+  },
+  {
+   "site": "Seoul",
+   "rh": 0.4,
+   "eq": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_nitrate": 0.002436188188320843,
+     "ammonium_sulfate": 0.00502089254078269
+    },
+    "log10_eta_org_phase": 3.5063330866030147,
+    "x_org_phase": [
+     0.3321920822438997,
+     0.5402564649256978,
+     0.06450117495595094,
+     0.0014508970814991911,
+     0.06159938079295245
+    ],
+    "aw_check": 0.4000000000016718,
+    "tpd_min": 0.0,
+    "max_si": 1.0006795669870172e-09,
+    "ln_aw_resid": 4.179434576201402e-12
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.468749817519584,
+    "x_org_phase": [
+     0.33152040330351,
+     0.5233403082215983,
+     0.08336027474891054,
+     0.021581261022929205,
+     0.04019775270305197
+    ],
+    "aw_check": 0.4000000001623416,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 4.0585390603808946e-10
+   }
+  },
+  {
+   "site": "Seoul",
+   "rh": 0.35,
+   "eq": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_nitrate": 0.002527876527319892,
+     "ammonium_sulfate": 0.005025611810665185
+    },
+    "log10_eta_org_phase": 3.978483580080421,
+    "x_org_phase": [
+     0.2974619725475866,
+     0.5745025412359089,
+     0.0646983763376664,
+     0.001361266458828188,
+     0.06197584342000994
+    ],
+    "aw_check": 0.35000000000173725,
+    "tpd_min": 0.0,
+    "max_si": 1.1310099801153939e-09,
+    "ln_aw_resid": 4.963807143099075e-12
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.92561856238649,
+    "x_org_phase": [
+     0.2932422190206052,
+     0.5406300677881524,
+     0.09609639090917206,
+     0.02606506862710164,
+     0.04396625365496862
+    ],
+    "aw_check": 0.3500000001659411,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 4.741176340417042e-10
+   }
+  },
+  {
+   "site": "Seoul",
+   "rh": 0.3,
+   "eq": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_nitrate": 0.0026074744133107804,
+     "ammonium_sulfate": 0.005029409564586926
+    },
+    "log10_eta_org_phase": 4.462690207853106,
+    "x_org_phase": [
+     0.2614718520151731,
+     0.6096298394014077,
+     0.06509386612012834,
+     0.0012894236568375393,
+     0.06251501880645323
+    ],
+    "aw_check": 0.3000000000017981,
+    "tpd_min": 0.0,
+    "max_si": 1.2640289093202028e-09,
+    "ln_aw_resid": 5.993872065346295e-12
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 4.4037608438685645,
+    "x_org_phase": [
+     0.25418254365891957,
+     0.5575647313034128,
+     0.10949283568581669,
+     0.03073294633396566,
+     0.0480269430178852
+    ],
+    "aw_check": 0.3000000001691948,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 5.63982860413148e-10
+   }
+  },
+  {
+   "site": "Seoul",
+   "rh": 0.25,
+   "eq": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_nitrate": 0.0026772365639156992,
+     "ammonium_sulfate": 0.005032506391140066
+    },
+    "log10_eta_org_phase": 4.961348407100355,
+    "x_org_phase": [
+     0.22393563797550878,
+     0.6459294398179015,
+     0.06568356940729202,
+     0.0012322166079944713,
+     0.06321913619130315
+    ],
+    "aw_check": 0.2500000000018538,
+    "tpd_min": 0.0,
+    "max_si": 1.3986323488257568e-09,
+    "ln_aw_resid": 7.41517958147142e-12
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 4.904066993930919,
+    "x_org_phase": [
+     0.21427076079245344,
+     0.5742195876439925,
+     0.12347039628880607,
+     0.03543114101405785,
+     0.052608114260690175
+    ],
+    "aw_check": 0.25000000017225904,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 6.890361614608764e-10
+   }
+  },
+  {
+   "site": "Seoul",
+   "rh": 0.2,
+   "eq": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_nitrate": 0.002738836354832356,
+     "ammonium_sulfate": 0.005035057214822904
+    },
+    "log10_eta_org_phase": 5.4766281464127475,
+    "x_org_phase": [
+     0.18453853912310383,
+     0.6837077841989647,
+     0.06647057286597206,
+     0.0011874690540125555,
+     0.06409563475794687
+    ],
+    "aw_check": 0.20000000000190515,
+    "tpd_min": 0.0,
+    "max_si": 1.5335648584358097e-09,
+    "ln_aw_resid": 9.525713551283843e-12
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {
+     "ammonium_sulfate": 0.005021570943275716
+    },
+    "log10_eta_org_phase": 5.442942487131494,
+    "x_org_phase": [
+     0.16435264204789768,
+     0.5479977817143158,
+     0.14439663555378662,
+     0.0011436948697863842,
+     0.14210924581421353
+    ],
+    "aw_check": 0.20000000000001864,
+    "tpd_min": 0.0,
+    "max_si": 4.9145160163632795e-11,
+    "ln_aw_resid": 3.1161739855178894e-12
+   }
+  },
+  {
+   "site": "Seoul",
+   "rh": 0.15,
+   "eq": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_nitrate": 0.0027935403462517683,
+     "ammonium_sulfate": 0.005037173328005616
+    },
+    "log10_eta_org_phase": 6.010144056925908,
+    "x_org_phase": [
+     0.142920600487318,
+     0.7233035451296302,
+     0.0674647865855336,
+     0.001153718788015487,
+     0.0651573490095026
+    ],
+    "aw_check": 0.15000000000195174,
+    "tpd_min": 0.0,
+    "max_si": 1.667364496471535e-09,
+    "ln_aw_resid": 1.301159180400191e-11
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {
+     "ammonium_sulfate": 0.00503245046627051
+    },
+    "log10_eta_org_phase": 6.000064689086018,
+    "x_org_phase": [
+     0.12428113793954317,
+     0.5613376045916686,
+     0.1577268818492246,
+     0.0010725062296608385,
+     0.15558186938990287
+    ],
+    "aw_check": 0.15000000000000113,
+    "tpd_min": 0.0,
+    "max_si": 1.044591357857172e-10,
+    "ln_aw_resid": 6.2878591222670366e-12
+   }
+  },
+  {
+   "site": "Seoul",
+   "rh": 0.1,
+   "eq": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_nitrate": 0.0028423197849350903,
+     "ammonium_sulfate": 0.005038935943261924
+    },
+    "log10_eta_org_phase": 6.561769458769634,
+    "x_org_phase": [
+     0.09865686491423543,
+     0.7651064293404267,
+     0.06868338664947321,
+     0.0011300675536083675,
+     0.0664232515422564
+    ],
+    "aw_check": 0.10000000000199408,
+    "tpd_min": 0.0,
+    "max_si": 1.7983734779125626e-09,
+    "ln_aw_resid": 1.994049370068751e-11
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.005034756236871478
+    },
+    "log10_eta_org_phase": 6.576273685654327,
+    "x_org_phase": [
+     0.0845116123373089,
+     0.5869776625310238,
+     0.1647710129466441,
+     0.0010313007616208065,
+     0.16270841142340242
+    ],
+    "aw_check": 0.10000000000178574,
+    "tpd_min": 0.0,
+    "max_si": 1.4818377913616843e-09,
+    "ln_aw_resid": 1.7857271217280868e-11
+   }
+  },
+  {
+   "site": "Seoul",
+   "rh": 0.05,
+   "eq": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_nitrate": 0.0028859234378758518,
+     "ammonium_sulfate": 0.00504040475823473
+    },
+    "log10_eta_org_phase": 7.124923157724409,
+    "x_org_phase": [
+     0.0512312591968851,
+     0.8095807248595477,
+     0.07015206184298933,
+     0.0011161077424111034,
+     0.06791984635816697
+    ],
+    "aw_check": 0.05000000000203154,
+    "tpd_min": 0.0,
+    "max_si": 1.9246724491939204e-09,
+    "ln_aw_resid": 4.063060998760193e-11
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.005036699452841535
+    },
+    "log10_eta_org_phase": 7.150769098121987,
+    "x_org_phase": [
+     0.043188776092949396,
+     0.613625979856782,
+     0.17209174822667045,
+     0.000998252403072298,
+     0.1700952434205258
+    ],
+    "aw_check": 0.05000000000182668,
+    "tpd_min": 0.0,
+    "max_si": 1.5989498891588738e-09,
+    "ln_aw_resid": 3.653344293752525e-11
+   }
+  },
+  {
+   "site": "Beijing",
+   "rh": 0.8,
+   "eq": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 0.29117075787117463,
+    "x_org_phase": [
+     0.6185864481788138,
+     0.33969145202498363,
+     0.02159334475146898,
+     0.001464589706735244,
+     0.018664165337998237
+    ],
+    "aw_check": 0.8000000000008842,
+    "tpd_min": 0.0,
+    "max_si": -0.8379804955727592,
+    "ln_aw_resid": 1.1052825321655746e-12
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 0.2911707578711677,
+    "x_org_phase": [
+     0.6185864481788139,
+     0.3396914520249836,
+     0.021593344751468853,
+     0.0014645897067352702,
+     0.0186641653379983
+    ],
+    "aw_check": 0.8000000000008847,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.105782132526656e-12
+   }
+  },
+  {
+   "site": "Beijing",
+   "rh": 0.7,
+   "eq": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {
+     "ammonium_sulfate": 0.0011701651084306984
+    },
+    "log10_eta_org_phase": 1.007997214720004,
+    "x_org_phase": [
+     0.544169435449805,
+     0.3866960574560311,
+     0.0358314739588824,
+     0.0025284408236008805,
+     0.03077459231168061
+    ],
+    "aw_check": 0.7000000000000126,
+    "tpd_min": 0.0,
+    "max_si": 3.5238756357358625e-12,
+    "ln_aw_resid": 1.815214645262131e-14
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 1.0290369160984227,
+    "x_org_phase": [
+     0.5456963192125701,
+     0.3914328551938133,
+     0.03300308846237276,
+     0.0031353513311290515,
+     0.026732385800114635
+    ],
+    "aw_check": 0.7000000000000096,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.3877787807814457e-14
+   }
+  },
+  {
+   "site": "Beijing",
+   "rh": 0.6,
+   "eq": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {
+     "ammonium_sulfate": 0.003056485439383679
+    },
+    "log10_eta_org_phase": 1.7199767607124627,
+    "x_org_phase": [
+     0.4671714433336773,
+     0.416335905111219,
+     0.05928758791917002,
+     0.0020825242832364396,
+     0.05512253935269716
+    ],
+    "aw_check": 0.6000000000000031,
+    "tpd_min": 0.0,
+    "max_si": 5.420663917732327e-14,
+    "ln_aw_resid": 5.10702591327572e-15
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 1.7906415173611263,
+    "x_org_phase": [
+     0.47462415259518254,
+     0.4375069775525301,
+     0.04689627631721502,
+     0.005923682782142581,
+     0.03504891075292983
+    ],
+    "aw_check": 0.600000000000001,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.6653345369377348e-15
+   }
+  },
+  {
+   "site": "Beijing",
+   "rh": 0.5,
+   "eq": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_nitrate": 0.002894964449270049,
+     "ammonium_sulfate": 0.003886558445627594
+    },
+    "log10_eta_org_phase": 2.5875940211366397,
+    "x_org_phase": [
+     0.3989678411948332,
+     0.47321012627244524,
+     0.06476302044677727,
+     0.001704008360832961,
+     0.06135500372511133
+    ],
+    "aw_check": 0.5000000000011939,
+    "tpd_min": 0.0,
+    "max_si": 5.887197673803968e-10,
+    "ln_aw_resid": 2.387756659061324e-12
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 2.5952441928607883,
+    "x_org_phase": [
+     0.4027591409464115,
+     0.4789276207177702,
+     0.06426441906312391,
+     0.010215599790429469,
+     0.043833219482264936
+    ],
+    "aw_check": 0.5000000000011959,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 2.9178881533198364e-12
+   }
+  },
+  {
+   "site": "Beijing",
+   "rh": 0.45,
+   "eq": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_nitrate": 0.003093932446887654,
+     "ammonium_sulfate": 0.003898665615683474
+    },
+    "log10_eta_org_phase": 3.0436591449990265,
+    "x_org_phase": [
+     0.3659350528853134,
+     0.5065982365928301,
+     0.06451479947044644,
+     0.0015628884190360972,
+     0.06138902263237416
+    ],
+    "aw_check": 0.4500000000012542,
+    "tpd_min": 0.0,
+    "max_si": 6.844316502441217e-10,
+    "ln_aw_resid": 2.787103881018993e-12
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.019424433113588,
+    "x_org_phase": [
+     0.3660796379670465,
+     0.49813733305326496,
+     0.07438371612009428,
+     0.012984403260499983,
+     0.048414909599094294
+    ],
+    "aw_check": 0.45000000012334873,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 3.6191749597236367e-10
+   }
+  },
+  {
+   "site": "Beijing",
+   "rh": 0.4,
+   "eq": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_nitrate": 0.0032619701175331008,
+     "ammonium_sulfate": 0.003908041140171714
+    },
+    "log10_eta_org_phase": 3.5063330866085787,
+    "x_org_phase": [
+     0.3321920822440057,
+     0.5402564649275036,
+     0.0645011749548346,
+     0.0014508970811783104,
+     0.06159938079247789
+    ],
+    "aw_check": 0.4000000000013089,
+    "tpd_min": 0.0,
+    "max_si": 7.836349624756878e-10,
+    "ln_aw_resid": 3.272160320477724e-12
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.4610746570285778,
+    "x_org_phase": [
+     0.32876724205536756,
+     0.5165347250635427,
+     0.08542000947072188,
+     0.016141986060353917,
+     0.05313603735001401
+    ],
+    "aw_check": 0.4000000001265415,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 4.5235937218279787e-10
+   }
+  },
+  {
+   "site": "Beijing",
+   "rh": 0.35,
+   "eq": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_nitrate": 0.0034060989094125884,
+     "ammonium_sulfate": 0.003915459560814262
+    },
+    "log10_eta_org_phase": 3.9784835800855722,
+    "x_org_phase": [
+     0.297461972547679,
+     0.5745025412378495,
+     0.06469837633647992,
+     0.0013612664584883576,
+     0.061975843419503227
+    ],
+    "aw_check": 0.35000000000136083,
+    "tpd_min": 0.0,
+    "max_si": 8.857057587352557e-10,
+    "ln_aw_resid": 3.888223076842223e-12
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 3.922053438923594,
+    "x_org_phase": [
+     0.2907539429870123,
+     0.5342847315676719,
+     0.09729334290390097,
+     0.01962536036248616,
+     0.058042622178928624
+    ],
+    "aw_check": 0.35000000012949734,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 5.725828700064994e-10
+   }
+  },
+  {
+   "site": "Beijing",
+   "rh": 0.3,
+   "eq": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_nitrate": 0.0035312222050167294,
+     "ammonium_sulfate": 0.00392142941140341
+    },
+    "log10_eta_org_phase": 4.462690207857847,
+    "x_org_phase": [
+     0.2614718520152401,
+     0.6096298394034974,
+     0.06509386611887034,
+     0.0012894236564781837,
+     0.06251501880591402
+    ],
+    "aw_check": 0.30000000000140853,
+    "tpd_min": 0.0,
+    "max_si": 9.898748765113652e-10,
+    "ln_aw_resid": 4.695133171139787e-12
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 4.403787026826933,
+    "x_org_phase": [
+     0.25197062041777146,
+     0.551492123967214,
+     0.10994339900247677,
+     0.023349542389938957,
+     0.06324431422259884
+    ],
+    "aw_check": 0.30000000013221,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 7.366387499985194e-10
+   }
+  },
+  {
+   "site": "Beijing",
+   "rh": 0.25,
+   "eq": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_nitrate": 0.003640884290679654,
+     "ammonium_sulfate": 0.003926297444510266
+    },
+    "log10_eta_org_phase": 4.961348407104743,
+    "x_org_phase": [
+     0.2239356379755362,
+     0.645929439820157,
+     0.06568356940596082,
+     0.0012322166076148499,
+     0.06321913619073108
+    ],
+    "aw_check": 0.25000000000145145,
+    "tpd_min": 0.0,
+    "max_si": 1.0952776741124381e-09,
+    "ln_aw_resid": 5.805800284974794e-12
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 4.907094837693986,
+    "x_org_phase": [
+     0.21233041299864985,
+     0.5680759348137849,
+     0.12341774551981721,
+     0.02724183885206915,
+     0.06893406781567889
+    ],
+    "aw_check": 0.2500000001346782,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 9.59467394423541e-10
+   }
+  },
+  {
+   "site": "Beijing",
+   "rh": 0.2,
+   "eq": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_nitrate": 0.003737715616688763,
+     "ammonium_sulfate": 0.003930307192529644
+    },
+    "log10_eta_org_phase": 5.476628146416912,
+    "x_org_phase": [
+     0.1845385391230765,
+     0.6837077842014051,
+     0.06647057286456509,
+     0.0011874690536117832,
+     0.06409563475734144
+    ],
+    "aw_check": 0.2000000000014919,
+    "tpd_min": 0.0,
+    "max_si": 1.2009464811502113e-09,
+    "ln_aw_resid": 7.459366457851502e-12
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 2,
+    "solids": {},
+    "log10_eta_org_phase": 5.4320065234032695,
+    "x_org_phase": [
+     0.17173289732673924,
+     0.5836263810778377,
+     0.1379638767141581,
+     0.03128703183289324,
+     0.07538981304837161
+    ],
+    "aw_check": 0.20000000013686156,
+    "tpd_min": 0.0,
+    "max_si": -Infinity,
+    "ln_aw_resid": 1.268093186013175e-09
+   }
+  },
+  {
+   "site": "Beijing",
+   "rh": 0.15,
+   "eq": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_nitrate": 0.0038237071427687543,
+     "ammonium_sulfate": 0.003933633600662143
+    },
+    "log10_eta_org_phase": 6.010144056929908,
+    "x_org_phase": [
+     0.14292060048721758,
+     0.723303545132278,
+     0.06746478658404848,
+     0.0011537187875924784,
+     0.06515734900886355
+    ],
+    "aw_check": 0.15000000000152855,
+    "tpd_min": 0.0,
+    "max_si": 1.3057240011438154e-09,
+    "ln_aw_resid": 1.0190293053824462e-11
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.003926301646019739
+    },
+    "log10_eta_org_phase": 6.007314086686769,
+    "x_org_phase": [
+     0.12609513017616358,
+     0.5780761235272559,
+     0.1484657090278152,
+     0.001102671759049802,
+     0.14626036550971558
+    ],
+    "aw_check": 0.15000000000138453,
+    "tpd_min": 0.0,
+    "max_si": 1.071334604363372e-09,
+    "ln_aw_resid": 9.230172182128626e-12
+   }
+  },
+  {
+   "site": "Beijing",
+   "rh": 0.1,
+   "eq": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_nitrate": 0.003900385612929094,
+     "ammonium_sulfate": 0.0039364043303995394
+    },
+    "log10_eta_org_phase": 6.561769458773707,
+    "x_org_phase": [
+     0.09865686491403942,
+     0.7651064293433095,
+     0.06868338664790655,
+     0.0011300675531618171,
+     0.06642325154158277
+    ],
+    "aw_check": 0.10000000000156158,
+    "tpd_min": 0.0,
+    "max_si": 1.408320154938636e-09,
+    "ln_aw_resid": 1.5615508885957752e-11
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.003929797082304278
+    },
+    "log10_eta_org_phase": 6.57952614866705,
+    "x_org_phase": [
+     0.08585402046641233,
+     0.6048738490613648,
+     0.15516791381722184,
+     0.001063697162220882,
+     0.15304051949278008
+    ],
+    "aw_check": 0.10000000000141858,
+    "tpd_min": 0.0,
+    "max_si": 1.1607626249077185e-09,
+    "ln_aw_resid": 1.418554163024055e-11
+   }
+  },
+  {
+   "site": "Beijing",
+   "rh": 0.05,
+   "eq": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_nitrate": 0.003968928045789076,
+     "ammonium_sulfate": 0.003938713223000647
+    },
+    "log10_eta_org_phase": 7.124923157728776,
+    "x_org_phase": [
+     0.051231259196565716,
+     0.8095807248626989,
+     0.07015206184133736,
+     0.0011161077419394611,
+     0.06791984635745842
+    ],
+    "aw_check": 0.05000000000159107,
+    "tpd_min": 0.0,
+    "max_si": 1.5072312564701207e-09,
+    "ln_aw_resid": 3.1821212331806237e-11
+   },
+   "dry": {
+    "status": "converged",
+    "n_phases": 1,
+    "solids": {
+     "ammonium_sulfate": 0.003932758032585237
+    },
+    "log10_eta_org_phase": 7.150716115102317,
+    "x_org_phase": [
+     0.04393282976258211,
+     0.6327708178804008,
+     0.16216463639138892,
+     0.001032920425760909,
+     0.1600987955398671
+    ],
+    "aw_check": 0.050000000001450134,
+    "tpd_min": 0.0,
+    "max_si": 1.249284703463971e-09,
+    "ln_aw_resid": 2.900257811688789e-11
+   }
+  }
+ ],
+ "path_scores": [
+  {
+   "site": "Ansan",
+   "path": "eq",
+   "mean_offset": 2.56185279204479,
+   "sd": 0.5735477730442328,
+   "n_within_1": 0,
+   "n": 29
+  },
+  {
+   "site": "Ansan",
+   "path": "dry",
+   "mean_offset": 2.587005763591007,
+   "sd": 0.575400272319745,
+   "n_within_1": 0,
+   "n": 29
+  },
+  {
+   "site": "Seoul",
+   "path": "eq",
+   "mean_offset": 1.7210287864686586,
+   "sd": 0.7933670016273205,
+   "n_within_1": 6,
+   "n": 18
+  },
+  {
+   "site": "Seoul",
+   "path": "dry",
+   "mean_offset": 1.7676576261559647,
+   "sd": 0.7871895637332615,
+   "n_within_1": 6,
+   "n": 18
+  },
+  {
+   "site": "Beijing",
+   "path": "eq",
+   "mean_offset": 2.1329933606161062,
+   "sd": 0.6326797276945182,
+   "n_within_1": 1,
+   "n": 10
+  },
+  {
+   "site": "Beijing",
+   "path": "dry",
+   "mean_offset": 2.186552313647974,
+   "sd": 0.6321554676799076,
+   "n_within_1": 1,
+   "n": 10
+  }
+ ],
+ "proxy_tg": {
+  "pinonic acid": 267.76865495112895,
+  "pinic acid": 270.96656051725375
+ },
+ "solver": "aiomfac_py.phase_equilibrium (feature/phase-equilibrium @ adf3c67)"
+}

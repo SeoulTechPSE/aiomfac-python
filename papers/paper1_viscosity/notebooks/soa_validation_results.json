@@ -1,0 +1,132 @@
+{
+ "apinene": [
+  {
+   "study": "293K_Abramson2013",
+   "proxy": "pinonic_acid_ml",
+   "mae": 0.6377087357773856
+  },
+  {
+   "study": "293K_Abramson2013",
+   "proxy": "pinic_acid_ml",
+   "mae": 0.2463349974548832
+  },
+  {
+   "study": "293K_Pajunoja2014",
+   "proxy": "pinonic_acid_ml",
+   "mae": 5.111776398913249
+  },
+  {
+   "study": "293K_Pajunoja2014",
+   "proxy": "pinic_acid_ml",
+   "mae": 5.008299140928169
+  },
+  {
+   "study": "293K_Zhang2015",
+   "proxy": "pinonic_acid_ml",
+   "mae": 2.5394784843183995
+  },
+  {
+   "study": "293K_Zhang2015",
+   "proxy": "pinic_acid_ml",
+   "mae": 2.7758823447508854
+  },
+  {
+   "study": "294K_Grayson2016@121ugm-3",
+   "proxy": "pinonic_acid_ml",
+   "mae": 0.6375137540125827
+  },
+  {
+   "study": "294K_Grayson2016@121ugm-3",
+   "proxy": "pinic_acid_ml",
+   "mae": 1.0805909447666961
+  },
+  {
+   "study": "294K_Grayson2016@520ugm-3",
+   "proxy": "pinonic_acid_ml",
+   "mae": 0.4822502147533463
+  },
+  {
+   "study": "294K_Grayson2016@520ugm-3",
+   "proxy": "pinic_acid_ml",
+   "mae": 0.8938429306294678
+  },
+  {
+   "study": "294K_Renbaum-Wolff2013@liquid",
+   "proxy": "pinonic_acid_ml",
+   "mae": 0.34369122038959354
+  },
+  {
+   "study": "294K_Renbaum-Wolff2013@liquid",
+   "proxy": "pinic_acid_ml",
+   "mae": 1.600640839064385
+  },
+  {
+   "study": "294K_Renbaum-Wolff2013@semisolid",
+   "proxy": "pinonic_acid_ml",
+   "mae": 1.7124205629856513
+  },
+  {
+   "study": "294K_Renbaum-Wolff2013@semisolid",
+   "proxy": "pinic_acid_ml",
+   "mae": 2.495935033647916
+  },
+  {
+   "study": "297K_Kidd2014",
+   "proxy": "pinonic_acid_ml",
+   "mae": 2.779859863864049
+  },
+  {
+   "study": "297K_Kidd2014",
+   "proxy": "pinic_acid_ml",
+   "mae": 4.087747025087474
+  },
+  {
+   "study": "298K_Bateman2015",
+   "proxy": "pinonic_acid_ml",
+   "mae": 0.16932787282515083
+  },
+  {
+   "study": "298K_Bateman2015",
+   "proxy": "pinic_acid_ml",
+   "mae": 1.3106714527636019
+  }
+ ],
+ "isoprene_and_toluene_initial": [
+  {
+   "system": "isoprene",
+   "study": "295K_Song2015@liquid",
+   "proxy": "2-methyltetrol",
+   "mae": 1.7557165015731937
+  },
+  {
+   "system": "isoprene",
+   "study": "295K_Song2015@semisolid",
+   "proxy": "2-methyltetrol",
+   "mae": 1.6819207710296764
+  },
+  {
+   "system": "toluene",
+   "study": "295K_Song2016@liquidsemisolid",
+   "proxy": "4-methylcatechol",
+   "mae": 3.640143510395
+  },
+  {
+   "system": "toluene",
+   "study": "295K_Song2016@liquidsemisolid",
+   "proxy": "glutaric_acid",
+   "mae": 2.864833055710352
+  },
+  {
+   "system": "toluene",
+   "study": "295K_Song2016@solid",
+   "proxy": "4-methylcatechol",
+   "mae": 6.947881010825588
+  },
+  {
+   "system": "toluene",
+   "study": "295K_Song2016@solid",
+   "proxy": "glutaric_acid",
+   "mae": 5.780189745256135
+  }
+ ]
+}

@@ -1,0 +1,699 @@
+{
+ "points": [
+  {
+   "site": "Beijing",
+   "T_K": 290.0,
+   "date": "09/21",
+   "oir": 7.63,
+   "rh_pct": 39.8175,
+   "level": "group mean",
+   "n_particles": 3,
+   "rh": 39.8175,
+   "s1_pinonic acid": 3.868488570319148,
+   "s3_pinonic acid": 4.3946830746404855,
+   "s1_pinic acid": 3.197849200261571,
+   "s3_pinic acid": 3.6310789652856212
+  },
+  {
+   "site": "Beijing",
+   "T_K": 290.0,
+   "date": "09/21",
+   "oir": 7.63,
+   "rh_pct": 30.04945,
+   "level": "group mean",
+   "n_particles": 3,
+   "rh": 30.04945,
+   "s1_pinonic acid": 4.666262871347137,
+   "s3_pinonic acid": 5.014127559097257,
+   "s1_pinic acid": 4.1993688831715374,
+   "s3_pinic acid": 4.491504187634517
+  },
+  {
+   "site": "Beijing",
+   "T_K": 290.0,
+   "date": "10/03",
+   "oir": 2.69,
+   "rh_pct": 38.4,
+   "level": "group mean",
+   "n_particles": 1,
+   "rh": 38.4,
+   "s1_pinonic acid": 2.1756121742601366,
+   "s3_pinonic acid": 4.484090547588424,
+   "s1_pinic acid": 1.9545940757013374,
+   "s3_pinic acid": 3.7538182995820324
+  },
+  {
+   "site": "Beijing",
+   "T_K": 290.0,
+   "date": "10/14",
+   "oir": 2.79,
+   "rh_pct": 31.62342791527,
+   "level": "group mean",
+   "n_particles": 3,
+   "rh": 31.62342791527,
+   "s1_pinonic acid": 3.01955668839075,
+   "s3_pinonic acid": 4.913790389728721,
+   "s1_pinic acid": 2.8130052403332306,
+   "s3_pinic acid": 4.35056625757959
+  },
+  {
+   "site": "Seoul",
+   "T_K": 290.0,
+   "date": "09/30",
+   "oir": 3.26,
+   "rh_pct": 41.87390940721799,
+   "level": "group mean",
+   "n_particles": 4,
+   "rh": 41.87390940721799,
+   "s1_pinonic acid": 2.333957538776702,
+   "s3_pinonic acid": 4.265844577568705,
+   "s1_pinic acid": 1.9671091906362095,
+   "s3_pinic acid": 3.4577783492618703
+  },
+  {
+   "site": "Seoul",
+   "T_K": 290.0,
+   "date": "09/30",
+   "oir": 3.26,
+   "rh_pct": 33.38448340615999,
+   "level": "group mean",
+   "n_particles": 3,
+   "rh": 33.38448340615999,
+   "s1_pinonic acid": 3.2108814792865825,
+   "s3_pinonic acid": 4.801527491152285,
+   "s1_pinic acid": 2.9047286296441985,
+   "s3_pinic acid": 4.192876932210869
+  },
+  {
+   "site": "Seoul",
+   "T_K": 290.0,
+   "date": "10/12",
+   "oir": 2.99,
+   "rh_pct": 39.3,
+   "level": "group mean",
+   "n_particles": 4,
+   "rh": 39.3,
+   "s1_pinonic acid": 2.373967925902,
+   "s3_pinonic acid": 4.427323898093074,
+   "s1_pinic acid": 2.0756988413397375,
+   "s3_pinic acid": 3.6758885635164624
+  },
+  {
+   "site": "Seoul",
+   "T_K": 290.0,
+   "date": "10/12",
+   "oir": 2.99,
+   "rh_pct": 28.9,
+   "level": "group mean",
+   "n_particles": 5,
+   "rh": 28.9,
+   "s1_pinonic acid": 3.4990943542584314,
+   "s3_pinonic acid": 5.088387990098069,
+   "s1_pinic acid": 3.2849251885582706,
+   "s3_pinic acid": 4.598177301943894
+  },
+  {
+   "site": "Seoul",
+   "T_K": 290.0,
+   "date": "10/15",
+   "oir": 2.09,
+   "rh_pct": 32.8,
+   "level": "group mean",
+   "n_particles": 2,
+   "rh": 32.8,
+   "s1_pinonic acid": 2.0125829091494407,
+   "s3_pinonic acid": 4.838786851622392,
+   "s1_pinic acid": 1.9935229768821507,
+   "s3_pinic acid": 4.245213042277292
+  }
+ ],
+ "summary": {
+  "s1_pinonic acid": {
+   "mean": 2.9649548322661627,
+   "sd": 0.8012471356106997,
+   "n_within_1": 0
+  },
+  "s3_pinonic acid": {
+   "mean": 1.2907150691662646,
+   "sd": 0.6980574254892206,
+   "n_within_1": 2
+  },
+  "s1_pinic acid": {
+   "mean": 3.2726884195063946,
+   "sd": 0.7294307750709,
+   "n_within_1": 0
+  },
+  "s3_pinic acid": {
+   "mean": 1.9386773447548498,
+   "sd": 0.7066139895992406,
+   "n_within_1": 2
+  }
+ },
+ "pairs": [
+  {
+   "pair": "Beijing 09/21 (OIR 7.63, RH 39.8) - 10/03 (OIR 2.69, RH 38.4)",
+   "measured": 1.4928799172006668,
+   "s1_pinic": 1.2432551245602337,
+   "s3_pinic": -0.12273933429641115
+  },
+  {
+   "pair": "Beijing 09/21 (OIR 7.63, RH 30.0) - 10/14 (OIR 2.79, RH 31.6)",
+   "measured": 1.2708907375066527,
+   "s1_pinic": 1.3863636428383068,
+   "s3_pinic": 0.1409379300549265
+  },
+  {
+   "pair": "Seoul 09/30 (OIR 3.26, RH 41.9) - 10/12 (OIR 2.99, RH 39.3)",
+   "measured": -0.40711637024439273,
+   "s1_pinic": -0.108589650703528,
+   "s3_pinic": -0.2181102142545921
+  },
+  {
+   "pair": "Seoul 09/30 (OIR 3.26, RH 33.4) - 10/15 (OIR 2.09, RH 32.8)",
+   "measured": 0.12768160742605517,
+   "s1_pinic": 0.9112056527620478,
+   "s3_pinic": -0.05233611006642214
+  }
+ ],
+ "check_sb": [
+  {
+   "site": "Seoul",
+   "si_date": "09/30",
+   "data_date": "09/30",
+   "rh": 41,
+   "inverted_minus_provided": 0.08216860523605263
+  },
+  {
+   "site": "Seoul",
+   "si_date": "09/30",
+   "data_date": "09/30",
+   "rh": 33,
+   "inverted_minus_provided": 0.10732508160964294
+  },
+  {
+   "site": "Seoul",
+   "si_date": "10/12",
+   "data_date": "10/12",
+   "rh": 39,
+   "inverted_minus_provided": 0.08343643582907667
+  },
+  {
+   "site": "Seoul",
+   "si_date": "10/12",
+   "data_date": "10/12",
+   "rh": 29,
+   "inverted_minus_provided": 0.13253932051827544
+  },
+  {
+   "site": "Seoul",
+   "si_date": "10/12",
+   "data_date": "10/15",
+   "rh": 33,
+   "inverted_minus_provided": 0.098465653464336
+  },
+  {
+   "site": "Beijing",
+   "si_date": "09/21",
+   "data_date": "09/21",
+   "rh": 40,
+   "inverted_minus_provided": 0.08184477576334981
+  },
+  {
+   "site": "Beijing",
+   "si_date": "09/21",
+   "data_date": "09/21",
+   "rh": 30,
+   "inverted_minus_provided": 0.10922264838548834
+  },
+  {
+   "site": "Beijing",
+   "si_date": "10/03",
+   "data_date": "10/03",
+   "rh": 38,
+   "inverted_minus_provided": 0.014175639348182223
+  },
+  {
+   "site": "Beijing",
+   "si_date": "10/14",
+   "data_date": "10/14",
+   "rh": 32,
+   "inverted_minus_provided": 0.09930453535225148
+  }
+ ],
+ "check_ansan": {
+  "xi": 0.5139913839096775,
+  "max_abs_diff": 0.000816703152349163
+ },
+ "ansan_points": [
+  {
+   "site": "Ansan",
+   "T_K": 300.0,
+   "date": "08/03",
+   "oir": 1.43,
+   "rh_pct": 35.5,
+   "level": "sample mean",
+   "rh": 35.5,
+   "s1_pinonic acid": 0.046255577998121085,
+   "s3_pinonic acid": 3.63129509586719,
+   "s1_pinic acid": 0.24864997122818655,
+   "s3_pinic acid": 3.043462381130677
+  },
+  {
+   "site": "Ansan",
+   "T_K": 300.0,
+   "date": "08/03",
+   "oir": 1.43,
+   "rh_pct": 29.3,
+   "level": "sample mean",
+   "rh": 29.3,
+   "s1_pinonic acid": 0.6137390519410082,
+   "s3_pinonic acid": 3.9733427177170526,
+   "s1_pinic acid": 0.831438715299598,
+   "s3_pinic acid": 3.525134480550298
+  },
+  {
+   "site": "Ansan",
+   "T_K": 300.0,
+   "date": "08/03",
+   "oir": 1.43,
+   "rh_pct": 20.6,
+   "level": "sample mean",
+   "rh": 20.6,
+   "s1_pinonic acid": 1.625179231384216,
+   "s3_pinonic acid": 4.4609839678479055,
+   "s1_pinic acid": 1.8740932552545966,
+   "s3_pinic acid": 4.2358025946837445
+  },
+  {
+   "site": "Ansan",
+   "T_K": 300.0,
+   "date": "08/04",
+   "oir": 0.92,
+   "rh_pct": 30.7,
+   "level": "sample mean",
+   "rh": 30.7,
+   "s1_pinonic acid": -0.6030798957404158,
+   "s3_pinonic acid": 3.8957677795449888,
+   "s1_pinic acid": -0.2859117965862009,
+   "s3_pinic acid": 3.414706201751004
+  },
+  {
+   "site": "Ansan",
+   "T_K": 300.0,
+   "date": "08/04",
+   "oir": 0.92,
+   "rh_pct": 27.1,
+   "level": "sample mean",
+   "rh": 27.1,
+   "s1_pinonic acid": -0.3668855122648678,
+   "s3_pinonic acid": 4.095846745296597,
+   "s1_pinic acid": -0.018817243412467925,
+   "s3_pinic acid": 3.7015247290283155
+  },
+  {
+   "site": "Ansan",
+   "T_K": 300.0,
+   "date": "08/04",
+   "oir": 0.92,
+   "rh_pct": 24.1,
+   "level": "sample mean",
+   "rh": 24.1,
+   "s1_pinonic acid": -0.134759426893547,
+   "s3_pinonic acid": 4.263550908866972,
+   "s1_pinic acid": 0.24224487770342185,
+   "s3_pinic acid": 3.9447415162505446
+  },
+  {
+   "site": "Ansan",
+   "T_K": 300.0,
+   "date": "08/05",
+   "oir": 0.95,
+   "rh_pct": 34.2,
+   "level": "sample mean",
+   "rh": 34.2,
+   "s1_pinonic acid": -0.7484960321531827,
+   "s3_pinonic acid": 3.7027858598339427,
+   "s1_pinic acid": -0.4570026664185579,
+   "s3_pinic acid": 3.1431856576059256
+  },
+  {
+   "site": "Ansan",
+   "T_K": 300.0,
+   "date": "08/05",
+   "oir": 0.95,
+   "rh_pct": 20.6,
+   "level": "sample mean",
+   "rh": 20.6,
+   "s1_pinonic acid": 0.2797746768435962,
+   "s3_pinonic acid": 4.4609839678479055,
+   "s1_pinic acid": 0.6910439606369614,
+   "s3_pinic acid": 4.2358025946837445
+  },
+  {
+   "site": "Ansan",
+   "T_K": 300.0,
+   "date": "08/09",
+   "oir": 1.33,
+   "rh_pct": 31.7,
+   "level": "sample mean",
+   "rh": 31.7,
+   "s1_pinonic acid": 0.17327469803129936,
+   "s3_pinonic acid": 3.8406300881989757,
+   "s1_pinic acid": 0.41753886935482176,
+   "s3_pinic acid": 3.337128903423839
+  },
+  {
+   "site": "Ansan",
+   "T_K": 300.0,
+   "date": "08/09",
+   "oir": 1.33,
+   "rh_pct": 28.4,
+   "level": "sample mean",
+   "rh": 28.4,
+   "s1_pinonic acid": 0.4825067376741026,
+   "s3_pinonic acid": 4.023458001726866,
+   "s1_pinic acid": 0.7386082509070148,
+   "s3_pinic acid": 3.597294127654942
+  },
+  {
+   "site": "Ansan",
+   "T_K": 300.0,
+   "date": "08/09",
+   "oir": 1.33,
+   "rh_pct": 24.7,
+   "level": "sample mean",
+   "rh": 24.7,
+   "s1_pinonic acid": 0.8751372870904292,
+   "s3_pinonic acid": 4.2297052416130985,
+   "s1_pinic acid": 1.145899389924809,
+   "s3_pinic acid": 3.894845331376282
+  },
+  {
+   "site": "Ansan",
+   "T_K": 300.0,
+   "date": "08/10",
+   "oir": 0.91,
+   "rh_pct": 25.3,
+   "level": "sample mean",
+   "rh": 25.3,
+   "s1_pinonic acid": -0.2565780942245093,
+   "s3_pinonic acid": 4.1960773133162235,
+   "s1_pinic acid": 0.10862901785774544,
+   "s3_pinic acid": 3.8458440232376025
+  },
+  {
+   "site": "Ansan",
+   "T_K": 300.0,
+   "date": "08/10",
+   "oir": 0.91,
+   "rh_pct": 20.6,
+   "level": "sample mean",
+   "rh": 20.6,
+   "s1_pinonic acid": 0.15876754850566485,
+   "s3_pinonic acid": 4.4609839678479055,
+   "s1_pinic acid": 0.5744728700463487,
+   "s3_pinic acid": 4.2358025946837445
+  },
+  {
+   "site": "Ansan",
+   "T_K": 300.0,
+   "date": "08/10",
+   "oir": 0.91,
+   "rh_pct": 16.8,
+   "level": "sample mean",
+   "rh": 16.8,
+   "s1_pinonic acid": 0.5922049100380504,
+   "s3_pinonic acid": 4.67829146999651,
+   "s1_pinic acid": 1.0550067078729826,
+   "s3_pinic acid": 4.562747008065334
+  },
+  {
+   "site": "Ansan",
+   "T_K": 300.0,
+   "date": "08/16",
+   "oir": 0.68,
+   "rh_pct": 30.1,
+   "level": "sample mean",
+   "rh": 30.1,
+   "s1_pinonic acid": -0.9814453849679463,
+   "s3_pinonic acid": 3.9288503943525965,
+   "s1_pinic acid": -0.6933109000049396,
+   "s3_pinic acid": 3.461252580747303
+  },
+  {
+   "site": "Ansan",
+   "T_K": 300.0,
+   "date": "08/16",
+   "oir": 0.68,
+   "rh_pct": 26.4,
+   "level": "sample mean",
+   "rh": 26.4,
+   "s1_pinonic acid": -0.8183040141837002,
+   "s3_pinonic acid": 4.134825299526452,
+   "s1_pinic acid": -0.49734886881275053,
+   "s3_pinic acid": 3.757648898998594
+  },
+  {
+   "site": "Ansan",
+   "T_K": 300.0,
+   "date": "08/16",
+   "oir": 0.68,
+   "rh_pct": 20.2,
+   "level": "sample mean",
+   "rh": 20.2,
+   "s1_pinonic acid": -0.458798061496734,
+   "s3_pinonic acid": 4.4835477460171544,
+   "s1_pinic acid": -0.06505020138715303,
+   "s3_pinic acid": 4.269066717933253
+  },
+  {
+   "site": "Ansan",
+   "T_K": 300.0,
+   "date": "08/17",
+   "oir": 1.67,
+   "rh_pct": 38.7,
+   "level": "sample mean",
+   "rh": 38.7,
+   "s1_pinonic acid": 0.19918723341016348,
+   "s3_pinonic acid": 3.456059186171558,
+   "s1_pinic acid": 0.31727313646019556,
+   "s3_pinic acid": 2.8024291791241702
+  },
+  {
+   "site": "Ansan",
+   "T_K": 300.0,
+   "date": "08/17",
+   "oir": 1.67,
+   "rh_pct": 35.2,
+   "level": "sample mean",
+   "rh": 35.2,
+   "s1_pinonic acid": 0.5101667446340562,
+   "s3_pinonic acid": 3.647723462401155,
+   "s1_pinic acid": 0.6299149319585342,
+   "s3_pinic acid": 3.0660592438187866
+  },
+  {
+   "site": "Ansan",
+   "T_K": 300.0,
+   "date": "08/17",
+   "oir": 1.67,
+   "rh_pct": 30.4,
+   "level": "sample mean",
+   "rh": 30.4,
+   "s1_pinonic acid": 0.9820998292688784,
+   "s3_pinonic acid": 3.9123090869487926,
+   "s1_pinic acid": 1.1077801754142569,
+   "s3_pinic acid": 3.437979391249154
+  },
+  {
+   "site": "Ansan",
+   "T_K": 300.0,
+   "date": "08/18",
+   "oir": 1.3,
+   "rh_pct": 35.5,
+   "level": "sample mean",
+   "rh": 35.5,
+   "s1_pinonic acid": -0.1982055437608638,
+   "s3_pinonic acid": 3.63129509586719,
+   "s1_pinic acid": 0.0413299976282997,
+   "s3_pinic acid": 3.043462381130677
+  },
+  {
+   "site": "Ansan",
+   "T_K": 300.0,
+   "date": "08/18",
+   "oir": 1.3,
+   "rh_pct": 30.1,
+   "level": "sample mean",
+   "rh": 30.1,
+   "s1_pinonic acid": 0.25295197585864,
+   "s3_pinonic acid": 3.9288503943525965,
+   "s1_pinic acid": 0.512387859705799,
+   "s3_pinic acid": 3.461252580747303
+  },
+  {
+   "site": "Ansan",
+   "T_K": 300.0,
+   "date": "08/18",
+   "oir": 1.3,
+   "rh_pct": 29.7,
+   "level": "sample mean",
+   "rh": 29.7,
+   "s1_pinonic acid": 0.28994240139535477,
+   "s3_pinonic acid": 3.9510692581571356,
+   "s1_pinic acid": 0.5509436341431923,
+   "s3_pinic acid": 3.493063526281568
+  },
+  {
+   "site": "Ansan",
+   "T_K": 300.0,
+   "date": "08/19",
+   "oir": 0.85,
+   "rh_pct": 40.0,
+   "level": "sample mean",
+   "rh": 40.0,
+   "s1_pinonic acid": -1.1454038691386181,
+   "s3_pinonic acid": 3.3848695978577075,
+   "s1_pinic acid": -0.8981816697795056,
+   "s3_pinic acid": 2.7045094408090273
+  },
+  {
+   "site": "Ansan",
+   "T_K": 300.0,
+   "date": "08/19",
+   "oir": 0.85,
+   "rh_pct": 35.2,
+   "level": "sample mean",
+   "rh": 35.2,
+   "s1_pinonic acid": -0.9524956785201826,
+   "s3_pinonic acid": 3.647723462401155,
+   "s1_pinic acid": -0.6741716284694286,
+   "s3_pinic acid": 3.0660592438187866
+  },
+  {
+   "site": "Ansan",
+   "T_K": 300.0,
+   "date": "08/19",
+   "oir": 0.85,
+   "rh_pct": 30.1,
+   "level": "sample mean",
+   "rh": 30.1,
+   "s1_pinonic acid": -0.7004596620465574,
+   "s3_pinonic acid": 3.9288503943525965,
+   "s1_pinic acid": -0.3825717356109187,
+   "s3_pinic acid": 3.461252580747303
+  },
+  {
+   "site": "Ansan",
+   "T_K": 300.0,
+   "date": "08/20",
+   "oir": 1.45,
+   "rh_pct": 40.3,
+   "level": "sample mean",
+   "rh": 40.3,
+   "s1_pinonic acid": -0.29136706725110356,
+   "s3_pinonic acid": 3.3685047191077704,
+   "s1_pinic acid": -0.10433532502515577,
+   "s3_pinic acid": 2.682492404943558
+  },
+  {
+   "site": "Ansan",
+   "T_K": 300.0,
+   "date": "08/20",
+   "oir": 1.45,
+   "rh_pct": 36.2,
+   "level": "sample mean",
+   "rh": 36.2,
+   "s1_pinonic acid": 0.0255148197677009,
+   "s3_pinonic acid": 3.5929622406212705,
+   "s1_pinic acid": 0.22014816650060823,
+   "s3_pinic acid": 2.9907363681917536
+  },
+  {
+   "site": "Ansan",
+   "T_K": 300.0,
+   "date": "08/20",
+   "oir": 1.45,
+   "rh_pct": 30.9,
+   "level": "sample mean",
+   "rh": 30.9,
+   "s1_pinonic acid": 0.4981001255747196,
+   "s3_pinonic acid": 3.8847402412757863,
+   "s1_pinic acid": 0.7043570520385128,
+   "s3_pinic acid": 3.399190742085571
+  }
+ ],
+ "ansan_summary": {
+  "s1_pinonic acid": {
+   "mean": 6.071032167819689,
+   "sd": 0.748332091689755,
+   "corr_offset_oir": -0.7011675816481047,
+   "n_within_1": 0
+  },
+  "s3_pinonic acid": {
+   "mean": 2.1107784058141954,
+   "sd": 0.5185167454944362,
+   "corr_offset_oir": 0.11603701215385884,
+   "n_within_1": 2
+  },
+  "s1_pinic acid": {
+   "mean": 5.795634436866066,
+   "sd": 0.716237495643205,
+   "corr_offset_oir": -0.6331713593661105,
+   "n_within_1": 0
+  },
+  "s3_pinic acid": {
+   "mean": 2.558413105130755,
+   "sd": 0.556368989543488,
+   "corr_offset_oir": 0.21511470494548784,
+   "n_within_1": 0
+  }
+ },
+ "ansan_regression": {
+  "measured": {
+   "coef": [
+    7.338022943563316,
+    -0.04803136799468895,
+    0.1326230510276948
+   ],
+   "r2": 0.23107356904515475
+  },
+  "s1_pinonic acid": {
+   "coef": [
+    -0.034497562582754666,
+    -0.07944361871310651,
+    2.0632232979936433
+   ],
+   "r2": 0.9680478387800231
+  },
+  "s3_pinonic acid": {
+   "coef": [
+    5.604833449886069,
+    -0.055603513879389124,
+    -9.276028996392169e-05
+   ],
+   "r2": 0.9999465214701159
+  },
+  "s1_pinic acid": {
+   "coef": [
+    0.6533801227005933,
+    -0.0867225660344253,
+    1.8928111707419202
+   ],
+   "r2": 0.9663535410186748
+  },
+  "s3_pinic acid": {
+   "coef": [
+    5.867331699450989,
+    -0.0795664922207748,
+    -0.0006668149931009306
+   ],
+   "r2": 0.9994581689365188
+  },
+  "measured_oir_slope_ci95": [
+   -0.6523978703974315,
+   1.2672324234929986
+  ]
+ },
+ "note": "Measured point values removed (provided by the authors of Do et al., 2026a, and Ullah et al., 2026, who asked that they not be deposited). Model predictions, dates, RH, OIR and summary statistics kept."
+}

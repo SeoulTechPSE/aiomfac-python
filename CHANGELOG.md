@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+## v1.3.1 (2026-11)
+
+Maintenance release of the 1.3 line with the viscosity fixes below (code identical to commit 03a5ab2 of `main`). It
+also contains, in `papers/paper1_viscosity/`, the notebooks, scripts, result files and figures of the paper
+"Evaluating a structure-based viscosity pipeline for organic aerosol" (Yoo, in preparation). The later work on `main`
+(new phase-equilibrium solvers and tools) is not part of this release.
 
 - **Fix, aquelec mixing rule** (`aquelec_viscosity`): ion molalities were multiplied by
   `lambda = w_w / (w_w + sum w_org)` as printed in Lilek and Zuend (2022) Eq. (20); the paper's own definition
@@ -22,7 +27,7 @@
   `aquorg_viscosity`; it matches the v3.14 Fortran to < 1e-12 and cuts the error for water + triethylene glycol from
   1.00 to 0.107 log10 units (Hoga et al., 2018). `peg_treatment=None` restores the published equations. A
   `UserWarning` is issued either way. **Behaviour change** for PEG-containing systems. AIOMFAC-web v3.14's switch to
-  the mole-fraction mixing rule for reported viscosities is described in the README, not ported.
+  the mole-fraction mixing rule for reported viscosities is available as `mixing="mole_fraction"` (see above).
 
 ## v1.3.0 (2026-10)
 

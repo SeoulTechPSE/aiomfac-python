@@ -1,0 +1,2464 @@
+{
+ "aiomfac_py_version": "1.3.0",
+ "seeds": [
+  0,
+  1,
+  2,
+  3,
+  4
+ ],
+ "k": 10,
+ "n_mc": 300,
+ "cluster_split": {
+  "n_clusters": 176,
+  "largest": 25,
+  "singletons": 117,
+  "oof_mae_bimog": {
+   "mean": 21.344838560521488,
+   "sd": 0.30312611222090713
+  },
+  "bias_bimog": -3.6618934212845207,
+  "abs_p90": 57.20855293460616,
+  "bias_by_class": {
+   "n_OH>=4 (sugars, polyols)": {
+    "n": 34,
+    "bias": -41.68237005970516
+   },
+   "n_OH<4": {
+    "n": 334,
+    "bias": 0.2084544999918304
+   }
+  },
+  "mae_11_compounds": 20.775066981071447,
+  "bias_11_compounds": -17.074521789396403
+ },
+ "oof_mae_bimog": {
+  "mean": 15.573190288224941,
+  "sd": 0.12957134036011772,
+  "per_repeat": [
+   15.498469513379826,
+   15.718485872915828,
+   15.653932380429534,
+   15.391481754761992,
+   15.603581919637522
+  ]
+ },
+ "oof_bias_bimog": -0.49074984165411545,
+ "oof_abs_p90": 35.6187378056964,
+ "compounds": {
+  "citric_acid": {
+   "ml": 283.18658148933747,
+   "how": "exact",
+   "measured": 283.5083333333333,
+   "oof": [
+    284.38751350869677,
+    289.73671546906803,
+    287.9460507089439,
+    287.4575359186401,
+    285.22499073690557
+   ],
+   "oof_cluster": [
+    287.5729425469889,
+    282.01366017961084,
+    286.8869980140692,
+    286.11300035580194,
+    289.38847166710553
+   ]
+  },
+  "sorbitol": {
+   "ml": 273.86604496843745,
+   "how": "exact",
+   "measured": 274.98,
+   "oof": [
+    272.80295832737846,
+    274.55533623491465,
+    267.66605269209356,
+    276.41305729689174,
+    278.3708529748841
+   ],
+   "oof_cluster": [
+    283.41261199256087,
+    284.49614971694973,
+    280.4692651231621,
+    283.959691380902,
+    282.4004946268233
+   ]
+  },
+  "erythritol": {
+   "ml": 226.83229251442964,
+   "how": "exact",
+   "measured": 228.53333333333333,
+   "oof": [
+    225.45292386575858,
+    227.1017304789113,
+    225.82455206094835,
+    232.969446388889,
+    221.62813523809535
+   ],
+   "oof_cluster": [
+    227.8597253898879,
+    225.13115500000004,
+    219.96109636752132,
+    226.98116532911527,
+    227.85902361111107
+   ]
+  },
+  "glucose": {
+   "ml": 282.3229429749924,
+   "how": "exact",
+   "measured": 299.7846153846154,
+   "oof": [
+    282.6901666566694,
+    283.59745953920356,
+    283.9007730925263,
+    280.11742185730907,
+    282.7305500532153
+   ],
+   "oof_cluster": [
+    282.2042987260738,
+    281.3332133046582,
+    279.080222142857,
+    281.70291289895505,
+    282.1911994092901
+   ]
+  },
+  "sucrose": {
+   "ml": 339.0586259452354,
+   "how": "exact",
+   "measured": 335.0,
+   "oof": [
+    365.73476437179335,
+    366.94208062156105,
+    363.7980279027129,
+    366.278377597691,
+    366.4489091536548
+   ],
+   "oof_cluster": [
+    305.79089756486576,
+    307.25813583737954,
+    301.822499363474,
+    305.10655371112557,
+    311.1636643596196
+   ]
+  },
+  "trehalose": {
+   "ml": 380.2913717938312,
+   "how": "exact",
+   "measured": 383.0,
+   "oof": [
+    362.55824401348997,
+    360.37807633628984,
+    362.9743966926531,
+    359.4112369847984,
+    360.144240360719
+   ],
+   "oof_cluster": [
+    305.2265975648657,
+    301.7816419484907,
+    293.4405665351912,
+    298.5122513705152,
+    308.6470569522122
+   ]
+  },
+  "raffinose": {
+   "ml": 381.35413888888894,
+   "how": "exact",
+   "measured": 381.7142857142857,
+   "oof": [
+    371.65687552960577,
+    389.7533095238095,
+    371.547753246555,
+    378.5210614177489,
+    371.2893743014561
+   ],
+   "oof_cluster": [
+    333.0130888888889,
+    327.93388227513225,
+    326.51283809523807,
+    327.93366681929183,
+    325.49621606556275
+   ]
+  },
+  "1,2,6-hexanetriol": {
+   "ml": 202.6881971250972,
+   "how": "exact",
+   "measured": 204.15,
+   "oof": [
+    208.6379570838883,
+    200.1325509668109,
+    212.88560127696394,
+    201.46458774205334,
+    202.89101658864266
+   ],
+   "oof_cluster": [
+    201.82338149500958,
+    209.63910046689438,
+    213.1806045563697,
+    208.23006471815228,
+    207.6477397893773
+   ]
+  },
+  "1,2,4-butanetriol": {
+   "ml": 197.94946495380452,
+   "how": "exact",
+   "measured": 200.7,
+   "oof": [
+    188.31413964047647,
+    186.3547473960191,
+    184.384599932883,
+    184.61515169312162,
+    187.01672918063426
+   ],
+   "oof_cluster": [
+    182.28820986471862,
+    181.65945848494087,
+    188.00917745698735,
+    176.1879424603174,
+    184.13534944444433
+   ]
+  },
+  "fructose": {
+   "ml": 279.50350368927815,
+   "how": "exact",
+   "measured": 280.8,
+   "oof": [
+    285.4633088743608,
+    283.1837180770041,
+    289.7198311762311,
+    288.69795407673223,
+    289.4366060376653
+   ],
+   "oof_cluster": [
+    288.3921264961842,
+    291.0014874729223,
+    286.9180093030616,
+    278.5257473271172,
+    286.8851122086681
+   ]
+  },
+  "acetic_acid": {
+   "ml": 168.86453949112976,
+   "how": "not in BIMOG",
+   "measured": null,
+   "oof": [
+    168.86453949112976,
+    168.86453949112976,
+    168.86453949112976,
+    168.86453949112976,
+    168.86453949112976
+   ],
+   "oof_cluster": [
+    168.86453949112976,
+    168.86453949112976,
+    168.86453949112976,
+    168.86453949112976,
+    168.86453949112976
+   ]
+  },
+  "maleic_acid": {
+   "ml": 251.83133555864075,
+   "how": "not in BIMOG",
+   "measured": null,
+   "oof": [
+    251.83133555864075,
+    251.83133555864075,
+    251.83133555864075,
+    251.83133555864075,
+    251.83133555864075
+   ],
+   "oof_cluster": [
+    251.83133555864075,
+    251.83133555864075,
+    251.83133555864075,
+    251.83133555864075,
+    251.83133555864075
+   ]
+  },
+  "glutaric_acid": {
+   "ml": 252.45713520923525,
+   "how": "not in BIMOG",
+   "measured": null,
+   "oof": [
+    252.45713520923525,
+    252.45713520923525,
+    252.45713520923525,
+    252.45713520923525,
+    252.45713520923525
+   ],
+   "oof_cluster": [
+    252.45713520923525,
+    252.45713520923525,
+    252.45713520923525,
+    252.45713520923525,
+    252.45713520923525
+   ]
+  },
+  "maltose": {
+   "ml": 365.34980234938683,
+   "how": "not in BIMOG",
+   "measured": null,
+   "oof": [
+    365.34980234938683,
+    365.34980234938683,
+    365.34980234938683,
+    365.34980234938683,
+    365.34980234938683
+   ],
+   "oof_cluster": [
+    365.34980234938683,
+    365.34980234938683,
+    365.34980234938683,
+    365.34980234938683,
+    365.34980234938683
+   ]
+  },
+  "glycerol": {
+   "ml": 187.65942248987946,
+   "how": "exact",
+   "measured": 186.15,
+   "oof": [
+    194.92949708994715,
+    195.1906271978024,
+    194.11471253579762,
+    194.25409267399277,
+    193.14272978174606
+   ],
+   "oof_cluster": [
+    181.38308285478416,
+    183.66674115689858,
+    182.6987613194213,
+    177.26270145502633,
+    182.31248694444434
+   ]
+  },
+  "1,4-butanediol": {
+   "ml": 158.0175461906518,
+   "how": "not in BIMOG",
+   "measured": null,
+   "oof": [
+    158.0175461906518,
+    158.0175461906518,
+    158.0175461906518,
+    158.0175461906518,
+    158.0175461906518
+   ],
+   "oof_cluster": [
+    158.0175461906518,
+    158.0175461906518,
+    158.0175461906518,
+    158.0175461906518,
+    158.0175461906518
+   ]
+  }
+ },
+ "literature": {
+  "in_sample": {
+   "all": 0.4778318304338966,
+   "dilute": 0.1727035627398049,
+   "concentrated": 0.9812934721291479,
+   "conc_small": 0.6311346557365977,
+   "conc_large": 1.6315884168581687
+  },
+  "measured_subset": {
+   "in_sample": 0.47967339413980337,
+   "measured": 0.45762460822379214,
+   "oof": [
+    0.48161211287406036,
+    0.49905134749179736,
+    0.4933754783707175,
+    0.4975655254014798,
+    0.49642760012744136
+   ],
+   "n_curves": 40
+  },
+  "oof_cluster": {
+   "all": [
+    0.5203289732496493,
+    0.007066235184930786
+   ],
+   "dilute": [
+    0.17232940728395207,
+    0.0015112072090882522
+   ],
+   "concentrated": [
+    1.09452825709305,
+    0.01970964043479135
+   ],
+   "conc_small": [
+    0.692438645593017,
+    0.02804334407019603
+   ],
+   "conc_large": [
+    1.841266107021682,
+    0.012426683306171225
+   ]
+  },
+  "oof": {
+   "all": [
+    0.48834731625525185,
+    0.00529913372085289
+   ],
+   "dilute": [
+    0.170645177457251,
+    0.0013446432073220083
+   ],
+   "concentrated": [
+    1.0125558452719534,
+    0.015035865622735987
+   ],
+   "conc_small": [
+    0.6242229216350978,
+    0.022474961367449614
+   ],
+   "conc_large": [
+    1.733745560597542,
+    0.007673793688574339
+   ]
+  },
+  "monte_carlo": {
+   "all": {
+    "median": 0.5179416135693784,
+    "p05": 0.4556267890716834,
+    "p95": 0.6278582477770919,
+    "mean": 0.5285889479434864
+   },
+   "dilute": {
+    "median": 0.18118643814046478,
+    "p05": 0.14960855719467242,
+    "p95": 0.26456092191846237,
+    "mean": 0.1891536857841353
+   },
+   "concentrated": {
+    "median": 1.0721151715950983,
+    "p05": 0.9171564546250967,
+    "p95": 1.3073237616352824,
+    "mean": 1.0886571305064159
+   },
+   "conc_small": {
+    "median": 0.7619058835536177,
+    "p05": 0.5549410913459882,
+    "p95": 1.1139097494305978,
+    "mean": 0.7847311795918159
+   },
+   "conc_large": {
+    "median": 1.6341879774154964,
+    "p05": 1.49004429257096,
+    "p95": 1.8586275245130428,
+    "mean": 1.6530910393478158
+   }
+  },
+  "monte_carlo_cluster": {
+   "all": {
+    "median": 0.5587395790849918,
+    "p05": 0.47412236220746506,
+    "p95": 0.7009204722276277,
+    "mean": 0.5703642668665
+   },
+   "dilute": {
+    "median": 0.18555859760714255,
+    "p05": 0.14856414753493438,
+    "p95": 0.29508632113942185,
+    "mean": 0.19665100265812582
+   },
+   "concentrated": {
+    "median": 1.1633390490458377,
+    "p05": 0.966493143343222,
+    "p95": 1.4949802953148257,
+    "mean": 1.1869911528103172
+   },
+   "conc_small": {
+    "median": 0.8824430288633833,
+    "p05": 0.5893130562781982,
+    "p95": 1.3597896206737827,
+    "mean": 0.9119368015784778
+   },
+   "conc_large": {
+    "median": 1.649348685594203,
+    "p05": 1.4630627229896593,
+    "p95": 2.100260084361931,
+    "mean": 1.6978063765265903
+   }
+  },
+  "monte_carlo_centre": {
+   "all": 0.46119123728973704,
+   "dilute": 0.17118164715354298,
+   "concentrated": 0.9397070610144572,
+   "conc_small": 0.571218582199871,
+   "conc_large": 1.6240428073844033
+  },
+  "soa": [
+   {
+    "system": "aPinene",
+    "proxy": "pinonic acid",
+    "match": "exact",
+    "tg_measured": 265.0,
+    "tg_in_sample": 267.76865495112895,
+    "tg_oof": 261.08113566656436,
+    "tg_oof_cluster": 263.6643008110178,
+    "tg_oof_cluster_repeats": [
+     259.99101067414114,
+     260.9202858030428,
+     259.07705550806037,
+     275.0951495764122,
+     263.2380024934324
+    ],
+    "mae_in_sample": 1.6025760840200707,
+    "mae_oof": 2.24617914760284,
+    "mae_oof_cluster": 1.988058787341839,
+    "mae_measured": 1.8622576969818962
+   },
+   {
+    "system": "aPinene",
+    "proxy": "pinic acid",
+    "match": "exact",
+    "tg_measured": 268.1,
+    "tg_in_sample": 270.96656051725375,
+    "tg_oof": 278.742566392613,
+    "tg_oof_cluster": 286.5330103508848,
+    "tg_oof_cluster_repeats": [
+     283.1453654768587,
+     286.86999663843176,
+     290.64561376763396,
+     287.8683493381903,
+     284.1357265333095
+    ],
+    "mae_in_sample": 2.163863388741404,
+    "mae_oof": 1.7146093771691224,
+    "mae_oof_cluster": 1.578024986687323,
+    "mae_measured": 2.432868005817332
+   },
+   {
+    "system": "isoprene",
+    "proxy": "2-methyltetrol",
+    "match": "exact",
+    "tg_measured": 241.5,
+    "tg_in_sample": 246.1169545713343,
+    "tg_oof": 247.27728083608335,
+    "tg_oof_cluster": 249.53261049656444,
+    "tg_oof_cluster_repeats": [
+     247.43232944984626,
+     254.59491248219376,
+     251.59949364552114,
+     248.01404947382477,
+     246.02226743143612
+    ],
+    "mae_in_sample": 1.7172068960807398,
+    "mae_oof": 1.6651750915596988,
+    "mae_oof_cluster": 1.561180641165233,
+    "mae_measured": 1.9149566002029954
+   },
+   {
+    "system": "toluene",
+    "proxy": "4-methylcatechol",
+    "match": "not in BIMOG",
+    "tg_measured": null,
+    "tg_in_sample": 242.0431684523809,
+    "tg_oof": 242.0431684523809,
+    "tg_oof_cluster": 242.0431684523809,
+    "tg_oof_cluster_repeats": null,
+    "mae_in_sample": 5.294363081702305,
+    "mae_oof": 5.294363081702305,
+    "mae_oof_cluster": 5.294363081702305,
+    "mae_measured": null
+   },
+   {
+    "system": "toluene",
+    "proxy": "glutaric acid",
+    "match": "not in BIMOG",
+    "tg_measured": null,
+    "tg_in_sample": 252.45713520923525,
+    "tg_oof": 252.45713520923525,
+    "tg_oof_cluster": 252.45713520923525,
+    "tg_oof_cluster_repeats": null,
+    "mae_in_sample": 4.3222957533537425,
+    "mae_oof": 4.3222957533537425,
+    "mae_oof_cluster": 4.3222957533537425,
+    "mae_measured": null
+   },
+   {
+    "system": "toluene",
+    "proxy": "2-methylglutaric acid",
+    "match": "not in BIMOG",
+    "tg_measured": null,
+    "tg_in_sample": 262.2271154044148,
+    "tg_oof": 262.2271154044148,
+    "tg_oof_cluster": 262.2271154044148,
+    "tg_oof_cluster_repeats": null,
+    "mae_in_sample": 3.3730822488880854,
+    "mae_oof": 3.3730822488880854,
+    "mae_oof_cluster": 3.3730822488880854,
+    "mae_measured": null
+   },
+   {
+    "system": "toluene",
+    "proxy": "DHOPA",
+    "match": "not in BIMOG",
+    "tg_measured": null,
+    "tg_in_sample": 285.3035422622792,
+    "tg_oof": 285.3035422622792,
+    "tg_oof_cluster": 285.3035422622792,
+    "tg_oof_cluster_repeats": null,
+    "mae_in_sample": 2.070757613602072,
+    "mae_oof": 2.070757613602072,
+    "mae_oof_cluster": 2.070757613602072,
+    "mae_measured": null
+   },
+   {
+    "system": "toluene",
+    "proxy": "4-methyl-5-nitrocatechol",
+    "match": "not in BIMOG",
+    "tg_measured": null,
+    "tg_in_sample": 299.61523217914333,
+    "tg_oof": 299.61523217914333,
+    "tg_oof_cluster": 299.61523217914333,
+    "tg_oof_cluster_repeats": null,
+    "mae_in_sample": 0.8871786892406279,
+    "mae_oof": 0.8871786892406279,
+    "mae_oof_cluster": 0.8871786892406279,
+    "mae_measured": null
+   }
+  ]
+ },
+ "bimog_oof": [
+  {
+   "name": "glucose",
+   "tg": 299.7846153846154,
+   "oof_mean": 282.6072742397847
+  },
+  {
+   "name": "tartaric acid",
+   "tg": 288.775,
+   "oof_mean": 265.3677734893501
+  },
+  {
+   "name": "1,2,3-propanetricarboxylic acid",
+   "tg": 276.45,
+   "oof_mean": 279.88268382385365
+  },
+  {
+   "name": "1,2,4-butanetricarboxylic acid",
+   "tg": 272.8,
+   "oof_mean": 281.43626297774074
+  },
+  {
+   "name": "glycerol",
+   "tg": 186.15,
+   "oof_mean": 194.3263318558572
+  },
+  {
+   "name": "ribose",
+   "tg": 259.3333333333333,
+   "oof_mean": 269.28811735867697
+  },
+  {
+   "name": "ethanol",
+   "tg": 95.55,
+   "oof_mean": 105.28379321744197
+  },
+  {
+   "name": "n-propanol",
+   "tg": 97.57142857142857,
+   "oof_mean": 112.34867615467769
+  },
+  {
+   "name": "methanol",
+   "tg": 102.1,
+   "oof_mean": 102.30065643266866
+  },
+  {
+   "name": "ethylenglycol",
+   "tg": 151.5,
+   "oof_mean": 158.15313840976233
+  },
+  {
+   "name": "phenolphthalein",
+   "tg": 356.0,
+   "oof_mean": 348.6134898700451
+  },
+  {
+   "name": "maltitol",
+   "tg": 311.5,
+   "oof_mean": 343.83363661769823
+  },
+  {
+   "name": "flopropione",
+   "tg": 335.0,
+   "oof_mean": 259.3041195099016
+  },
+  {
+   "name": "2-methyl-1-propanol",
+   "tg": 116.83333333333333,
+   "oof_mean": 121.05167726836623
+  },
+  {
+   "name": "n-hexanol",
+   "tg": 128.23333333333332,
+   "oof_mean": 136.3080034220287
+  },
+  {
+   "name": "n-pentanol",
+   "tg": 120.56666666666666,
+   "oof_mean": 127.58247305394127
+  },
+  {
+   "name": "benzyl alcohol",
+   "tg": 168.0,
+   "oof_mean": 178.80503025898685
+  },
+  {
+   "name": "propan-1,2-diol",
+   "tg": 166.06666666666666,
+   "oof_mean": 164.9337115273633
+  },
+  {
+   "name": "resorcinol",
+   "tg": 250.0,
+   "oof_mean": 205.40606566625905
+  },
+  {
+   "name": "phenyl-salicylate",
+   "tg": 217.9,
+   "oof_mean": 245.1252500530194
+  },
+  {
+   "name": "dimethylphthalat",
+   "tg": 193.225,
+   "oof_mean": 205.95483984621993
+  },
+  {
+   "name": "diethylphthalat",
+   "tg": 180.325,
+   "oof_mean": 204.04382552152384
+  },
+  {
+   "name": "2-ethyl-1-hexanol",
+   "tg": 146.93333333333334,
+   "oof_mean": 151.2269981059651
+  },
+  {
+   "name": "5-methyl-3-heptanol",
+   "tg": 159.0,
+   "oof_mean": 161.316220034143
+  },
+  {
+   "name": "2-phenyl-1-ethanol",
+   "tg": 181.4,
+   "oof_mean": 176.52071572434906
+  },
+  {
+   "name": "2-butanol",
+   "tg": 115.83500000000001,
+   "oof_mean": 136.81564936646913
+  },
+  {
+   "name": "2,2-dimethyl-1-propanol",
+   "tg": 166.0,
+   "oof_mean": 148.02096421970467
+  },
+  {
+   "name": "o-xylene",
+   "tg": 123.0,
+   "oof_mean": 123.33070588150477
+  },
+  {
+   "name": "m-xylene",
+   "tg": 122.75,
+   "oof_mean": 120.88424266633402
+  },
+  {
+   "name": "2-methylpentane",
+   "tg": 78.66666666666667,
+   "oof_mean": 84.01073744578407
+  },
+  {
+   "name": "triphenylethene",
+   "tg": 246.0,
+   "oof_mean": 249.36413024627473
+  },
+  {
+   "name": "n-buten",
+   "tg": 59.5,
+   "oof_mean": 87.69068033421438
+  },
+  {
+   "name": "4-methylstyrene",
+   "tg": 167.0,
+   "oof_mean": 132.3816586267894
+  },
+  {
+   "name": "o-terphenyl",
+   "tg": 245.72,
+   "oof_mean": 234.34508249385868
+  },
+  {
+   "name": "toluol",
+   "tg": 115.93,
+   "oof_mean": 121.22256988938057
+  },
+  {
+   "name": "ethylbenzene",
+   "tg": 112.33333333333333,
+   "oof_mean": 123.54384183293288
+  },
+  {
+   "name": "propylbenzene",
+   "tg": 123.05,
+   "oof_mean": 122.86546124663923
+  },
+  {
+   "name": "n-pentylbenzene",
+   "tg": 128.0,
+   "oof_mean": 129.70578436232063
+  },
+  {
+   "name": "n-hexylbenzene",
+   "tg": 137.0,
+   "oof_mean": 137.25939815549813
+  },
+  {
+   "name": "sec-butylbenzene",
+   "tg": 127.5,
+   "oof_mean": 131.26120411060205
+  },
+  {
+   "name": "tert-butyl-benzene",
+   "tg": 142.0,
+   "oof_mean": 133.57910429943564
+  },
+  {
+   "name": "3-methylheptane",
+   "tg": 102.5,
+   "oof_mean": 98.23846269416165
+  },
+  {
+   "name": "cyclohexene",
+   "tg": 92.0,
+   "oof_mean": 87.5111359742674
+  },
+  {
+   "name": "methylcyclohexane",
+   "tg": 85.0,
+   "oof_mean": 90.95310869075706
+  },
+  {
+   "name": "ethylcyclohexane",
+   "tg": 98.0,
+   "oof_mean": 99.88822014936522
+  },
+  {
+   "name": "isopropylcyclohexane",
+   "tg": 108.0,
+   "oof_mean": 117.33688327397094
+  },
+  {
+   "name": "sec-butylcyclohexane",
+   "tg": 123.0,
+   "oof_mean": 124.40800826985011
+  },
+  {
+   "name": "n-butylcyclohexane",
+   "tg": 119.0,
+   "oof_mean": 123.24210770746458
+  },
+  {
+   "name": "n-pentylcyclohexane",
+   "tg": 125.0,
+   "oof_mean": 127.06328040838238
+  },
+  {
+   "name": "n-hexylcyclohexane",
+   "tg": 133.0,
+   "oof_mean": 142.04678010380172
+  },
+  {
+   "name": "trans-2-hexene",
+   "tg": 85.0,
+   "oof_mean": 88.07020160393539
+  },
+  {
+   "name": "1-heptene",
+   "tg": 91.0,
+   "oof_mean": 87.11109133192213
+  },
+  {
+   "name": "cis-2-octene",
+   "tg": 101.0,
+   "oof_mean": 99.91096722184344
+  },
+  {
+   "name": "3-methylhexane",
+   "tg": 89.5,
+   "oof_mean": 90.66514446135875
+  },
+  {
+   "name": "4-methylnonane",
+   "tg": 123.0,
+   "oof_mean": 121.84261086277454
+  },
+  {
+   "name": "2-isopropoxyethanol",
+   "tg": 141.0,
+   "oof_mean": 156.51545937511543
+  },
+  {
+   "name": "2,5-hexanediol",
+   "tg": 203.5,
+   "oof_mean": 192.64521753150368
+  },
+  {
+   "name": "n-eugenol",
+   "tg": 192.7,
+   "oof_mean": 219.04071289221255
+  },
+  {
+   "name": "sorbitol",
+   "tg": 274.98,
+   "oof_mean": 273.96165150523245
+  },
+  {
+   "name": "propylencarbonate",
+   "tg": 159.66666666666666,
+   "oof_mean": 189.2777045783253
+  },
+  {
+   "name": "guajacol",
+   "tg": 205.0,
+   "oof_mean": 228.81065107831236
+  },
+  {
+   "name": "sucrose",
+   "tg": 335.0,
+   "oof_mean": 365.8404319294826
+  },
+  {
+   "name": "trehalose",
+   "tg": 383.0,
+   "oof_mean": 361.09323887759
+  },
+  {
+   "name": "dioctylphthalat",
+   "tg": 183.45,
+   "oof_mean": 191.18991282141246
+  },
+  {
+   "name": "naphthylsalyciate",
+   "tg": 244.0,
+   "oof_mean": 278.0687678616534
+  },
+  {
+   "name": "vinylacetate",
+   "tg": 125.0,
+   "oof_mean": 126.63923416064063
+  },
+  {
+   "name": "xylitol",
+   "tg": 250.2125,
+   "oof_mean": 262.38774117695385
+  },
+  {
+   "name": "methyl(s)(-)lactate",
+   "tg": 286.0,
+   "oof_mean": 210.9022831744299
+  },
+  {
+   "name": "(s)-glycerol acetonate",
+   "tg": 282.0,
+   "oof_mean": 205.58289750363133
+  },
+  {
+   "name": "(r)-nopol",
+   "tg": 277.0,
+   "oof_mean": 257.5661758200607
+  },
+  {
+   "name": "3-hydroxy-2-methylpropionate",
+   "tg": 269.0,
+   "oof_mean": 224.6383913893299
+  },
+  {
+   "name": "dianin\u2019s compound",
+   "tg": 299.0,
+   "oof_mean": 329.2724788065574
+  },
+  {
+   "name": "4-(1-idianyl)phenol",
+   "tg": 269.0,
+   "oof_mean": 268.6970142101233
+  },
+  {
+   "name": "2p-hydroxyphenoxytetrahydropyran",
+   "tg": 255.0,
+   "oof_mean": 250.69233748565733
+  },
+  {
+   "name": "salicin",
+   "tg": 333.25,
+   "oof_mean": 328.42386227584643
+  },
+  {
+   "name": "cholesterol",
+   "tg": 332.0,
+   "oof_mean": 310.22865221148254
+  },
+  {
+   "name": "beta-d-glucosepentaacetate",
+   "tg": 293.5,
+   "oof_mean": 295.0879802912529
+  },
+  {
+   "name": "3-pentadecylcyclohexanone",
+   "tg": 225.0,
+   "oof_mean": 223.05266377897533
+  },
+  {
+   "name": "4,4\u2019-dimethoxytetraphenylmethane",
+   "tg": 297.0,
+   "oof_mean": 302.3736108915717
+  },
+  {
+   "name": "lactic acid",
+   "tg": 205.66666666666666,
+   "oof_mean": 216.82889893482997
+  },
+  {
+   "name": "epoxypropane",
+   "tg": 114.7,
+   "oof_mean": 89.38500045912629
+  },
+  {
+   "name": "n-butylacetate",
+   "tg": 125.7,
+   "oof_mean": 145.2128268519873
+  },
+  {
+   "name": "camphor",
+   "tg": 156.7,
+   "oof_mean": 192.79048770258544
+  },
+  {
+   "name": "dibutylphthalat",
+   "tg": 177.32,
+   "oof_mean": 198.03627477598135
+  },
+  {
+   "name": "o-cresol",
+   "tg": 220.1,
+   "oof_mean": 193.420532783973
+  },
+  {
+   "name": "isopropranol",
+   "tg": 119.9,
+   "oof_mean": 111.8136415926731
+  },
+  {
+   "name": "1,3-butanediol",
+   "tg": 175.5,
+   "oof_mean": 170.9208641105543
+  },
+  {
+   "name": "2,3-butanediol",
+   "tg": 195.1,
+   "oof_mean": 194.71633303467573
+  },
+  {
+   "name": "m-cresol",
+   "tg": 198.3,
+   "oof_mean": 209.57126337034734
+  },
+  {
+   "name": "mephenesin",
+   "tg": 247.0,
+   "oof_mean": 248.14056378696515
+  },
+  {
+   "name": "estradiol-17b-cypionate",
+   "tg": 309.0,
+   "oof_mean": 322.4572442009716
+  },
+  {
+   "name": "norethylnodrel",
+   "tg": 324.0,
+   "oof_mean": 304.0497569315952
+  },
+  {
+   "name": "beta-estradiol-3-benzoate",
+   "tg": 336.0,
+   "oof_mean": 324.564374241672
+  },
+  {
+   "name": "ursodeoxycholic acid",
+   "tg": 374.5,
+   "oof_mean": 374.19676637208045
+  },
+  {
+   "name": "deoxycholic acid",
+   "tg": 377.0,
+   "oof_mean": 375.27523329065514
+  },
+  {
+   "name": "cholic acid",
+   "tg": 393.0,
+   "oof_mean": 369.05469808881173
+  },
+  {
+   "name": "lactose",
+   "tg": 382.8833333333333,
+   "oof_mean": 354.51798409525975
+  },
+  {
+   "name": "diethylhexylphthalat",
+   "tg": 184.0,
+   "oof_mean": 217.48761202967654
+  },
+  {
+   "name": "cholecalciterol",
+   "tg": 296.0,
+   "oof_mean": 298.05359435624365
+  },
+  {
+   "name": "diethylstilbestrol",
+   "tg": 308.0,
+   "oof_mean": 276.3849001678321
+  },
+  {
+   "name": "dehydrocholic acid",
+   "tg": 348.0,
+   "oof_mean": 332.0136040935795
+  },
+  {
+   "name": "cellobiose",
+   "tg": 366.46363636363634,
+   "oof_mean": 364.27759713971136
+  },
+  {
+   "name": "17b-estradiol",
+   "tg": 354.0,
+   "oof_mean": 334.8538813590529
+  },
+  {
+   "name": "aspirin",
+   "tg": 243.0,
+   "oof_mean": 251.3279566869804
+  },
+  {
+   "name": "methyltestosterone",
+   "tg": 270.0,
+   "oof_mean": 321.8049467975876
+  },
+  {
+   "name": "progesterone",
+   "tg": 279.0,
+   "oof_mean": 313.8500081382365
+  },
+  {
+   "name": "citric acid",
+   "tg": 283.5083333333333,
+   "oof_mean": 286.9505612684509
+  },
+  {
+   "name": "ergocalciferol",
+   "tg": 290.0,
+   "oof_mean": 304.50833876423195
+  },
+  {
+   "name": "n-nonanol",
+   "tg": 153.0,
+   "oof_mean": 151.38469190914293
+  },
+  {
+   "name": "2-pentanol",
+   "tg": 140.0,
+   "oof_mean": 144.72292057282553
+  },
+  {
+   "name": "3-pentanol",
+   "tg": 143.0,
+   "oof_mean": 149.35365187435406
+  },
+  {
+   "name": "2-octanol",
+   "tg": 166.0,
+   "oof_mean": 155.4245626351978
+  },
+  {
+   "name": "4-hetpanol",
+   "tg": 166.0,
+   "oof_mean": 155.9849962585406
+  },
+  {
+   "name": "4-decanol",
+   "tg": 181.0,
+   "oof_mean": 176.42603836387792
+  },
+  {
+   "name": "3-methyl-4-octanol",
+   "tg": 180.0,
+   "oof_mean": 172.9421882121032
+  },
+  {
+   "name": "2-methyl-2-propanol",
+   "tg": 172.66666666666666,
+   "oof_mean": 136.05993090792776
+  },
+  {
+   "name": "2-methyl-2-butanol",
+   "tg": 154.0,
+   "oof_mean": 162.20638116861193
+  },
+  {
+   "name": "2-methyl-2-heptanol",
+   "tg": 178.0,
+   "oof_mean": 166.6840950425789
+  },
+  {
+   "name": "4-methyl-4-heptanol",
+   "tg": 170.0,
+   "oof_mean": 171.25845849923385
+  },
+  {
+   "name": "6-methyl-3-heptanol",
+   "tg": 159.0,
+   "oof_mean": 161.35241751803193
+  },
+  {
+   "name": "3-methyl-3-heptanol",
+   "tg": 151.0,
+   "oof_mean": 173.88409761678713
+  },
+  {
+   "name": "6-methyl-1-heptanol",
+   "tg": 140.0,
+   "oof_mean": 146.1880338717096
+  },
+  {
+   "name": "diethylether",
+   "tg": 92.55,
+   "oof_mean": 97.52226537405784
+  },
+  {
+   "name": "diisopropylether",
+   "tg": 101.35,
+   "oof_mean": 109.13783247469378
+  },
+  {
+   "name": "acetone",
+   "tg": 100.15,
+   "oof_mean": 114.78720998064257
+  },
+  {
+   "name": "methylethylketone",
+   "tg": 111.0,
+   "oof_mean": 110.66039308224472
+  },
+  {
+   "name": "methylisobutylketone",
+   "tg": 119.85,
+   "oof_mean": 121.68982255539159
+  },
+  {
+   "name": "ethyl acetate",
+   "tg": 116.825,
+   "oof_mean": 130.24853193207875
+  },
+  {
+   "name": "benzaldehyde",
+   "tg": 149.0,
+   "oof_mean": 140.0171438644157
+  },
+  {
+   "name": "acetophenone",
+   "tg": 161.0,
+   "oof_mean": 149.73650804644723
+  },
+  {
+   "name": "1,3,5-trinaphthylbenzene",
+   "tg": 342.0,
+   "oof_mean": 287.85682035308565
+  },
+  {
+   "name": "decalin",
+   "tg": 137.4,
+   "oof_mean": 124.68836254302994
+  },
+  {
+   "name": "3-methoxy-1-butanol",
+   "tg": 146.10000000000002,
+   "oof_mean": 173.87178001109447
+  },
+  {
+   "name": "2,4-pentanediol",
+   "tg": 205.9,
+   "oof_mean": 191.84823296139052
+  },
+  {
+   "name": "2-methyl-1-butanol",
+   "tg": 127.3,
+   "oof_mean": 133.48211439023444
+  },
+  {
+   "name": "2-ethyl-1-butanol",
+   "tg": 131.0,
+   "oof_mean": 146.56856097815748
+  },
+  {
+   "name": "3-methyl-2-pentanol",
+   "tg": 150.9,
+   "oof_mean": 157.85234633737753
+  },
+  {
+   "name": "4-methyl-2-pentanol",
+   "tg": 157.1,
+   "oof_mean": 154.9369473284183
+  },
+  {
+   "name": "5-methyl-2-hexanol",
+   "tg": 152.1,
+   "oof_mean": 158.66776036489836
+  },
+  {
+   "name": "3-methyl-4-hexanol",
+   "tg": 163.0,
+   "oof_mean": 159.71516119593304
+  },
+  {
+   "name": "4-methyl-3-heptanol",
+   "tg": 161.8,
+   "oof_mean": 168.69183593935892
+  },
+  {
+   "name": "3-methyl-4-heptanol",
+   "tg": 173.0,
+   "oof_mean": 165.28031978209606
+  },
+  {
+   "name": "6-methyl-2-heptanol",
+   "tg": 159.0,
+   "oof_mean": 159.23461360869675
+  },
+  {
+   "name": "4-methyl-1-heptanol",
+   "tg": 138.0,
+   "oof_mean": 148.38630508363173
+  },
+  {
+   "name": "2-methyl-1-heptanol",
+   "tg": 151.0,
+   "oof_mean": 146.82705273128437
+  },
+  {
+   "name": "2-methyl-3-heptanol",
+   "tg": 158.0,
+   "oof_mean": 168.82931548776307
+  },
+  {
+   "name": "3-methylpentane",
+   "tg": 80.66666666666667,
+   "oof_mean": 84.9235084638405
+  },
+  {
+   "name": "isopropylbenzene",
+   "tg": 125.86,
+   "oof_mean": 125.81891733566792
+  },
+  {
+   "name": "diisobutylphthalat",
+   "tg": 189.55,
+   "oof_mean": 211.43263232095325
+  },
+  {
+   "name": "1,4-pentanediol",
+   "tg": 175.8,
+   "oof_mean": 177.7927055009566
+  },
+  {
+   "name": "1,2-pentanediol",
+   "tg": 181.0,
+   "oof_mean": 185.78032767417523
+  },
+  {
+   "name": "1,5-hexanediol",
+   "tg": 179.4,
+   "oof_mean": 182.02397616913822
+  },
+  {
+   "name": "iso-eugenol",
+   "tg": 220.1,
+   "oof_mean": 205.2436805305021
+  },
+  {
+   "name": "2-methyltetrahydrofuran",
+   "tg": 91.0,
+   "oof_mean": 102.02337834777036
+  },
+  {
+   "name": "menthol",
+   "tg": 306.0,
+   "oof_mean": 192.7565596304272
+  },
+  {
+   "name": "n-butylbenzene",
+   "tg": 124.5,
+   "oof_mean": 126.52806445092374
+  },
+  {
+   "name": "cyclohexanol",
+   "tg": 150.5,
+   "oof_mean": 155.93119366181105
+  },
+  {
+   "name": "cycloheptanol",
+   "tg": 140.0,
+   "oof_mean": 161.1019582081139
+  },
+  {
+   "name": "cycloheptane",
+   "tg": 83.0,
+   "oof_mean": 88.86636225214458
+  },
+  {
+   "name": "2,3-dimethylbutane",
+   "tg": 76.0,
+   "oof_mean": 86.78699222989061
+  },
+  {
+   "name": "1-phenyl-1-propanol",
+   "tg": 195.89999999999998,
+   "oof_mean": 191.7730449915324
+  },
+  {
+   "name": "1,2-butanediol",
+   "tg": 178.9,
+   "oof_mean": 175.9805254556543
+  },
+  {
+   "name": "cis-2-heptene",
+   "tg": 93.0,
+   "oof_mean": 89.95111388713295
+  },
+  {
+   "name": "2-methyl-1-pentanol",
+   "tg": 143.0,
+   "oof_mean": 140.39092060445324
+  },
+  {
+   "name": "2,2-dimethyl-1-butanol",
+   "tg": 158.0,
+   "oof_mean": 156.8278052960867
+  },
+  {
+   "name": "2,2-dimethyl-1-pentanol",
+   "tg": 166.0,
+   "oof_mean": 160.76862730818675
+  },
+  {
+   "name": "2,2-dimethyl-1-hexanol",
+   "tg": 173.0,
+   "oof_mean": 161.45945649505023
+  },
+  {
+   "name": "2-hexanol",
+   "tg": 148.0,
+   "oof_mean": 151.91056393679173
+  },
+  {
+   "name": "3-hexanol",
+   "tg": 153.0,
+   "oof_mean": 153.46409442647987
+  },
+  {
+   "name": "3-heptanol",
+   "tg": 158.0,
+   "oof_mean": 159.3527474468362
+  },
+  {
+   "name": "2-heptanol",
+   "tg": 155.0,
+   "oof_mean": 155.72961628226062
+  },
+  {
+   "name": "4-nonanol",
+   "tg": 175.0,
+   "oof_mean": 172.01087807855617
+  },
+  {
+   "name": "3-methyl-4-nonanol",
+   "tg": 186.0,
+   "oof_mean": 185.1121759659723
+  },
+  {
+   "name": "2-methyl-2-pentanol",
+   "tg": 163.0,
+   "oof_mean": 158.94042881693377
+  },
+  {
+   "name": "2-methyl-2-hexanol",
+   "tg": 173.0,
+   "oof_mean": 159.23678268201536
+  },
+  {
+   "name": "4-methy-4-octanol",
+   "tg": 178.0,
+   "oof_mean": 176.4444334294816
+  },
+  {
+   "name": "4-methyl-4-nonanol",
+   "tg": 185.0,
+   "oof_mean": 187.55337010259572
+  },
+  {
+   "name": "4-methyl-undecane",
+   "tg": 135.0,
+   "oof_mean": 139.11698608697264
+  },
+  {
+   "name": "n-butanol",
+   "tg": 113.86333333333333,
+   "oof_mean": 116.95072903122002
+  },
+  {
+   "name": "xylose",
+   "tg": 278.85,
+   "oof_mean": 264.9614184090798
+  },
+  {
+   "name": "fructose",
+   "tg": 280.8,
+   "oof_mean": 287.3002836483987
+  },
+  {
+   "name": "n-heptanol",
+   "tg": 141.15,
+   "oof_mean": 141.2678415055238
+  },
+  {
+   "name": "n-octanol",
+   "tg": 149.85,
+   "oof_mean": 146.2311068781226
+  },
+  {
+   "name": "3-methyl-1-butanol",
+   "tg": 123.2,
+   "oof_mean": 132.06157352225873
+  },
+  {
+   "name": "1,2,4-butanetriol",
+   "tg": 200.7,
+   "oof_mean": 186.13707356862687
+  },
+  {
+   "name": "benzene",
+   "tg": 118.0,
+   "oof_mean": 115.43994000159236
+  },
+  {
+   "name": "2,4,6-trimethylheptane",
+   "tg": 126.0,
+   "oof_mean": 124.2990409492132
+  },
+  {
+   "name": "santonin",
+   "tg": 290.0,
+   "oof_mean": 285.7152099486106
+  },
+  {
+   "name": "maltotetraose",
+   "tg": 411.0,
+   "oof_mean": 394.3359861756425
+  },
+  {
+   "name": "malic acid",
+   "tg": 255.0,
+   "oof_mean": 264.30792731973054
+  },
+  {
+   "name": "pinonic acid",
+   "tg": 265.0,
+   "oof_mean": 261.08113566656436
+  },
+  {
+   "name": "2-methylbutane-1,2,3,4-tetraol",
+   "tg": 241.5,
+   "oof_mean": 247.27728083608335
+  },
+  {
+   "name": "1,2-isopooh",
+   "tg": 142.0,
+   "oof_mean": 224.2419093716564
+  },
+  {
+   "name": "trans-beta-iepox",
+   "tg": 167.14,
+   "oof_mean": 222.4225295837373
+  },
+  {
+   "name": "pinic acid",
+   "tg": 268.1,
+   "oof_mean": 278.742566392613
+  },
+  {
+   "name": "2,4-dimethyl-3-pentanol",
+   "tg": 193.0,
+   "oof_mean": 168.00192011144378
+  },
+  {
+   "name": "erythritol",
+   "tg": 228.53333333333333,
+   "oof_mean": 226.5953576065205
+  },
+  {
+   "name": "2-ethyl-1,3-hexanediol",
+   "tg": 208.9,
+   "oof_mean": 204.50516095715471
+  },
+  {
+   "name": "1,2,7-heptanetriol",
+   "tg": 200.3,
+   "oof_mean": 212.83165997343707
+  },
+  {
+   "name": "1,2,6-hexanetriol",
+   "tg": 204.15,
+   "oof_mean": 205.20234273167185
+  },
+  {
+   "name": "2-methyl-1,3-propanediol",
+   "tg": 167.0,
+   "oof_mean": 173.31955114082837
+  },
+  {
+   "name": "3-methyl-2-butanol",
+   "tg": 154.0,
+   "oof_mean": 154.679815192858
+  },
+  {
+   "name": "3-methyl-1,3,5-pentanetriol",
+   "tg": 205.7,
+   "oof_mean": 214.65265042980622
+  },
+  {
+   "name": "1,3-propanediol",
+   "tg": 147.5,
+   "oof_mean": 158.8441566429079
+  },
+  {
+   "name": "gentiobiose",
+   "tg": 362.2142857142857,
+   "oof_mean": 366.9744066177538
+  },
+  {
+   "name": "isomalt",
+   "tg": 307.0,
+   "oof_mean": 333.8179543719904
+  },
+  {
+   "name": "isomaltulose",
+   "tg": 342.1,
+   "oof_mean": 342.08360037099067
+  },
+  {
+   "name": "kojibiose",
+   "tg": 359.0,
+   "oof_mean": 377.01239030398403
+  },
+  {
+   "name": "lactulose",
+   "tg": 365.04999999999995,
+   "oof_mean": 337.13066951989236
+  },
+  {
+   "name": "levoglucosan",
+   "tg": 248.4,
+   "oof_mean": 276.382858491955
+  },
+  {
+   "name": "maltoheptaose",
+   "tg": 423.0,
+   "oof_mean": 432.43950000000007
+  },
+  {
+   "name": "maltohexaose",
+   "tg": 433.0,
+   "oof_mean": 424.57849999999996
+  },
+  {
+   "name": "maltopentaose",
+   "tg": 426.5,
+   "oof_mean": 421.744
+  },
+  {
+   "name": "maltotriose",
+   "tg": 395.0,
+   "oof_mean": 383.4990010563449
+  },
+  {
+   "name": "nigerose",
+   "tg": 362.0,
+   "oof_mean": 369.137447018886
+  },
+  {
+   "name": "nystose",
+   "tg": 350.0,
+   "oof_mean": 398.91480833333327
+  },
+  {
+   "name": "raffinose",
+   "tg": 381.7142857142857,
+   "oof_mean": 376.553674803835
+  },
+  {
+   "name": "rhamnose",
+   "tg": 288.3333333333333,
+   "oof_mean": 267.36703478253264
+  },
+  {
+   "name": "sorbose",
+   "tg": 292.0,
+   "oof_mean": 281.8406856648256
+  },
+  {
+   "name": "stachyose",
+   "tg": 396.0,
+   "oof_mean": 379.45824612622107
+  },
+  {
+   "name": "turanose",
+   "tg": 343.2,
+   "oof_mean": 348.54130284592077
+  },
+  {
+   "name": "3-methyl-1,2,3-butanetricarboxylic acid",
+   "tg": 305.0,
+   "oof_mean": 278.7268841400156
+  },
+  {
+   "name": "cyclooctanol",
+   "tg": 168.0,
+   "oof_mean": 168.17175789428916
+  },
+  {
+   "name": "1,2-dimethylcyclohexane",
+   "tg": 97.0,
+   "oof_mean": 103.96333863718633
+  },
+  {
+   "name": "2-methylbutane",
+   "tg": 76.0,
+   "oof_mean": 81.41271295522829
+  },
+  {
+   "name": "4-methylcyclohexen",
+   "tg": 94.0,
+   "oof_mean": 97.21416956111132
+  },
+  {
+   "name": "acetaldehyd",
+   "tg": 82.0,
+   "oof_mean": 102.58064195394809
+  },
+  {
+   "name": "butyronitrile",
+   "tg": 97.0,
+   "oof_mean": 108.4588332292628
+  },
+  {
+   "name": "4-cyanoaniline",
+   "tg": 314.0,
+   "oof_mean": 240.5557475438273
+  },
+  {
+   "name": "1-naphthylamine",
+   "tg": 306.0,
+   "oof_mean": 300.0610099214881
+  },
+  {
+   "name": "2-naphthylamine",
+   "tg": 304.0,
+   "oof_mean": 302.4739015768306
+  },
+  {
+   "name": "m-toluidine",
+   "tg": 187.0,
+   "oof_mean": 261.8045321259481
+  },
+  {
+   "name": "triethylamine",
+   "tg": 103.15,
+   "oof_mean": 98.92870864219658
+  },
+  {
+   "name": "pyridine",
+   "tg": 127.45,
+   "oof_mean": 115.21329259070038
+  },
+  {
+   "name": "2-methoxy-4-nitroaniline",
+   "tg": 330.5,
+   "oof_mean": 294.0442353911193
+  },
+  {
+   "name": "4-nitroaniline",
+   "tg": 318.0,
+   "oof_mean": 300.8600182478448
+  },
+  {
+   "name": "4-nitro-1-naphthylamine",
+   "tg": 305.0,
+   "oof_mean": 300.8158368717944
+  },
+  {
+   "name": "2-nitroaniline",
+   "tg": 299.0,
+   "oof_mean": 291.47687032821426
+  },
+  {
+   "name": "3-nitroaniline",
+   "tg": 301.0,
+   "oof_mean": 311.9417775765357
+  },
+  {
+   "name": "4-methoxyaniline",
+   "tg": 287.0,
+   "oof_mean": 257.4946081866381
+  },
+  {
+   "name": "cinchonine",
+   "tg": 386.0,
+   "oof_mean": 308.87141035128343
+  },
+  {
+   "name": "brucine",
+   "tg": 367.0,
+   "oof_mean": 334.2005629095896
+  },
+  {
+   "name": "piperine",
+   "tg": 284.0,
+   "oof_mean": 295.1979292957102
+  },
+  {
+   "name": "benzyl n-phenylcarbamate",
+   "tg": 233.0,
+   "oof_mean": 239.06267743931167
+  },
+  {
+   "name": "methyl n-phenylcarbamate",
+   "tg": 218.0,
+   "oof_mean": 223.12463338170159
+  },
+  {
+   "name": "ethyl n-phenylcarbamate",
+   "tg": 213.0,
+   "oof_mean": 217.36216063130192
+  },
+  {
+   "name": "propyl n-phenylcarbamate",
+   "tg": 203.0,
+   "oof_mean": 224.8237367937748
+  },
+  {
+   "name": "dibucaine",
+   "tg": 246.0,
+   "oof_mean": 309.70422869813854
+  },
+  {
+   "name": "proxyphylline",
+   "tg": 295.0,
+   "oof_mean": 291.8204306150059
+  },
+  {
+   "name": "eserine",
+   "tg": 295.6666666666667,
+   "oof_mean": 296.94025995203583
+  },
+  {
+   "name": "nialamide",
+   "tg": 297.0,
+   "oof_mean": 312.7174895958154
+  },
+  {
+   "name": "acetaminophen",
+   "tg": 299.0,
+   "oof_mean": 251.8928230498327
+  },
+  {
+   "name": "diphylline",
+   "tg": 315.0,
+   "oof_mean": 306.3288024733973
+  },
+  {
+   "name": "nitrendipine",
+   "tg": 303.0,
+   "oof_mean": 306.2139326557843
+  },
+  {
+   "name": "phenobarbital",
+   "tg": 318.3333333333333,
+   "oof_mean": 287.33551980822995
+  },
+  {
+   "name": "quinidine",
+   "tg": 326.0,
+   "oof_mean": 337.3128885428189
+  },
+  {
+   "name": "antipyrine",
+   "tg": 256.0,
+   "oof_mean": 227.47452188985986
+  },
+  {
+   "name": "phenylbutazone",
+   "tg": 277.0,
+   "oof_mean": 305.8730307848059
+  },
+  {
+   "name": "quinineethylcarbonate",
+   "tg": 278.0,
+   "oof_mean": 327.8704849789603
+  },
+  {
+   "name": "pentobarbital",
+   "tg": 279.0,
+   "oof_mean": 288.0199899150377
+  },
+  {
+   "name": "atropine",
+   "tg": 281.0,
+   "oof_mean": 310.0793520870215
+  },
+  {
+   "name": "hexobarbital",
+   "tg": 286.0,
+   "oof_mean": 287.94923460964174
+  },
+  {
+   "name": "amobarbital",
+   "tg": 286.0,
+   "oof_mean": 282.6359514820488
+  },
+  {
+   "name": "nimodipine",
+   "tg": 288.0,
+   "oof_mean": 306.4353974525374
+  },
+  {
+   "name": "dimethyl acetamide",
+   "tg": 146.15,
+   "oof_mean": 129.63302622208795
+  },
+  {
+   "name": "1-bromobutane",
+   "tg": 99.9,
+   "oof_mean": 104.08460449914075
+  },
+  {
+   "name": "isobutylbromide",
+   "tg": 92.22,
+   "oof_mean": 103.09251390176401
+  },
+  {
+   "name": "isoamylbromide",
+   "tg": 107.0,
+   "oof_mean": 99.39134328635211
+  },
+  {
+   "name": "3-bromopentane",
+   "tg": 108.0,
+   "oof_mean": 102.8419381441096
+  },
+  {
+   "name": "9-bromophenanthrene",
+   "tg": 224.8,
+   "oof_mean": 238.96287851892984
+  },
+  {
+   "name": "bromobenzene",
+   "tg": 140.0,
+   "oof_mean": 137.9102898166322
+  },
+  {
+   "name": "tert-butyl-chloride",
+   "tg": 133.75,
+   "oof_mean": 96.96020194437776
+  },
+  {
+   "name": "1 -bromopropane",
+   "tg": 107.0,
+   "oof_mean": 95.09198834376019
+  },
+  {
+   "name": "1-iodobutane",
+   "tg": 108.4,
+   "oof_mean": 106.92110640529158
+  },
+  {
+   "name": "isobutylchloride",
+   "tg": 88.7,
+   "oof_mean": 105.58794208098193
+  },
+  {
+   "name": "iodobenzene",
+   "tg": 149.7,
+   "oof_mean": 142.69204616035617
+  },
+  {
+   "name": "m-fluorotoluene",
+   "tg": 122.5,
+   "oof_mean": 139.5756381106713
+  },
+  {
+   "name": "trichloroethylene",
+   "tg": 107.05,
+   "oof_mean": 141.86660731211092
+  },
+  {
+   "name": "hydrochloro-thiazide",
+   "tg": 385.0,
+   "oof_mean": 307.866747499137
+  },
+  {
+   "name": "griseofulvin",
+   "tg": 366.5,
+   "oof_mean": 318.98240577775795
+  },
+  {
+   "name": "glibenclamide",
+   "tg": 337.5,
+   "oof_mean": 332.9738453020094
+  },
+  {
+   "name": "triphenyl phosphite",
+   "tg": 200.0,
+   "oof_mean": 282.3352274803656
+  },
+  {
+   "name": "2-chloro-4-nitroaniline",
+   "tg": 324.0,
+   "oof_mean": 308.5025561784119
+  },
+  {
+   "name": "4-chloroaniline",
+   "tg": 297.0,
+   "oof_mean": 280.45181974837004
+  },
+  {
+   "name": "3,4-dichloroaniline",
+   "tg": 296.0,
+   "oof_mean": 278.3122962738195
+  },
+  {
+   "name": "2-chloroaniline",
+   "tg": 292.0,
+   "oof_mean": 273.3474629854093
+  },
+  {
+   "name": "3-chloroaniline",
+   "tg": 286.0,
+   "oof_mean": 290.8780217857837
+  },
+  {
+   "name": "3-trifluoromethylaniline",
+   "tg": 280.0,
+   "oof_mean": 264.3612453768898
+  },
+  {
+   "name": "o-fluoroaniline",
+   "tg": 174.0,
+   "oof_mean": 254.6760023872708
+  },
+  {
+   "name": "m-fluorophenol",
+   "tg": 191.0,
+   "oof_mean": 199.32833322287206
+  },
+  {
+   "name": "ethacrynic acid",
+   "tg": 282.0,
+   "oof_mean": 269.3907757438073
+  },
+  {
+   "name": "tolbutamide",
+   "tg": 284.0,
+   "oof_mean": 282.1502555102437
+  },
+  {
+   "name": "tolnaftate",
+   "tg": 287.0,
+   "oof_mean": 293.2487118728261
+  },
+  {
+   "name": "flufenamic acid",
+   "tg": 290.0,
+   "oof_mean": 289.0241858431651
+  },
+  {
+   "name": "chorotrianisene",
+   "tg": 298.0,
+   "oof_mean": 281.0268306855245
+  },
+  {
+   "name": "chloramphenicol",
+   "tg": 304.25,
+   "oof_mean": 308.6717382958225
+  },
+  {
+   "name": "spironolactone",
+   "tg": 331.0,
+   "oof_mean": 330.12187311090435
+  },
+  {
+   "name": "chlormadinone acetate",
+   "tg": 334.0,
+   "oof_mean": 329.65215055451046
+  },
+  {
+   "name": "indomethacin",
+   "tg": 319.0,
+   "oof_mean": 313.09962547487305
+  },
+  {
+   "name": "sulphisoxazole",
+   "tg": 306.0,
+   "oof_mean": 325.2456303312262
+  },
+  {
+   "name": "felodipine",
+   "tg": 317.0,
+   "oof_mean": 304.96495338199077
+  },
+  {
+   "name": "sulphathiazole",
+   "tg": 334.0,
+   "oof_mean": 303.86403504313375
+  },
+  {
+   "name": "sulphadimethoxine",
+   "tg": 339.0,
+   "oof_mean": 311.07920337907666
+  },
+  {
+   "name": "chlorobenzene",
+   "tg": 126.3,
+   "oof_mean": 135.6584451950943
+  },
+  {
+   "name": "probucol",
+   "tg": 295.0,
+   "oof_mean": 319.91516712490437
+  },
+  {
+   "name": "2-ethylhexylamine",
+   "tg": 141.0,
+   "oof_mean": 179.12547376309442
+  },
+  {
+   "name": "n-(s-1-naphthylethyl)-tetrachlorophthalimide",
+   "tg": 362.0,
+   "oof_mean": 329.23236716372924
+  },
+  {
+   "name": "n-(s-1-naphthylethyl)-2,2\u2019-diphenic imide",
+   "tg": 356.0,
+   "oof_mean": 327.6388382314886
+  },
+  {
+   "name": "n-(r-1-phenylethyl)-2,2\u2019-diphenic imide",
+   "tg": 333.0,
+   "oof_mean": 328.79348265325086
+  },
+  {
+   "name": "n-(r-1-phenylethyl)-4-nitro-1,8-naphthalimide",
+   "tg": 320.0,
+   "oof_mean": 338.8133508360919
+  },
+  {
+   "name": "n-(r-1-phenylethyl)-1,8-naphthalimide",
+   "tg": 319.0,
+   "oof_mean": 316.8427779177213
+  },
+  {
+   "name": "n-(r-1-phenylethyl)-3-nitrophthalimide",
+   "tg": 289.0,
+   "oof_mean": 305.59759259200183
+  },
+  {
+   "name": "4-acetamido-n-(2\u2019,4\u2019-dimethylphenyl)-1,8naphthalimide",
+   "tg": 401.0,
+   "oof_mean": 323.31302340849965
+  },
+  {
+   "name": "n-(1,2,3,4-tetrahydro-1-naphthyl)-tetrachlorophthalimide",
+   "tg": 343.0,
+   "oof_mean": 343.2951553318273
+  },
+  {
+   "name": "1-methyl-1-(p-hydroxyphenyl)-1,2,3,4tetrahydronaphthalene",
+   "tg": 283.0,
+   "oof_mean": 285.6502581437062
+  },
+  {
+   "name": "1,3-dinitro-4,6-bis-(r-l\u2019-phenylethylamino)benzene",
+   "tg": 316.0,
+   "oof_mean": 317.74322105979843
+  },
+  {
+   "name": "n-(r-1-phenylethyl)-n\u2019-(p-nitrophenyl)thiourea",
+   "tg": 313.0,
+   "oof_mean": 305.07745955786885
+  },
+  {
+   "name": "1-menthyl-3-nitrophenylurethane",
+   "tg": 288.0,
+   "oof_mean": 294.47223192092986
+  },
+  {
+   "name": "1\u2019-(ethoxycarbonyl)ethyl-2-methyl-4-nitrophenylurethane",
+   "tg": 273.0,
+   "oof_mean": 261.6143973863854
+  },
+  {
+   "name": "1,1,3-trimethyl-3-(p-carboxyphenyl)-indan-5-carboxylic acid",
+   "tg": 402.0,
+   "oof_mean": 328.7664876259944
+  },
+  {
+   "name": "2-benzyl-(3,3\u2019)spirobi-(benzo[f]chroman)",
+   "tg": 339.0,
+   "oof_mean": 320.2200624178596
+  },
+  {
+   "name": "n-(1-phenylethyl)-n\u2019-(p-nitrophenyl)urea",
+   "tg": 305.0,
+   "oof_mean": 301.92204064778247
+  },
+  {
+   "name": "n-( 1-phenylethyl)-2,4-dinitroaniline",
+   "tg": 283.0,
+   "oof_mean": 294.4489406358496
+  },
+  {
+   "name": "n-(2-tetrahydropyryl)saccharin",
+   "tg": 279.0,
+   "oof_mean": 297.5987522640906
+  },
+  {
+   "name": "9,9-bis(p-hydroxyphenyl)fluorene",
+   "tg": 372.0,
+   "oof_mean": 349.45139466946557
+  },
+  {
+   "name": "9,9-bis(p-aminophenyl)fluorene",
+   "tg": 360.0,
+   "oof_mean": 354.1520457913779
+  },
+  {
+   "name": "anilinephthalein",
+   "tg": 353.0,
+   "oof_mean": 346.721935611981
+  },
+  {
+   "name": "2,2,2-tris(chloromethyl)ethyl-p-nitrophenylurethane",
+   "tg": 293.0,
+   "oof_mean": 280.6408273463062
+  },
+  {
+   "name": "2,2,3,3-tetrafluoropropyl-p-nitrophenylurethane",
+   "tg": 261.0,
+   "oof_mean": 282.43616706147094
+  },
+  {
+   "name": "n-pentyl-p-nitrophenylurethane",
+   "tg": 243.0,
+   "oof_mean": 262.51905934436417
+  },
+  {
+   "name": "budesonide",
+   "tg": 368.0,
+   "oof_mean": 362.0691953766353
+  },
+  {
+   "name": "prednisone",
+   "tg": 366.0,
+   "oof_mean": 356.070554854478
+  },
+  {
+   "name": "hydrocortisone",
+   "tg": 359.0,
+   "oof_mean": 367.8887806952817
+  },
+  {
+   "name": "warfarin",
+   "tg": 341.0,
+   "oof_mean": 291.7125836893345
+  },
+  {
+   "name": "testosterone",
+   "tg": 315.0,
+   "oof_mean": 302.727623604375
+  },
+  {
+   "name": "nandrolone",
+   "tg": 310.0,
+   "oof_mean": 307.7543657801777
+  },
+  {
+   "name": "simvastatin",
+   "tg": 309.0,
+   "oof_mean": 302.43492514684976
+  },
+  {
+   "name": "fluorescamin",
+   "tg": 299.0,
+   "oof_mean": 298.7510217393241
+  },
+  {
+   "name": "ibuprofen",
+   "tg": 228.0,
+   "oof_mean": 243.47094529190753
+  },
+  {
+   "name": "ketoprofen",
+   "tg": 270.0,
+   "oof_mean": 266.00092167238654
+  },
+  {
+   "name": "Aripiprazole",
+   "tg": 363.0,
+   "oof_mean": 314.6229102311936
+  },
+  {
+   "name": "Bucindolol",
+   "tg": 356.0,
+   "oof_mean": 325.24560952905887
+  },
+  {
+   "name": "Danazol",
+   "tg": 352.0,
+   "oof_mean": 324.9407000224618
+  },
+  {
+   "name": "Bezafibrate",
+   "tg": 346.0,
+   "oof_mean": 299.0103233747314
+  },
+  {
+   "name": "Ezetimibe",
+   "tg": 338.0,
+   "oof_mean": 346.23555046324014
+  },
+  {
+   "name": "Glafenine",
+   "tg": 336.0,
+   "oof_mean": 323.69211601283735
+  },
+  {
+   "name": "Pimozide",
+   "tg": 327.0,
+   "oof_mean": 318.49655237994693
+  },
+  {
+   "name": "Zolmitriptan",
+   "tg": 322.0,
+   "oof_mean": 314.7739768156478
+  },
+  {
+   "name": "Diazepam",
+   "tg": 319.0,
+   "oof_mean": 291.48817009947663
+  },
+  {
+   "name": "Nifedipine",
+   "tg": 318.0,
+   "oof_mean": 303.70635622589896
+  },
+  {
+   "name": "Carvedilol",
+   "tg": 315.0,
+   "oof_mean": 338.4078682509501
+  },
+  {
+   "name": "Loratadine",
+   "tg": 310.0,
+   "oof_mean": 330.4413272597973
+  },
+  {
+   "name": "Clemastine",
+   "tg": 308.0,
+   "oof_mean": 294.9007774833708
+  },
+  {
+   "name": "Clotrimazole",
+   "tg": 303.0,
+   "oof_mean": 310.1351876833986
+  },
+  {
+   "name": "Bifonazole",
+   "tg": 290.0,
+   "oof_mean": 294.79300769981876
+  },
+  {
+   "name": "Cinnarizine",
+   "tg": 280.0,
+   "oof_mean": 311.2396517992127
+  },
+  {
+   "name": "Clofoctol",
+   "tg": 269.0,
+   "oof_mean": 292.8525014386929
+  },
+  {
+   "name": "Tamoxifen",
+   "tg": 263.0,
+   "oof_mean": 295.5872979193118
+  },
+  {
+   "name": "Procaine",
+   "tg": 234.0,
+   "oof_mean": 274.5225886919167
+  },
+  {
+   "name": "Orlistat",
+   "tg": 228.0,
+   "oof_mean": 261.48940040363044
+  },
+  {
+   "name": "Linaprazan",
+   "tg": 373.0,
+   "oof_mean": 325.9734948827827
+  },
+  {
+   "name": "Isradipine",
+   "tg": 316.0,
+   "oof_mean": 314.29070607879146
+  },
+  {
+   "name": "Acemetacin",
+   "tg": 310.0,
+   "oof_mean": 312.1245098671183
+  },
+  {
+   "name": "Nilutamide",
+   "tg": 306.0,
+   "oof_mean": 303.9412420786652
+  },
+  {
+   "name": "Aceclofenac",
+   "tg": 283.0,
+   "oof_mean": 314.10257129472654
+  },
+  {
+   "name": "Miconazole",
+   "tg": 274.0,
+   "oof_mean": 300.23818674892055
+  },
+  {
+   "name": "Flurbiprofen",
+   "tg": 267.0,
+   "oof_mean": 265.2547869666605
+  },
+  {
+   "name": "Fenofibrate",
+   "tg": 254.0,
+   "oof_mean": 296.99060374867474
+  }
+ ]
+}

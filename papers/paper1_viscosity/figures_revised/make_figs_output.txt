@@ -1,0 +1,33 @@
+Fig1 OOF: MAE=10.16 K bias=-1.07 K
+Fig1: n=11 MAE=3.16 K bias=-2.15 K
+Fig2: n_points=728 pooled point MAE=0.521 max pred=13.34
+Fig3 ('glycerol', 'CRCHandbook', 293.15): Tg_ML=187.7 log10 eta0=-0.48
+Fig3 ('sucrose', 'CRCHandbook', 293.15): Tg_ML=339.1 log10 eta0=19.72
+Fig3 ('citric_acid', 'Song2016', 293.15): Tg_ML=283.2 log10 eta0=9.49
+Fig3 ('trehalose', 'Song2016', 293.0): Tg_ML=380.3 log10 eta0=31.11
+Fig4b glycerol: r=4.80 gC(x=0.001)=0.704 gC(x=0.1)=0.672
+Fig4b glucose: r=8.15 gC(x=0.001)=0.357 gC(x=0.1)=0.368
+Fig4b sucrose: r=14.55 gC(x=0.001)=0.054 gC(x=0.1)=0.128
+Fig4b raffinose: r=20.95 gC(x=0.001)=0.008 gC(x=0.1)=0.061
+Fig4: w_eff/x_org range 0.078-0.993 M>=342: [342, 504]
+Fig5: pinonic acid Tg_ML=267.8
+Fig5: pinic acid Tg_ML=271.0
+done
+Fig6/Table: Ansan    pinonic acid  s1 +6.04 ± 0.59 within1 0/29 missing 0
+Fig6/Table: Ansan    pinonic acid  s2 +2.11 ± 0.52 within1 2/29 missing 0
+Fig6/Table: Ansan    pinonic acid  s3 +2.11 ± 0.52 within1 2/29 missing 0
+Fig6/Table: Ansan    pinic acid    s1 +5.73 ± 0.60 within1 0/29 missing 0
+Fig6/Table: Ansan    pinic acid    s2 +2.58 ± 0.57 within1 0/29 missing 0
+Fig6/Table: Ansan    pinic acid    s3 +2.56 ± 0.56 within1 0/29 missing 0
+Fig6/Table: Seoul    pinonic acid  s1 +3.06 ± 0.84 within1 0/18 missing 0
+Fig6/Table: Seoul    pinonic acid  s2 +1.00 ± 0.70 within1 8/18 missing 0
+Fig6/Table: Seoul    pinonic acid  s3 +1.00 ± 0.70 within1 8/18 missing 0
+Fig6/Table: Seoul    pinic acid    s1 +3.28 ± 0.86 within1 0/18 missing 0
+Fig6/Table: Seoul    pinic acid    s2 +1.74 ± 0.78 within1 6/18 missing 0
+Fig6/Table: Seoul    pinic acid    s3 +1.65 ± 0.77 within1 6/18 missing 0
+Fig6/Table: Beijing  pinonic acid  s1 +2.49 ± 0.63 within1 0/10 missing 0
+Fig6/Table: Beijing  pinonic acid  s2 +1.44 ± 0.65 within1 2/10 missing 0
+Fig6/Table: Beijing  pinonic acid  s3 +1.44 ± 0.65 within1 2/10 missing 0
+Fig6/Table: Beijing  pinic acid    s1 +2.92 ± 0.63 within1 0/10 missing 0
+Fig6/Table: Beijing  pinic acid    s2 +2.16 ± 0.63 within1 1/10 missing 0
+Fig6/Table: Beijing  pinic acid    s3 +2.07 ± 0.63 within1 1/10 missing 0

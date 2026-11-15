@@ -1,0 +1,4847 @@
+[
+ {
+  "name": "1,2,4-butanetriol",
+  "source": "Romero2008",
+  "smiles": "C(CO)C(CO)O",
+  "tg_measured_K": 200.7,
+  "n_points": 4,
+  "points": [
+   {
+    "wtf_organic": 0.024521907,
+    "aw_measured": null,
+    "log10_eta_measured": -2.96297212,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.048100091,
+    "aw_measured": null,
+    "log10_eta_measured": -2.895854449,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.070788,
+    "aw_measured": null,
+    "log10_eta_measured": -2.835647144,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.092635124,
+    "aw_measured": null,
+    "log10_eta_measured": -2.79128998,
+    "T_K": 293.15
+   }
+  ]
+ },
+ {
+  "name": "1,2,4-butanetriol",
+  "source": "Romero2008",
+  "smiles": "C(CO)C(CO)O",
+  "tg_measured_K": 200.7,
+  "n_points": 4,
+  "points": [
+   {
+    "wtf_organic": 0.024521907,
+    "aw_measured": null,
+    "log10_eta_measured": -3.007004902,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.048100091,
+    "aw_measured": null,
+    "log10_eta_measured": -2.960189446,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.070788,
+    "aw_measured": null,
+    "log10_eta_measured": -2.923359556,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.092635124,
+    "aw_measured": null,
+    "log10_eta_measured": -2.876801925,
+    "T_K": 298.15
+   }
+  ]
+ },
+ {
+  "name": "1,2,4-butanetriol",
+  "source": "Song2016",
+  "smiles": "C(CO)C(CO)O",
+  "tg_measured_K": 200.7,
+  "n_points": 9,
+  "points": [
+   {
+    "wtf_organic": 0.998,
+    "aw_measured": 0.01,
+    "log10_eta_measured": 0.252,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.973,
+    "aw_measured": 0.12,
+    "log10_eta_measured": -0.102,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.941,
+    "aw_measured": 0.23,
+    "log10_eta_measured": -0.638,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.905,
+    "aw_measured": 0.33,
+    "log10_eta_measured": -0.76,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.861,
+    "aw_measured": 0.43,
+    "log10_eta_measured": -1.139,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.808,
+    "aw_measured": 0.53,
+    "log10_eta_measured": -1.117,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.665,
+    "aw_measured": 0.72,
+    "log10_eta_measured": -2.577,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.531,
+    "aw_measured": 0.83,
+    "log10_eta_measured": -2.971,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.242,
+    "aw_measured": 0.95,
+    "log10_eta_measured": -2.974,
+    "T_K": 293.0
+   }
+  ]
+ },
+ {
+  "name": "1,2,6-hexanetriol",
+  "source": "Song2016",
+  "smiles": "C(CCO)CC(CO)O",
+  "tg_measured_K": 204.15,
+  "n_points": 11,
+  "points": [
+   {
+    "wtf_organic": 0.998,
+    "aw_measured": 0.05,
+    "log10_eta_measured": 0.55,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.976,
+    "aw_measured": 0.15,
+    "log10_eta_measured": 0.378,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.968,
+    "aw_measured": 0.21,
+    "log10_eta_measured": 0.341,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.941,
+    "aw_measured": 0.34,
+    "log10_eta_measured": -0.141,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.922,
+    "aw_measured": 0.4,
+    "log10_eta_measured": -0.377,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.89,
+    "aw_measured": 0.5,
+    "log10_eta_measured": -0.518,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.873,
+    "aw_measured": 0.55,
+    "log10_eta_measured": -0.353,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.844,
+    "aw_measured": 0.62,
+    "log10_eta_measured": -0.508,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.758,
+    "aw_measured": 0.75,
+    "log10_eta_measured": -1.907,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.58,
+    "aw_measured": 0.9,
+    "log10_eta_measured": -2.387,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.179,
+    "aw_measured": 0.98,
+    "log10_eta_measured": -2.897,
+    "T_K": 293.0
+   }
+  ]
+ },
+ {
+  "name": "1,4-butanediol",
+  "source": "Hawrylak1998",
+  "smiles": "OCCCCO",
+  "tg_measured_K": null,
+  "n_points": 9,
+  "points": [
+   {
+    "wtf_organic": 0.357259064,
+    "aw_measured": null,
+    "log10_eta_measured": -2.468904453,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.555834795,
+    "aw_measured": null,
+    "log10_eta_measured": -2.022459294,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.682650056,
+    "aw_measured": null,
+    "log10_eta_measured": -1.859491957,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.769763856,
+    "aw_measured": null,
+    "log10_eta_measured": -1.677780705,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.832122338,
+    "aw_measured": null,
+    "log10_eta_measured": -1.531357332,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.88249192,
+    "aw_measured": null,
+    "log10_eta_measured": -1.410608977,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.920465239,
+    "aw_measured": null,
+    "log10_eta_measured": -1.321845962,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.952205446,
+    "aw_measured": null,
+    "log10_eta_measured": -1.246800086,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.977537491,
+    "aw_measured": null,
+    "log10_eta_measured": -1.194499142,
+    "T_K": 298.15
+   }
+  ]
+ },
+ {
+  "name": "1,4-butanediol",
+  "source": "Romero2008",
+  "smiles": "OCCCCO",
+  "tg_measured_K": null,
+  "n_points": 4,
+  "points": [
+   {
+    "wtf_organic": 0.024521907,
+    "aw_measured": null,
+    "log10_eta_measured": -2.948461609,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.048100091,
+    "aw_measured": null,
+    "log10_eta_measured": -2.895512889,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.070788,
+    "aw_measured": null,
+    "log10_eta_measured": -2.835647144,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.092635124,
+    "aw_measured": null,
+    "log10_eta_measured": -2.791558644,
+    "T_K": 293.15
+   }
+  ]
+ },
+ {
+  "name": "1,4-butanediol",
+  "source": "Romero2008",
+  "smiles": "OCCCCO",
+  "tg_measured_K": null,
+  "n_points": 4,
+  "points": [
+   {
+    "wtf_organic": 0.024521907,
+    "aw_measured": null,
+    "log10_eta_measured": -3.013228266,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.048100091,
+    "aw_measured": null,
+    "log10_eta_measured": -2.968591536,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.070788,
+    "aw_measured": null,
+    "log10_eta_measured": -2.923359556,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.092635124,
+    "aw_measured": null,
+    "log10_eta_measured": -2.881404635,
+    "T_K": 298.15
+   }
+  ]
+ },
+ {
+  "name": "1,4-butanediol",
+  "source": "Song2016",
+  "smiles": "OCCCCO",
+  "tg_measured_K": null,
+  "n_points": 12,
+  "points": [
+   {
+    "wtf_organic": 0.975,
+    "aw_measured": 0.0,
+    "log10_eta_measured": -1.059,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.962,
+    "aw_measured": 0.2,
+    "log10_eta_measured": -1.239,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.939,
+    "aw_measured": 0.29,
+    "log10_eta_measured": -1.196,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.922,
+    "aw_measured": 0.34,
+    "log10_eta_measured": -1.344,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.895,
+    "aw_measured": 0.41,
+    "log10_eta_measured": -2.006,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.891,
+    "aw_measured": 0.42,
+    "log10_eta_measured": -2.253,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.875,
+    "aw_measured": 0.46,
+    "log10_eta_measured": -2.306,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.853,
+    "aw_measured": 0.51,
+    "log10_eta_measured": -2.054,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.797,
+    "aw_measured": 0.61,
+    "log10_eta_measured": -2.366,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.718,
+    "aw_measured": 0.71,
+    "log10_eta_measured": -2.619,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.576,
+    "aw_measured": 0.83,
+    "log10_eta_measured": -2.82,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.423,
+    "aw_measured": 0.9,
+    "log10_eta_measured": -2.9,
+    "T_K": 293.15
+   }
+  ]
+ },
+ {
+  "name": "1,4-butanediol",
+  "source": "Yang2004",
+  "smiles": "OCCCCO",
+  "tg_measured_K": null,
+  "n_points": 11,
+  "points": [
+   {
+    "wtf_organic": 0.100303206,
+    "aw_measured": null,
+    "log10_eta_measured": -2.746661995,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.200719195,
+    "aw_measured": null,
+    "log10_eta_measured": -2.576754126,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.299969446,
+    "aw_measured": null,
+    "log10_eta_measured": -2.410162057,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.399781302,
+    "aw_measured": null,
+    "log10_eta_measured": -2.237471478,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.499826407,
+    "aw_measured": null,
+    "log10_eta_measured": -2.05774385,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.599757293,
+    "aw_measured": null,
+    "log10_eta_measured": -1.925915311,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.699833392,
+    "aw_measured": null,
+    "log10_eta_measured": -1.719603762,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.799857722,
+    "aw_measured": null,
+    "log10_eta_measured": -1.498639439,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.899944752,
+    "aw_measured": null,
+    "log10_eta_measured": -1.246493543,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.95003363,
+    "aw_measured": null,
+    "log10_eta_measured": -1.133069082,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.970072029,
+    "aw_measured": null,
+    "log10_eta_measured": -1.094063873,
+    "T_K": 293.15
+   }
+  ]
+ },
+ {
+  "name": "acetic_acid",
+  "source": "CRCHandbook",
+  "smiles": "CC(=O)O",
+  "tg_measured_K": null,
+  "n_points": 35,
+  "points": [
+   {
+    "wtf_organic": 0.005,
+    "aw_measured": null,
+    "log10_eta_measured": -2.994819487,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.01,
+    "aw_measured": null,
+    "log10_eta_measured": -2.990549104,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.02,
+    "aw_measured": null,
+    "log10_eta_measured": -2.982132281,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.03,
+    "aw_measured": null,
+    "log10_eta_measured": -2.973466735,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.04,
+    "aw_measured": null,
+    "log10_eta_measured": -2.964970718,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.05,
+    "aw_measured": null,
+    "log10_eta_measured": -2.956637722,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.06,
+    "aw_measured": null,
+    "log10_eta_measured": -2.948847478,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.07,
+    "aw_measured": null,
+    "log10_eta_measured": -2.94195377,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.08,
+    "aw_measured": null,
+    "log10_eta_measured": -2.934793872,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.09,
+    "aw_measured": null,
+    "log10_eta_measured": -2.925915311,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.1,
+    "aw_measured": null,
+    "log10_eta_measured": -2.91721463,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.12,
+    "aw_measured": null,
+    "log10_eta_measured": -2.902048929,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.14,
+    "aw_measured": null,
+    "log10_eta_measured": -2.886725308,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.16,
+    "aw_measured": null,
+    "log10_eta_measured": -2.872571222,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.18,
+    "aw_measured": null,
+    "log10_eta_measured": -2.860120914,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.2,
+    "aw_measured": null,
+    "log10_eta_measured": -2.844360366,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.22,
+    "aw_measured": null,
+    "log10_eta_measured": -2.830325566,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.24,
+    "aw_measured": null,
+    "log10_eta_measured": -2.816730156,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.26,
+    "aw_measured": null,
+    "log10_eta_measured": -2.803547458,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.28,
+    "aw_measured": null,
+    "log10_eta_measured": -2.792365633,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.3,
+    "aw_measured": null,
+    "log10_eta_measured": -2.777543663,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.32,
+    "aw_measured": null,
+    "log10_eta_measured": -2.765735876,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.34,
+    "aw_measured": null,
+    "log10_eta_measured": -2.753994096,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.36,
+    "aw_measured": null,
+    "log10_eta_measured": -2.741841807,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.38,
+    "aw_measured": null,
+    "log10_eta_measured": -2.732359018,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.4,
+    "aw_measured": null,
+    "log10_eta_measured": -2.718512112,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.5,
+    "aw_measured": null,
+    "log10_eta_measured": -2.66594856,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.6,
+    "aw_measured": null,
+    "log10_eta_measured": -2.6181632,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.7,
+    "aw_measured": null,
+    "log10_eta_measured": -2.580209414,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.8,
+    "aw_measured": null,
+    "log10_eta_measured": -2.565431096,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.9,
+    "aw_measured": null,
+    "log10_eta_measured": -2.622329561,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.92,
+    "aw_measured": null,
+    "log10_eta_measured": -2.649751982,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.94,
+    "aw_measured": null,
+    "log10_eta_measured": -2.691222226,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.96,
+    "aw_measured": null,
+    "log10_eta_measured": -2.741602196,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.98,
+    "aw_measured": null,
+    "log10_eta_measured": -2.81389162,
+    "T_K": 293.15
+   }
+  ]
+ },
+ {
+  "name": "citric_acid",
+  "source": "CRCHandbook",
+  "smiles": "C(C(=O)O)C(CC(=O)O)(C(=O)O)O",
+  "tg_measured_K": 283.5083333333333,
+  "n_points": 21,
+  "points": [
+   {
+    "wtf_organic": 0.005,
+    "aw_measured": null,
+    "log10_eta_measured": -2.994390555,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.01,
+    "aw_measured": null,
+    "log10_eta_measured": -2.989700043,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.02,
+    "aw_measured": null,
+    "log10_eta_measured": -2.979638717,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.03,
+    "aw_measured": null,
+    "log10_eta_measured": -2.969400278,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.04,
+    "aw_measured": null,
+    "log10_eta_measured": -2.95939766,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.05,
+    "aw_measured": null,
+    "log10_eta_measured": -2.948847478,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.06,
+    "aw_measured": null,
+    "log10_eta_measured": -2.938170693,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.07,
+    "aw_measured": null,
+    "log10_eta_measured": -2.927015255,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.08,
+    "aw_measured": null,
+    "log10_eta_measured": -2.915781313,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.09,
+    "aw_measured": null,
+    "log10_eta_measured": -2.904133547,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.1,
+    "aw_measured": null,
+    "log10_eta_measured": -2.891773344,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.12,
+    "aw_measured": null,
+    "log10_eta_measured": -2.867420152,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.14,
+    "aw_measured": null,
+    "log10_eta_measured": -2.84284556,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.16,
+    "aw_measured": null,
+    "log10_eta_measured": -2.816730156,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.18,
+    "aw_measured": null,
+    "log10_eta_measured": -2.789146635,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.2,
+    "aw_measured": null,
+    "log10_eta_measured": -2.759450752,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.22,
+    "aw_measured": null,
+    "log10_eta_measured": -2.727694156,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.24,
+    "aw_measured": null,
+    "log10_eta_measured": -2.695294102,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.26,
+    "aw_measured": null,
+    "log10_eta_measured": -2.661942125,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.28,
+    "aw_measured": null,
+    "log10_eta_measured": -2.627824714,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.3,
+    "aw_measured": null,
+    "log10_eta_measured": -2.593630165,
+    "T_K": 293.15
+   }
+  ]
+ },
+ {
+  "name": "citric_acid",
+  "source": "Laguerie1976",
+  "smiles": "C(C(=O)O)C(CC(=O)O)(C(=O)O)O",
+  "tg_measured_K": 283.5083333333333,
+  "n_points": 10,
+  "points": [
+   {
+    "wtf_organic": 0.177078145,
+    "aw_measured": null,
+    "log10_eta_measured": -2.728158393,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.247677928,
+    "aw_measured": null,
+    "log10_eta_measured": -2.518557371,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.326379325,
+    "aw_measured": null,
+    "log10_eta_measured": -2.298432015,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.363415277,
+    "aw_measured": null,
+    "log10_eta_measured": -2.124938737,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.395821735,
+    "aw_measured": null,
+    "log10_eta_measured": -2.024568191,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.425913446,
+    "aw_measured": null,
+    "log10_eta_measured": -1.910094889,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.444431422,
+    "aw_measured": null,
+    "log10_eta_measured": -1.847100404,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.462949398,
+    "aw_measured": null,
+    "log10_eta_measured": -1.772884917,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.477995253,
+    "aw_measured": null,
+    "log10_eta_measured": -1.708853238,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.496513229,
+    "aw_measured": null,
+    "log10_eta_measured": -1.623423043,
+    "T_K": 298.15
+   }
+  ]
+ },
+ {
+  "name": "citric_acid",
+  "source": "Song2016",
+  "smiles": "C(C(=O)O)C(CC(=O)O)(C(=O)O)O",
+  "tg_measured_K": 283.5083333333333,
+  "n_points": 15,
+  "points": [
+   {
+    "wtf_organic": 0.984,
+    "aw_measured": 0.044,
+    "log10_eta_measured": 6.081,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.979,
+    "aw_measured": 0.07,
+    "log10_eta_measured": 5.267,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.974,
+    "aw_measured": 0.096,
+    "log10_eta_measured": 4.593,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.966,
+    "aw_measured": 0.124,
+    "log10_eta_measured": 3.269,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.955,
+    "aw_measured": 0.155,
+    "log10_eta_measured": 2.998,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.946,
+    "aw_measured": 0.178,
+    "log10_eta_measured": 3.705,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.935,
+    "aw_measured": 0.208,
+    "log10_eta_measured": 3.085,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.917,
+    "aw_measured": 0.264,
+    "log10_eta_measured": 3.085,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.905,
+    "aw_measured": 0.308,
+    "log10_eta_measured": 2.086,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.874,
+    "aw_measured": 0.403,
+    "log10_eta_measured": 0.891,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.841,
+    "aw_measured": 0.478,
+    "log10_eta_measured": 0.557,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.83,
+    "aw_measured": 0.502,
+    "log10_eta_measured": -0.001,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.798,
+    "aw_measured": 0.567,
+    "log10_eta_measured": -0.32,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.755,
+    "aw_measured": 0.65,
+    "log10_eta_measured": -0.361,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.725,
+    "aw_measured": 0.698,
+    "log10_eta_measured": -1.327,
+    "T_K": 293.15
+   }
+  ]
+ },
+ {
+  "name": "citric_acid",
+  "source": "Song2016Bulk",
+  "smiles": "C(C(=O)O)C(CC(=O)O)(C(=O)O)O",
+  "tg_measured_K": 283.5083333333333,
+  "n_points": 5,
+  "points": [
+   {
+    "wtf_organic": 0.096,
+    "aw_measured": null,
+    "log10_eta_measured": -2.199,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.193,
+    "aw_measured": null,
+    "log10_eta_measured": -2.697,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.401,
+    "aw_measured": null,
+    "log10_eta_measured": -2.114,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.498,
+    "aw_measured": null,
+    "log10_eta_measured": -1.906,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.595,
+    "aw_measured": null,
+    "log10_eta_measured": -1.422,
+    "T_K": 293.0
+   }
+  ]
+ },
+ {
+  "name": "erythritol",
+  "source": "Jiang2013",
+  "smiles": "C(C(C(CO)O)O)O",
+  "tg_measured_K": 228.53333333333333,
+  "n_points": 5,
+  "points": [
+   {
+    "wtf_organic": 0.023864963,
+    "aw_measured": null,
+    "log10_eta_measured": -2.971022295,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.046584103,
+    "aw_measured": null,
+    "log10_eta_measured": -2.945386945,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.068280341,
+    "aw_measured": null,
+    "log10_eta_measured": -2.920818754,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.088838774,
+    "aw_measured": null,
+    "log10_eta_measured": -2.893469146,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.108810318,
+    "aw_measured": null,
+    "log10_eta_measured": -2.86710023,
+    "T_K": 293.15
+   }
+  ]
+ },
+ {
+  "name": "erythritol",
+  "source": "Romero2008",
+  "smiles": "C(C(C(CO)O)O)O",
+  "tg_measured_K": 228.53333333333333,
+  "n_points": 4,
+  "points": [
+   {
+    "wtf_organic": 0.024521907,
+    "aw_measured": null,
+    "log10_eta_measured": -2.929592678,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.048100091,
+    "aw_measured": null,
+    "log10_eta_measured": -2.882066165,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.070788,
+    "aw_measured": null,
+    "log10_eta_measured": -2.847711656,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.092635124,
+    "aw_measured": null,
+    "log10_eta_measured": -2.815308569,
+    "T_K": 293.15
+   }
+  ]
+ },
+ {
+  "name": "erythritol",
+  "source": "Romero2008",
+  "smiles": "C(C(C(CO)O)O)O",
+  "tg_measured_K": 228.53333333333333,
+  "n_points": 4,
+  "points": [
+   {
+    "wtf_organic": 0.024521907,
+    "aw_measured": null,
+    "log10_eta_measured": -2.978810701,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.048100091,
+    "aw_measured": null,
+    "log10_eta_measured": -2.938547521,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.070788,
+    "aw_measured": null,
+    "log10_eta_measured": -2.903089987,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.092635124,
+    "aw_measured": null,
+    "log10_eta_measured": -2.877129077,
+    "T_K": 298.15
+   }
+  ]
+ },
+ {
+  "name": "erythritol",
+  "source": "Song2016",
+  "smiles": "C(C(C(CO)O)O)O",
+  "tg_measured_K": 228.53333333333333,
+  "n_points": 10,
+  "points": [
+   {
+    "wtf_organic": 0.987,
+    "aw_measured": 0.05,
+    "log10_eta_measured": 3.664,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.978,
+    "aw_measured": 0.09,
+    "log10_eta_measured": 3.362,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.936,
+    "aw_measured": 0.22,
+    "log10_eta_measured": 1.766,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.848,
+    "aw_measured": 0.43,
+    "log10_eta_measured": 0.549,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.785,
+    "aw_measured": 0.54,
+    "log10_eta_measured": 0.027,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.731,
+    "aw_measured": 0.62,
+    "log10_eta_measured": -0.987,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.657,
+    "aw_measured": 0.71,
+    "log10_eta_measured": -1.48,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.482,
+    "aw_measured": 0.85,
+    "log10_eta_measured": -2.702,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.309,
+    "aw_measured": 0.93,
+    "log10_eta_measured": -2.485,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.06,
+    "aw_measured": 0.99,
+    "log10_eta_measured": -2.854,
+    "T_K": 293.0
+   }
+  ]
+ },
+ {
+  "name": "erythritol",
+  "source": "Zhu2010",
+  "smiles": "C(C(C(CO)O)O)O",
+  "tg_measured_K": 228.53333333333333,
+  "n_points": 10,
+  "points": [
+   {
+    "wtf_organic": 0.008422069,
+    "aw_measured": null,
+    "log10_eta_measured": -2.980136286,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.016844138,
+    "aw_measured": null,
+    "log10_eta_measured": -2.972609615,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.025266207,
+    "aw_measured": null,
+    "log10_eta_measured": -2.96333119,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.033688276,
+    "aw_measured": null,
+    "log10_eta_measured": -2.954520547,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.042110345,
+    "aw_measured": null,
+    "log10_eta_measured": -2.943666965,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.050532414,
+    "aw_measured": null,
+    "log10_eta_measured": -2.932148339,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.058954483,
+    "aw_measured": null,
+    "log10_eta_measured": -2.916282436,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.067376552,
+    "aw_measured": null,
+    "log10_eta_measured": -2.900492006,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.075798621,
+    "aw_measured": null,
+    "log10_eta_measured": -2.884156596,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.08422069,
+    "aw_measured": null,
+    "log10_eta_measured": -2.873511429,
+    "T_K": 293.15
+   }
+  ]
+ },
+ {
+  "name": "fructose",
+  "source": "CRCHandbook",
+  "smiles": "C1C(C(C(C(O1)(CO)O)O)O)O",
+  "tg_measured_K": 280.8,
+  "n_points": 30,
+  "points": [
+   {
+    "wtf_organic": 0.005,
+    "aw_measured": null,
+    "log10_eta_measured": -2.993533958,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.01,
+    "aw_measured": null,
+    "log10_eta_measured": -2.988006885,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.02,
+    "aw_measured": null,
+    "log10_eta_measured": -2.977159389,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.03,
+    "aw_measured": null,
+    "log10_eta_measured": -2.966576245,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.04,
+    "aw_measured": null,
+    "log10_eta_measured": -2.956244873,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.05,
+    "aw_measured": null,
+    "log10_eta_measured": -2.945386945,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.06,
+    "aw_measured": null,
+    "log10_eta_measured": -2.933674075,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.07,
+    "aw_measured": null,
+    "log10_eta_measured": -2.921543182,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.08,
+    "aw_measured": null,
+    "log10_eta_measured": -2.909389292,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.09,
+    "aw_measured": null,
+    "log10_eta_measured": -2.896196279,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.1,
+    "aw_measured": null,
+    "log10_eta_measured": -2.883060353,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.12,
+    "aw_measured": null,
+    "log10_eta_measured": -2.85667287,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.14,
+    "aw_measured": null,
+    "log10_eta_measured": -2.828858849,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.16,
+    "aw_measured": null,
+    "log10_eta_measured": -2.799423073,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.18,
+    "aw_measured": null,
+    "log10_eta_measured": -2.768785352,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.2,
+    "aw_measured": null,
+    "log10_eta_measured": -2.735890844,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.22,
+    "aw_measured": null,
+    "log10_eta_measured": -2.702020756,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.24,
+    "aw_measured": null,
+    "log10_eta_measured": -2.666754301,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.26,
+    "aw_measured": null,
+    "log10_eta_measured": -2.629301907,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.28,
+    "aw_measured": null,
+    "log10_eta_measured": -2.591420875,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.3,
+    "aw_measured": null,
+    "log10_eta_measured": -2.550213153,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.32,
+    "aw_measured": null,
+    "log10_eta_measured": -2.506960412,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.34,
+    "aw_measured": null,
+    "log10_eta_measured": -2.460672936,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.36,
+    "aw_measured": null,
+    "log10_eta_measured": -2.409046765,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.38,
+    "aw_measured": null,
+    "log10_eta_measured": -2.354774288,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.4,
+    "aw_measured": null,
+    "log10_eta_measured": -2.297052754,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.42,
+    "aw_measured": null,
+    "log10_eta_measured": -2.238598443,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.44,
+    "aw_measured": null,
+    "log10_eta_measured": -2.177570376,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.46,
+    "aw_measured": null,
+    "log10_eta_measured": -2.110530216,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.48,
+    "aw_measured": null,
+    "log10_eta_measured": -2.042871802,
+    "T_K": 293.15
+   }
+  ]
+ },
+ {
+  "name": "fructose",
+  "source": "Rampp2000",
+  "smiles": "C1C(C(C(C(O1)(CO)O)O)O)O",
+  "tg_measured_K": 280.8,
+  "n_points": 7,
+  "points": [
+   {
+    "wtf_organic": 0.3,
+    "aw_measured": null,
+    "log10_eta_measured": -2.412289035,
+    "T_K": 283.15
+   },
+   {
+    "wtf_organic": 0.5,
+    "aw_measured": null,
+    "log10_eta_measured": -1.764471553,
+    "T_K": 283.15
+   },
+   {
+    "wtf_organic": 0.6,
+    "aw_measured": null,
+    "log10_eta_measured": -1.227678293,
+    "T_K": 283.15
+   },
+   {
+    "wtf_organic": 0.7,
+    "aw_measured": null,
+    "log10_eta_measured": -0.372634143,
+    "T_K": 283.15
+   },
+   {
+    "wtf_organic": 0.75,
+    "aw_measured": null,
+    "log10_eta_measured": 0.23299611,
+    "T_K": 283.15
+   },
+   {
+    "wtf_organic": 0.8,
+    "aw_measured": null,
+    "log10_eta_measured": 1.075546961,
+    "T_K": 283.15
+   },
+   {
+    "wtf_organic": 0.85,
+    "aw_measured": null,
+    "log10_eta_measured": 2.225309282,
+    "T_K": 283.15
+   }
+  ]
+ },
+ {
+  "name": "fructose",
+  "source": "Rampp2000",
+  "smiles": "C1C(C(C(C(O1)(CO)O)O)O)O",
+  "tg_measured_K": 280.8,
+  "n_points": 7,
+  "points": [
+   {
+    "wtf_organic": 0.3,
+    "aw_measured": null,
+    "log10_eta_measured": -2.567030709,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.5,
+    "aw_measured": null,
+    "log10_eta_measured": -1.987162775,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.6,
+    "aw_measured": null,
+    "log10_eta_measured": -1.492144128,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.7,
+    "aw_measured": null,
+    "log10_eta_measured": -0.760700521,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.75,
+    "aw_measured": null,
+    "log10_eta_measured": -0.245651664,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.8,
+    "aw_measured": null,
+    "log10_eta_measured": 0.474216264,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.85,
+    "aw_measured": null,
+    "log10_eta_measured": 1.522444234,
+    "T_K": 293.15
+   }
+  ]
+ },
+ {
+  "name": "fructose",
+  "source": "Telis2007",
+  "smiles": "C1C(C(C(C(O1)(CO)O)O)O)O",
+  "tg_measured_K": 280.8,
+  "n_points": 6,
+  "points": [
+   {
+    "wtf_organic": 0.1,
+    "aw_measured": null,
+    "log10_eta_measured": -2.774690718,
+    "T_K": 283.15
+   },
+   {
+    "wtf_organic": 0.2,
+    "aw_measured": null,
+    "log10_eta_measured": -2.598599459,
+    "T_K": 283.15
+   },
+   {
+    "wtf_organic": 0.3,
+    "aw_measured": null,
+    "log10_eta_measured": -2.363512104,
+    "T_K": 283.15
+   },
+   {
+    "wtf_organic": 0.4,
+    "aw_measured": null,
+    "log10_eta_measured": -2.095825632,
+    "T_K": 283.15
+   },
+   {
+    "wtf_organic": 0.5,
+    "aw_measured": null,
+    "log10_eta_measured": -1.716698771,
+    "T_K": 283.15
+   },
+   {
+    "wtf_organic": 0.6,
+    "aw_measured": null,
+    "log10_eta_measured": -1.197499932,
+    "T_K": 283.15
+   }
+  ]
+ },
+ {
+  "name": "fructose",
+  "source": "Telis2007",
+  "smiles": "C1C(C(C(C(O1)(CO)O)O)O)O",
+  "tg_measured_K": 280.8,
+  "n_points": 6,
+  "points": [
+   {
+    "wtf_organic": 0.1,
+    "aw_measured": null,
+    "log10_eta_measured": -2.928117993,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.2,
+    "aw_measured": null,
+    "log10_eta_measured": -2.735182177,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.3,
+    "aw_measured": null,
+    "log10_eta_measured": -2.563837353,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.4,
+    "aw_measured": null,
+    "log10_eta_measured": -2.299296283,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.5,
+    "aw_measured": null,
+    "log10_eta_measured": -1.979638717,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.6,
+    "aw_measured": null,
+    "log10_eta_measured": -1.502655619,
+    "T_K": 293.15
+   }
+  ]
+ },
+ {
+  "name": "glucose",
+  "source": "Mazurkiewicz2001",
+  "smiles": "C(C1C(C(C(C(O1)O)O)O)O)O",
+  "tg_measured_K": 299.7846153846154,
+  "n_points": 8,
+  "points": [
+   {
+    "wtf_organic": 0.152654395,
+    "aw_measured": null,
+    "log10_eta_measured": -2.801342913,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.264874529,
+    "aw_measured": null,
+    "log10_eta_measured": -2.576754126,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.350846626,
+    "aw_measured": null,
+    "log10_eta_measured": -2.17327748,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.418815499,
+    "aw_measured": null,
+    "log10_eta_measured": -1.783306401,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.473900188,
+    "aw_measured": null,
+    "log10_eta_measured": -1.460422117,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.519447018,
+    "aw_measured": null,
+    "log10_eta_measured": -1.196269829,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.55773582,
+    "aw_measured": null,
+    "log10_eta_measured": -0.970291637,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.57467984,
+    "aw_measured": null,
+    "log10_eta_measured": -0.870664647,
+    "T_K": 298.15
+   }
+  ]
+ },
+ {
+  "name": "glucose",
+  "source": "Song2016",
+  "smiles": "C(C1C(C(C(C(O1)O)O)O)O)O",
+  "tg_measured_K": 299.7846153846154,
+  "n_points": 9,
+  "points": [
+   {
+    "wtf_organic": 0.959,
+    "aw_measured": 0.15,
+    "log10_eta_measured": 7.388,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.94,
+    "aw_measured": 0.2,
+    "log10_eta_measured": 6.097,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.877,
+    "aw_measured": 0.4,
+    "log10_eta_measured": 4.865,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.86,
+    "aw_measured": 0.44,
+    "log10_eta_measured": 4.404,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.85,
+    "aw_measured": 0.46,
+    "log10_eta_measured": 3.498,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.831,
+    "aw_measured": 0.5,
+    "log10_eta_measured": 3.387,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.811,
+    "aw_measured": 0.54,
+    "log10_eta_measured": 2.857,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.781,
+    "aw_measured": 0.6,
+    "log10_eta_measured": 1.566,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.632,
+    "aw_measured": 0.8,
+    "log10_eta_measured": -0.84,
+    "T_K": 293.0
+   }
+  ]
+ },
+ {
+  "name": "glucose",
+  "source": "Telis2007",
+  "smiles": "C(C1C(C(C(C(O1)O)O)O)O)O",
+  "tg_measured_K": 299.7846153846154,
+  "n_points": 4,
+  "points": [
+   {
+    "wtf_organic": 0.1,
+    "aw_measured": null,
+    "log10_eta_measured": -2.906578315,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.2,
+    "aw_measured": null,
+    "log10_eta_measured": -2.709965389,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.3,
+    "aw_measured": null,
+    "log10_eta_measured": -2.521433504,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.4,
+    "aw_measured": null,
+    "log10_eta_measured": -2.26760624,
+    "T_K": 293.0
+   }
+  ]
+ },
+ {
+  "name": "glutaric_acid",
+  "source": "Chmielewska2007",
+  "smiles": "OC(=O)CCCC(=O)O",
+  "tg_measured_K": null,
+  "n_points": 18,
+  "points": [
+   {
+    "wtf_organic": 0.00067117,
+    "aw_measured": null,
+    "log10_eta_measured": -2.949490464,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.001054318,
+    "aw_measured": null,
+    "log10_eta_measured": -2.949143722,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.001319879,
+    "aw_measured": null,
+    "log10_eta_measured": -2.948883847,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.002475929,
+    "aw_measured": null,
+    "log10_eta_measured": -2.947889097,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.003859225,
+    "aw_measured": null,
+    "log10_eta_measured": -2.946810426,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.007723735,
+    "aw_measured": null,
+    "log10_eta_measured": -2.942735735,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.008602333,
+    "aw_measured": null,
+    "log10_eta_measured": -2.941882755,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.010278936,
+    "aw_measured": null,
+    "log10_eta_measured": -2.94039406,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.012929263,
+    "aw_measured": null,
+    "log10_eta_measured": -2.93793826,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.026406824,
+    "aw_measured": null,
+    "log10_eta_measured": -2.924878914,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.040740523,
+    "aw_measured": null,
+    "log10_eta_measured": -2.909661553,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.053076568,
+    "aw_measured": null,
+    "log10_eta_measured": -2.8991867,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.066980876,
+    "aw_measured": null,
+    "log10_eta_measured": -2.889411416,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.080640763,
+    "aw_measured": null,
+    "log10_eta_measured": -2.878744652,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.094345571,
+    "aw_measured": null,
+    "log10_eta_measured": -2.85834203,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.108200995,
+    "aw_measured": null,
+    "log10_eta_measured": -2.844504317,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.122282345,
+    "aw_measured": null,
+    "log10_eta_measured": -2.83046712,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.136191938,
+    "aw_measured": null,
+    "log10_eta_measured": -2.816007672,
+    "T_K": 298.15
+   }
+  ]
+ },
+ {
+  "name": "glutaric_acid",
+  "source": "Song2016",
+  "smiles": "OC(=O)CCCC(=O)O",
+  "tg_measured_K": null,
+  "n_points": 20,
+  "points": [
+   {
+    "wtf_organic": 0.057,
+    "aw_measured": 0.9928,
+    "log10_eta_measured": -2.974,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.089,
+    "aw_measured": 0.9916,
+    "log10_eta_measured": -2.99,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.117,
+    "aw_measured": 0.9883,
+    "log10_eta_measured": -2.866,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.139,
+    "aw_measured": 0.9856,
+    "log10_eta_measured": -2.904,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.163,
+    "aw_measured": 0.9813,
+    "log10_eta_measured": -2.895,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.182,
+    "aw_measured": 0.9779,
+    "log10_eta_measured": -2.805,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.195,
+    "aw_measured": 0.9755,
+    "log10_eta_measured": -2.87,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.213,
+    "aw_measured": 0.9721,
+    "log10_eta_measured": -2.797,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.271,
+    "aw_measured": 0.9605,
+    "log10_eta_measured": -2.762,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.289,
+    "aw_measured": 0.957,
+    "log10_eta_measured": -2.77,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.345,
+    "aw_measured": 0.9462,
+    "log10_eta_measured": -2.633,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.364,
+    "aw_measured": 0.9427,
+    "log10_eta_measured": -2.712,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.375,
+    "aw_measured": 0.9408,
+    "log10_eta_measured": -2.561,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.411,
+    "aw_measured": 0.9335,
+    "log10_eta_measured": -2.62,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.447,
+    "aw_measured": 0.9259,
+    "log10_eta_measured": -2.583,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.498,
+    "aw_measured": 0.9132,
+    "log10_eta_measured": -2.607,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.604,
+    "aw_measured": 0.8708,
+    "log10_eta_measured": -2.635,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.671,
+    "aw_measured": 0.8244,
+    "log10_eta_measured": -2.216,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.751,
+    "aw_measured": 0.7333,
+    "log10_eta_measured": -2.228,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.857,
+    "aw_measured": 0.5248,
+    "log10_eta_measured": -2.019,
+    "T_K": 293.0
+   }
+  ]
+ },
+ {
+  "name": "glycerol",
+  "source": "CRCHandbook",
+  "smiles": "OCC(O)CO",
+  "tg_measured_K": 186.15,
+  "n_points": 35,
+  "points": [
+   {
+    "wtf_organic": 0.005,
+    "aw_measured": null,
+    "log10_eta_measured": -2.990549104,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.01,
+    "aw_measured": null,
+    "log10_eta_measured": -2.985479461,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.02,
+    "aw_measured": null,
+    "log10_eta_measured": -2.974694135,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.03,
+    "aw_measured": null,
+    "log10_eta_measured": -2.963371105,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.04,
+    "aw_measured": null,
+    "log10_eta_measured": -2.952335805,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.05,
+    "aw_measured": null,
+    "log10_eta_measured": -2.941194513,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.06,
+    "aw_measured": null,
+    "log10_eta_measured": -2.929592678,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.07,
+    "aw_measured": null,
+    "log10_eta_measured": -2.91829273,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.08,
+    "aw_measured": null,
+    "log10_eta_measured": -2.906578315,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.09,
+    "aw_measured": null,
+    "log10_eta_measured": -2.894489815,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.1,
+    "aw_measured": null,
+    "log10_eta_measured": -2.882728704,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.12,
+    "aw_measured": null,
+    "log10_eta_measured": -2.85823677,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.14,
+    "aw_measured": null,
+    "log10_eta_measured": -2.832978204,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.16,
+    "aw_measured": null,
+    "log10_eta_measured": -2.806875402,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.18,
+    "aw_measured": null,
+    "log10_eta_measured": -2.780415474,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.2,
+    "aw_measured": null,
+    "log10_eta_measured": -2.753009301,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.24,
+    "aw_measured": null,
+    "log10_eta_measured": -2.696803943,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.28,
+    "aw_measured": null,
+    "log10_eta_measured": -2.634512015,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.32,
+    "aw_measured": null,
+    "log10_eta_measured": -2.57024772,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.36,
+    "aw_measured": null,
+    "log10_eta_measured": -2.501689446,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.4,
+    "aw_measured": null,
+    "log10_eta_measured": -2.428291168,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.44,
+    "aw_measured": null,
+    "log10_eta_measured": -2.348721986,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.48,
+    "aw_measured": null,
+    "log10_eta_measured": -2.263603498,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.52,
+    "aw_measured": null,
+    "log10_eta_measured": -2.171984936,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.56,
+    "aw_measured": null,
+    "log10_eta_measured": -2.07211659,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.6,
+    "aw_measured": null,
+    "log10_eta_measured": -1.962573502,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.64,
+    "aw_measured": null,
+    "log10_eta_measured": -1.844663963,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.68,
+    "aw_measured": null,
+    "log10_eta_measured": -1.71219827,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.72,
+    "aw_measured": null,
+    "log10_eta_measured": -1.565431096,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.76,
+    "aw_measured": null,
+    "log10_eta_measured": -1.402304814,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.8,
+    "aw_measured": null,
+    "log10_eta_measured": -1.217527376,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.84,
+    "aw_measured": null,
+    "log10_eta_measured": -1.008773924,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.88,
+    "aw_measured": null,
+    "log10_eta_measured": -0.769551079,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.92,
+    "aw_measured": null,
+    "log10_eta_measured": -0.496209317,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.96,
+    "aw_measured": null,
+    "log10_eta_measured": -0.188424994,
+    "T_K": 293.15
+   }
+  ]
+ },
+ {
+  "name": "glycerol",
+  "source": "Mazurkiewicz2001",
+  "smiles": "OCC(O)CO",
+  "tg_measured_K": 186.15,
+  "n_points": 22,
+  "points": [
+   {
+    "wtf_organic": 0.013039719,
+    "aw_measured": null,
+    "log10_eta_measured": -3.046240308,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.025743747,
+    "aw_measured": null,
+    "log10_eta_measured": -3.042392713,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.038124882,
+    "aw_measured": null,
+    "log10_eta_measured": -3.031517051,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.05019528,
+    "aw_measured": null,
+    "log10_eta_measured": -3.020451625,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.061966493,
+    "aw_measured": null,
+    "log10_eta_measured": -3.010105436,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.07344951,
+    "aw_measured": null,
+    "log10_eta_measured": -2.999565923,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.084654787,
+    "aw_measured": null,
+    "log10_eta_measured": -2.988429556,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.095592279,
+    "aw_measured": null,
+    "log10_eta_measured": -2.97674754,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.106271472,
+    "aw_measured": null,
+    "log10_eta_measured": -2.964970718,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.11670141,
+    "aw_measured": null,
+    "log10_eta_measured": -2.958607315,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.136847629,
+    "aw_measured": null,
+    "log10_eta_measured": -2.940815382,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.156095354,
+    "aw_measured": null,
+    "log10_eta_measured": -2.91649738,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.174503381,
+    "aw_measured": null,
+    "log10_eta_measured": -2.891773344,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.192125486,
+    "aw_measured": null,
+    "log10_eta_measured": -2.879426069,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.209010947,
+    "aw_measured": null,
+    "log10_eta_measured": -2.853871964,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.248289859,
+    "aw_measured": null,
+    "log10_eta_measured": -2.811634074,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.283852302,
+    "aw_measured": null,
+    "log10_eta_measured": -2.75325529,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.316201912,
+    "aw_measured": null,
+    "log10_eta_measured": -2.694004117,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.34575526,
+    "aw_measured": null,
+    "log10_eta_measured": -2.630413109,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.372859884,
+    "aw_measured": null,
+    "log10_eta_measured": -2.56193255,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.397808021,
+    "aw_measured": null,
+    "log10_eta_measured": -2.488919154,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.420847185,
+    "aw_measured": null,
+    "log10_eta_measured": -2.403842919,
+    "T_K": 298.15
+   }
+  ]
+ },
+ {
+  "name": "glycerol",
+  "source": "Segur1951",
+  "smiles": "OCC(O)CO",
+  "tg_measured_K": 186.15,
+  "n_points": 22,
+  "points": [
+   {
+    "wtf_organic": 0.1,
+    "aw_measured": null,
+    "log10_eta_measured": -2.882728704,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.2,
+    "aw_measured": null,
+    "log10_eta_measured": -2.754487332,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.3,
+    "aw_measured": null,
+    "log10_eta_measured": -2.602059991,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.4,
+    "aw_measured": null,
+    "log10_eta_measured": -2.42945706,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.5,
+    "aw_measured": null,
+    "log10_eta_measured": -2.22184875,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.6,
+    "aw_measured": null,
+    "log10_eta_measured": -1.966576245,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.65,
+    "aw_measured": null,
+    "log10_eta_measured": -1.818156412,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.67,
+    "aw_measured": null,
+    "log10_eta_measured": -1.752026734,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.7,
+    "aw_measured": null,
+    "log10_eta_measured": -1.647817482,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.75,
+    "aw_measured": null,
+    "log10_eta_measured": -1.449771647,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.8,
+    "aw_measured": null,
+    "log10_eta_measured": -1.221125528,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.85,
+    "aw_measured": null,
+    "log10_eta_measured": -0.962573502,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.9,
+    "aw_measured": null,
+    "log10_eta_measured": -0.659555885,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.91,
+    "aw_measured": null,
+    "log10_eta_measured": -0.586700236,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.92,
+    "aw_measured": null,
+    "log10_eta_measured": -0.508638306,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.93,
+    "aw_measured": null,
+    "log10_eta_measured": -0.435333936,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.94,
+    "aw_measured": null,
+    "log10_eta_measured": -0.359518563,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.95,
+    "aw_measured": null,
+    "log10_eta_measured": -0.281498311,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.96,
+    "aw_measured": null,
+    "log10_eta_measured": -0.20481541,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.97,
+    "aw_measured": null,
+    "log10_eta_measured": -0.116338565,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.98,
+    "aw_measured": null,
+    "log10_eta_measured": -0.027334408,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.99,
+    "aw_measured": null,
+    "log10_eta_measured": 0.06069784,
+    "T_K": 293.15
+   }
+  ]
+ },
+ {
+  "name": "glycerol",
+  "source": "Song2016",
+  "smiles": "OCC(O)CO",
+  "tg_measured_K": 186.15,
+  "n_points": 3,
+  "points": [
+   {
+    "wtf_organic": 0.938,
+    "aw_measured": 0.063,
+    "log10_eta_measured": -0.275,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.967,
+    "aw_measured": 0.031,
+    "log10_eta_measured": -0.038,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.989,
+    "aw_measured": 0.018,
+    "log10_eta_measured": 0.989,
+    "T_K": 293.0
+   }
+  ]
+ },
+ {
+  "name": "maleic_acid",
+  "source": "Chmielewska2007",
+  "smiles": "OC(=O)C=CC(=O)O",
+  "tg_measured_K": null,
+  "n_points": 14,
+  "points": [
+   {
+    "wtf_organic": 0.004626585,
+    "aw_measured": null,
+    "log10_eta_measured": -2.946638086,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.005794551,
+    "aw_measured": null,
+    "log10_eta_measured": -3.048567803,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.006938136,
+    "aw_measured": null,
+    "log10_eta_measured": -2.94552275,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.009303093,
+    "aw_measured": null,
+    "log10_eta_measured": -3.046857475,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.011568204,
+    "aw_measured": null,
+    "log10_eta_measured": -2.943521684,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.023563656,
+    "aw_measured": null,
+    "log10_eta_measured": -3.037154279,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.03548016,
+    "aw_measured": null,
+    "log10_eta_measured": -2.933827392,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.047039076,
+    "aw_measured": null,
+    "log10_eta_measured": -3.027671665,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.059015952,
+    "aw_measured": null,
+    "log10_eta_measured": -2.923925379,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.072020313,
+    "aw_measured": null,
+    "log10_eta_measured": -3.016624809,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.08323209,
+    "aw_measured": null,
+    "log10_eta_measured": -2.914299381,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.095710518,
+    "aw_measured": null,
+    "log10_eta_measured": -3.005868419,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.106214085,
+    "aw_measured": null,
+    "log10_eta_measured": -2.905251625,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.120766059,
+    "aw_measured": null,
+    "log10_eta_measured": -2.993173129,
+    "T_K": 298.15
+   }
+  ]
+ },
+ {
+  "name": "maleic_acid",
+  "source": "Gomez1986",
+  "smiles": "OC(=O)C=CC(=O)O",
+  "tg_measured_K": null,
+  "n_points": 4,
+  "points": [
+   {
+    "wtf_organic": 0.1008,
+    "aw_measured": null,
+    "log10_eta_measured": -2.961777362,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.1961,
+    "aw_measured": null,
+    "log10_eta_measured": -2.86998805,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.2998,
+    "aw_measured": null,
+    "log10_eta_measured": -2.750801643,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.4015,
+    "aw_measured": null,
+    "log10_eta_measured": -2.609241471,
+    "T_K": 298.15
+   }
+  ]
+ },
+ {
+  "name": "maleic_acid",
+  "source": "Song2016",
+  "smiles": "OC(=O)C=CC(=O)O",
+  "tg_measured_K": null,
+  "n_points": 7,
+  "points": [
+   {
+    "wtf_organic": 0.708,
+    "aw_measured": 0.69,
+    "log10_eta_measured": -2.615,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.568,
+    "aw_measured": 0.82,
+    "log10_eta_measured": -2.942,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.537,
+    "aw_measured": 0.84,
+    "log10_eta_measured": -2.848,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.52,
+    "aw_measured": 0.85,
+    "log10_eta_measured": -2.864,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.52,
+    "aw_measured": 0.85,
+    "log10_eta_measured": -2.89,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.292,
+    "aw_measured": 0.94,
+    "log10_eta_measured": -2.977,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.056,
+    "aw_measured": 0.99,
+    "log10_eta_measured": -3.002,
+    "T_K": 293.0
+   }
+  ]
+ },
+ {
+  "name": "maltose",
+  "source": "Song2016",
+  "smiles": "OC1OC(CO)C(O)C(O)C1OC1OC(CO)C(O)C(O)C1O",
+  "tg_measured_K": null,
+  "n_points": 8,
+  "points": [
+   {
+    "wtf_organic": 0.869,
+    "aw_measured": 0.45,
+    "log10_eta_measured": 7.124,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.851,
+    "aw_measured": 0.5,
+    "log10_eta_measured": 5.301,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.805,
+    "aw_measured": 0.61,
+    "log10_eta_measured": 4.076,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.776,
+    "aw_measured": 0.67,
+    "log10_eta_measured": 2.196,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.728,
+    "aw_measured": 0.75,
+    "log10_eta_measured": 1.331,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.683,
+    "aw_measured": 0.81,
+    "log10_eta_measured": -0.348,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.608,
+    "aw_measured": 0.88,
+    "log10_eta_measured": -1.351,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.561,
+    "aw_measured": 0.91,
+    "log10_eta_measured": -1.931,
+    "T_K": 293.0
+   }
+  ]
+ },
+ {
+  "name": "maltose",
+  "source": "Ueadaira1969",
+  "smiles": "OC1OC(CO)C(O)C(O)C1OC1OC(CO)C(O)C(O)C1O",
+  "tg_measured_K": null,
+  "n_points": 8,
+  "points": [
+   {
+    "wtf_organic": 0.002158202,
+    "aw_measured": null,
+    "log10_eta_measured": -3.047201605,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.015367559,
+    "aw_measured": null,
+    "log10_eta_measured": -3.032990292,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.033409849,
+    "aw_measured": null,
+    "log10_eta_measured": -3.012184556,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.042438354,
+    "aw_measured": null,
+    "log10_eta_measured": -3.001152739,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.051718107,
+    "aw_measured": null,
+    "log10_eta_measured": -2.989833375,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.059515701,
+    "aw_measured": null,
+    "log10_eta_measured": -2.980254815,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.077352954,
+    "aw_measured": null,
+    "log10_eta_measured": -2.956688755,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.086506056,
+    "aw_measured": null,
+    "log10_eta_measured": -2.944131283,
+    "T_K": 298.15
+   }
+  ]
+ },
+ {
+  "name": "raffinose",
+  "source": "Song2016",
+  "smiles": "C(C1C(C(C(C(O1)OCC2C(C(C(C(O2)OC3(C(C(C(O3)CO)O)O)CO)O)O)O)O)O)O)O",
+  "tg_measured_K": 381.7142857142857,
+  "n_points": 9,
+  "points": [
+   {
+    "wtf_organic": 0.844,
+    "aw_measured": 0.52,
+    "log10_eta_measured": 6.427,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.84,
+    "aw_measured": 0.53,
+    "log10_eta_measured": 6.297,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.821,
+    "aw_measured": 0.58,
+    "log10_eta_measured": 5.213,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.812,
+    "aw_measured": 0.6,
+    "log10_eta_measured": 5.154,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.754,
+    "aw_measured": 0.72,
+    "log10_eta_measured": 2.08,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.686,
+    "aw_measured": 0.82,
+    "log10_eta_measured": -0.575,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.615,
+    "aw_measured": 0.89,
+    "log10_eta_measured": -1.743,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.51,
+    "aw_measured": 0.95,
+    "log10_eta_measured": -2.383,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.32,
+    "aw_measured": 0.99,
+    "log10_eta_measured": -3.031,
+    "T_K": 293.0
+   }
+  ]
+ },
+ {
+  "name": "sorbitol",
+  "source": "Song2016",
+  "smiles": "C(C(C(C(C(CO)O)O)O)O)O",
+  "tg_measured_K": 274.98,
+  "n_points": 8,
+  "points": [
+   {
+    "wtf_organic": 0.948,
+    "aw_measured": 0.2,
+    "log10_eta_measured": 3.714,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.89,
+    "aw_measured": 0.37,
+    "log10_eta_measured": 3.077,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.854,
+    "aw_measured": 0.45,
+    "log10_eta_measured": 2.173,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.792,
+    "aw_measured": 0.56,
+    "log10_eta_measured": 1.904,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.735,
+    "aw_measured": 0.65,
+    "log10_eta_measured": 0.406,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.651,
+    "aw_measured": 0.75,
+    "log10_eta_measured": -1.236,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.524,
+    "aw_measured": 0.85,
+    "log10_eta_measured": -2.088,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.296,
+    "aw_measured": 0.95,
+    "log10_eta_measured": -2.096,
+    "T_K": 293.0
+   }
+  ]
+ },
+ {
+  "name": "sorbitol",
+  "source": "Zhu2010",
+  "smiles": "C(C(C(C(C(CO)O)O)O)O)O",
+  "tg_measured_K": 274.98,
+  "n_points": 10,
+  "points": [
+   {
+    "wtf_organic": 0.018217,
+    "aw_measured": null,
+    "log10_eta_measured": -2.96333119,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.036434,
+    "aw_measured": null,
+    "log10_eta_measured": -2.953309779,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.054651,
+    "aw_measured": null,
+    "log10_eta_measured": -2.93266872,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.072868,
+    "aw_measured": null,
+    "log10_eta_measured": -2.913818195,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.091085,
+    "aw_measured": null,
+    "log10_eta_measured": -2.894557945,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.109302,
+    "aw_measured": null,
+    "log10_eta_measured": -2.876181014,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.127519,
+    "aw_measured": null,
+    "log10_eta_measured": -2.855737226,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.145736,
+    "aw_measured": null,
+    "log10_eta_measured": -2.833777165,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.163953,
+    "aw_measured": null,
+    "log10_eta_measured": -2.81496808,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.18217,
+    "aw_measured": null,
+    "log10_eta_measured": -2.793686948,
+    "T_K": 293.15
+   }
+  ]
+ },
+ {
+  "name": "sucrose",
+  "source": "CRCHandbook",
+  "smiles": "C(C1C(C(C(C(O1)OC2(C(C(C(O2)CO)O)O)CO)O)O)O)O",
+  "tg_measured_K": 335.0,
+  "n_points": 33,
+  "points": [
+   {
+    "wtf_organic": 0.005,
+    "aw_measured": null,
+    "log10_eta_measured": -2.993533958,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.01,
+    "aw_measured": null,
+    "log10_eta_measured": -2.988006885,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.02,
+    "aw_measured": null,
+    "log10_eta_measured": -2.97674754,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.03,
+    "aw_measured": null,
+    "log10_eta_measured": -2.964970718,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.04,
+    "aw_measured": null,
+    "log10_eta_measured": -2.953114809,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.05,
+    "aw_measured": null,
+    "log10_eta_measured": -2.940815382,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.06,
+    "aw_measured": null,
+    "log10_eta_measured": -2.928486195,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.07,
+    "aw_measured": null,
+    "log10_eta_measured": -2.915423722,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.08,
+    "aw_measured": null,
+    "log10_eta_measured": -2.901702464,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.09,
+    "aw_measured": null,
+    "log10_eta_measured": -2.888065724,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.1,
+    "aw_measured": null,
+    "log10_eta_measured": -2.874193542,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.12,
+    "aw_measured": null,
+    "log10_eta_measured": -2.844967771,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.14,
+    "aw_measured": null,
+    "log10_eta_measured": -2.81417464,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.16,
+    "aw_measured": null,
+    "log10_eta_measured": -2.781727146,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.18,
+    "aw_measured": null,
+    "log10_eta_measured": -2.747146969,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.2,
+    "aw_measured": null,
+    "log10_eta_measured": -2.711080394,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.22,
+    "aw_measured": null,
+    "log10_eta_measured": -2.672845488,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.24,
+    "aw_measured": null,
+    "log10_eta_measured": -2.632457726,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.26,
+    "aw_measured": null,
+    "log10_eta_measured": -2.589560214,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.28,
+    "aw_measured": null,
+    "log10_eta_measured": -2.544393887,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.3,
+    "aw_measured": null,
+    "log10_eta_measured": -2.496617937,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.32,
+    "aw_measured": null,
+    "log10_eta_measured": -2.424581209,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.34,
+    "aw_measured": null,
+    "log10_eta_measured": -2.392330563,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.36,
+    "aw_measured": null,
+    "log10_eta_measured": -2.335264031,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.38,
+    "aw_measured": null,
+    "log10_eta_measured": -2.274496731,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.4,
+    "aw_measured": null,
+    "log10_eta_measured": -2.210278306,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.42,
+    "aw_measured": null,
+    "log10_eta_measured": -2.140621496,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.44,
+    "aw_measured": null,
+    "log10_eta_measured": -2.065703593,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.46,
+    "aw_measured": null,
+    "log10_eta_measured": -1.987120613,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.48,
+    "aw_measured": null,
+    "log10_eta_measured": -1.902569146,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.5,
+    "aw_measured": null,
+    "log10_eta_measured": -1.811605929,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.6,
+    "aw_measured": null,
+    "log10_eta_measured": -1.232940655,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.7,
+    "aw_measured": null,
+    "log10_eta_measured": -0.317348692,
+    "T_K": 293.15
+   }
+  ]
+ },
+ {
+  "name": "sucrose",
+  "source": "Forst2002",
+  "smiles": "C(C1C(C(C(C(O1)OC2(C(C(C(O2)CO)O)O)CO)O)O)O)O",
+  "tg_measured_K": 335.0,
+  "n_points": 5,
+  "points": [
+   {
+    "wtf_organic": 0.01,
+    "aw_measured": null,
+    "log10_eta_measured": -2.987162775,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.2,
+    "aw_measured": null,
+    "log10_eta_measured": -2.709965389,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.4,
+    "aw_measured": null,
+    "log10_eta_measured": -2.209714836,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.5,
+    "aw_measured": null,
+    "log10_eta_measured": -1.808548986,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.6,
+    "aw_measured": null,
+    "log10_eta_measured": -1.235973392,
+    "T_K": 293.15
+   }
+  ]
+ },
+ {
+  "name": "sucrose",
+  "source": "Mazurkiewicz2001",
+  "smiles": "C(C1C(C(C(C(O1)OC2(C(C(C(O2)CO)O)O)CO)O)O)O)O",
+  "tg_measured_K": 335.0,
+  "n_points": 14,
+  "points": [
+   {
+    "wtf_organic": 0.033097087,
+    "aw_measured": null,
+    "log10_eta_measured": -3.050609993,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.064073526,
+    "aw_measured": null,
+    "log10_eta_measured": -3.013228266,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.093126808,
+    "aw_measured": null,
+    "log10_eta_measured": -2.954677021,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.120430637,
+    "aw_measured": null,
+    "log10_eta_measured": -2.88941029,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.146138411,
+    "aw_measured": null,
+    "log10_eta_measured": -2.832682665,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.170386102,
+    "aw_measured": null,
+    "log10_eta_measured": -2.779891912,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.193294665,
+    "aw_measured": null,
+    "log10_eta_measured": -2.730487056,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.214972053,
+    "aw_measured": null,
+    "log10_eta_measured": -2.684029655,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.235514919,
+    "aw_measured": null,
+    "log10_eta_measured": -2.63638802,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.255010057,
+    "aw_measured": null,
+    "log10_eta_measured": -2.585026652,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.29116221,
+    "aw_measured": null,
+    "log10_eta_measured": -2.457174573,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.323968037,
+    "aw_measured": null,
+    "log10_eta_measured": -2.293282218,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.353871601,
+    "aw_measured": null,
+    "log10_eta_measured": -2.102372909,
+    "T_K": 298.15
+   },
+   {
+    "wtf_organic": 0.381241724,
+    "aw_measured": null,
+    "log10_eta_measured": -1.902048929,
+    "T_K": 298.15
+   }
+  ]
+ },
+ {
+  "name": "sucrose",
+  "source": "Power2013",
+  "smiles": "C(C1C(C(C(C(O1)OC2(C(C(C(O2)CO)O)O)CO)O)O)O)O",
+  "tg_measured_K": 335.0,
+  "n_points": 118,
+  "points": [
+   {
+    "wtf_organic": 0.94936,
+    "aw_measured": null,
+    "log10_eta_measured": 8.761189797,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.94692,
+    "aw_measured": null,
+    "log10_eta_measured": 8.452831667,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.97917,
+    "aw_measured": null,
+    "log10_eta_measured": 8.526339277,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.93378,
+    "aw_measured": null,
+    "log10_eta_measured": 6.68020465,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.92863,
+    "aw_measured": null,
+    "log10_eta_measured": 6.207520357,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.96215,
+    "aw_measured": null,
+    "log10_eta_measured": 6.257678575,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.91942,
+    "aw_measured": null,
+    "log10_eta_measured": 6.12865175,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.91942,
+    "aw_measured": null,
+    "log10_eta_measured": 6.041494188,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.91748,
+    "aw_measured": null,
+    "log10_eta_measured": 4.720147919,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.91748,
+    "aw_measured": null,
+    "log10_eta_measured": 4.867615795,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.91582,
+    "aw_measured": null,
+    "log10_eta_measured": 5.210675178,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.91582,
+    "aw_measured": null,
+    "log10_eta_measured": 5.427521094,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.91346,
+    "aw_measured": null,
+    "log10_eta_measured": 4.929837117,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.91346,
+    "aw_measured": null,
+    "log10_eta_measured": 4.886321518,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.91208,
+    "aw_measured": null,
+    "log10_eta_measured": 5.562712256,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.91208,
+    "aw_measured": null,
+    "log10_eta_measured": 5.32764224,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.91104,
+    "aw_measured": null,
+    "log10_eta_measured": 4.444005909,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.91104,
+    "aw_measured": null,
+    "log10_eta_measured": 4.514352606,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.91034,
+    "aw_measured": null,
+    "log10_eta_measured": 4.32777101,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.91034,
+    "aw_measured": null,
+    "log10_eta_measured": 4.488535963,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.90822,
+    "aw_measured": null,
+    "log10_eta_measured": 4.906289728,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.90822,
+    "aw_measured": null,
+    "log10_eta_measured": 4.903738895,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.90499,
+    "aw_measured": null,
+    "log10_eta_measured": 4.661267738,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.90499,
+    "aw_measured": null,
+    "log10_eta_measured": 4.668513684,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.90134,
+    "aw_measured": null,
+    "log10_eta_measured": 4.07712541,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.90134,
+    "aw_measured": null,
+    "log10_eta_measured": 4.067467162,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.89354,
+    "aw_measured": null,
+    "log10_eta_measured": 4.668916006,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.89354,
+    "aw_measured": null,
+    "log10_eta_measured": 4.882755624,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.88906,
+    "aw_measured": null,
+    "log10_eta_measured": 3.727317203,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.88906,
+    "aw_measured": null,
+    "log10_eta_measured": 3.949714151,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.88869,
+    "aw_measured": null,
+    "log10_eta_measured": 3.89708142,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.88869,
+    "aw_measured": null,
+    "log10_eta_measured": 4.040015512,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.88683,
+    "aw_measured": null,
+    "log10_eta_measured": 3.66747983,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.88683,
+    "aw_measured": null,
+    "log10_eta_measured": 3.716831982,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.882,
+    "aw_measured": null,
+    "log10_eta_measured": 3.917434803,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.882,
+    "aw_measured": null,
+    "log10_eta_measured": 3.985336446,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.92582,
+    "aw_measured": null,
+    "log10_eta_measured": 4.63447727,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.8772,
+    "aw_measured": null,
+    "log10_eta_measured": 3.751422324,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.8772,
+    "aw_measured": null,
+    "log10_eta_measured": 4.011977498,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.87574,
+    "aw_measured": null,
+    "log10_eta_measured": 3.432613899,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.87574,
+    "aw_measured": null,
+    "log10_eta_measured": 3.728238819,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.87537,
+    "aw_measured": null,
+    "log10_eta_measured": 3.23561137,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.87537,
+    "aw_measured": null,
+    "log10_eta_measured": 3.40213089,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.87464,
+    "aw_measured": null,
+    "log10_eta_measured": 3.699015159,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.87464,
+    "aw_measured": null,
+    "log10_eta_measured": 3.879448372,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.87464,
+    "aw_measured": null,
+    "log10_eta_measured": 4.309751306,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.87464,
+    "aw_measured": null,
+    "log10_eta_measured": 4.325536946,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.87245,
+    "aw_measured": null,
+    "log10_eta_measured": 3.612075466,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.87245,
+    "aw_measured": null,
+    "log10_eta_measured": 3.797281689,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.87099,
+    "aw_measured": null,
+    "log10_eta_measured": 3.163244523,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.87099,
+    "aw_measured": null,
+    "log10_eta_measured": 3.649100421,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.87099,
+    "aw_measured": null,
+    "log10_eta_measured": 3.650094552,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.87099,
+    "aw_measured": null,
+    "log10_eta_measured": 3.688208888,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.87063,
+    "aw_measured": null,
+    "log10_eta_measured": 4.100353979,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.87063,
+    "aw_measured": null,
+    "log10_eta_measured": 4.048132427,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.86917,
+    "aw_measured": null,
+    "log10_eta_measured": 3.816802889,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.86917,
+    "aw_measured": null,
+    "log10_eta_measured": 3.747446347,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.86772,
+    "aw_measured": null,
+    "log10_eta_measured": 3.805204642,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.86772,
+    "aw_measured": null,
+    "log10_eta_measured": 3.86515009,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.86699,
+    "aw_measured": null,
+    "log10_eta_measured": 3.010608568,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.86699,
+    "aw_measured": null,
+    "log10_eta_measured": 3.321567294,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.8659,
+    "aw_measured": null,
+    "log10_eta_measured": 2.917889328,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.8659,
+    "aw_measured": null,
+    "log10_eta_measured": 3.002843238,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.86481,
+    "aw_measured": null,
+    "log10_eta_measured": 2.997981754,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.86043,
+    "aw_measured": null,
+    "log10_eta_measured": 3.198402202,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.85933,
+    "aw_measured": null,
+    "log10_eta_measured": 3.200249469,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.85486,
+    "aw_measured": null,
+    "log10_eta_measured": 1.95875285,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.84632,
+    "aw_measured": null,
+    "log10_eta_measured": 1.926099853,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.84534,
+    "aw_measured": null,
+    "log10_eta_measured": 1.097221461,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.84006,
+    "aw_measured": null,
+    "log10_eta_measured": 1.875166034,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.83698,
+    "aw_measured": null,
+    "log10_eta_measured": 1.443484395,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.82945,
+    "aw_measured": null,
+    "log10_eta_measured": 1.522117449,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.8255,
+    "aw_measured": null,
+    "log10_eta_measured": 0.706450396,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.82003,
+    "aw_measured": null,
+    "log10_eta_measured": 1.193878074,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.82003,
+    "aw_measured": null,
+    "log10_eta_measured": 0.31689551,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.83647,
+    "aw_measured": null,
+    "log10_eta_measured": 1.686636269,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.81582,
+    "aw_measured": null,
+    "log10_eta_measured": 0.675449712,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.80682,
+    "aw_measured": null,
+    "log10_eta_measured": 1.240655979,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.80014,
+    "aw_measured": null,
+    "log10_eta_measured": 0.874731423,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.79865,
+    "aw_measured": null,
+    "log10_eta_measured": 0.397977304,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.799,
+    "aw_measured": null,
+    "log10_eta_measured": -0.802258648,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.78205,
+    "aw_measured": null,
+    "log10_eta_measured": 0.278722537,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.77992,
+    "aw_measured": null,
+    "log10_eta_measured": -0.674353905,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.77175,
+    "aw_measured": null,
+    "log10_eta_measured": -0.291893026,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.7662,
+    "aw_measured": null,
+    "log10_eta_measured": -1.040700683,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.75577,
+    "aw_measured": null,
+    "log10_eta_measured": -0.393146493,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.75392,
+    "aw_measured": null,
+    "log10_eta_measured": -0.741977563,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.75491,
+    "aw_measured": null,
+    "log10_eta_measured": -0.50957279,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.7532,
+    "aw_measured": null,
+    "log10_eta_measured": -0.480543495,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.73666,
+    "aw_measured": null,
+    "log10_eta_measured": -1.208793546,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.72994,
+    "aw_measured": null,
+    "log10_eta_measured": -0.374179035,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.71669,
+    "aw_measured": null,
+    "log10_eta_measured": -1.398379485,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.71256,
+    "aw_measured": null,
+    "log10_eta_measured": -0.408919093,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.70762,
+    "aw_measured": null,
+    "log10_eta_measured": -0.96781709,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.70452,
+    "aw_measured": null,
+    "log10_eta_measured": -1.140312469,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.71871,
+    "aw_measured": null,
+    "log10_eta_measured": -0.299269188,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.70138,
+    "aw_measured": null,
+    "log10_eta_measured": -1.073948084,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.69663,
+    "aw_measured": null,
+    "log10_eta_measured": -0.416994704,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.66407,
+    "aw_measured": null,
+    "log10_eta_measured": -1.201742207,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.66161,
+    "aw_measured": null,
+    "log10_eta_measured": -1.349805588,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.66161,
+    "aw_measured": null,
+    "log10_eta_measured": -0.296128385,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.60679,
+    "aw_measured": null,
+    "log10_eta_measured": -2.273954253,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.59987,
+    "aw_measured": null,
+    "log10_eta_measured": -2.092492298,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.61706,
+    "aw_measured": null,
+    "log10_eta_measured": -1.408533335,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.51479,
+    "aw_measured": null,
+    "log10_eta_measured": -2.822952708,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.61315,
+    "aw_measured": null,
+    "log10_eta_measured": -1.4833192,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.47067,
+    "aw_measured": null,
+    "log10_eta_measured": -2.849532312,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.4691,
+    "aw_measured": null,
+    "log10_eta_measured": -1.172375195,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.4691,
+    "aw_measured": null,
+    "log10_eta_measured": -2.103198797,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.43652,
+    "aw_measured": null,
+    "log10_eta_measured": -2.192635629,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.40143,
+    "aw_measured": null,
+    "log10_eta_measured": -1.292804874,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.40143,
+    "aw_measured": null,
+    "log10_eta_measured": -1.394988972,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.40143,
+    "aw_measured": null,
+    "log10_eta_measured": -2.840743686,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.40143,
+    "aw_measured": null,
+    "log10_eta_measured": -1.703108739,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.53307,
+    "aw_measured": null,
+    "log10_eta_measured": -1.779926836,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.29603,
+    "aw_measured": null,
+    "log10_eta_measured": -3.096713131,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.26745,
+    "aw_measured": null,
+    "log10_eta_measured": -2.725611388,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.12569,
+    "aw_measured": null,
+    "log10_eta_measured": -2.285729418,
+    "T_K": 293.0
+   }
+  ]
+ },
+ {
+  "name": "sucrose",
+  "source": "Quintas2006",
+  "smiles": "C(C1C(C(C(C(O1)OC2(C(C(C(O2)CO)O)O)CO)O)O)O)O",
+  "tg_measured_K": 335.0,
+  "n_points": 5,
+  "points": [
+   {
+    "wtf_organic": 0.6997,
+    "aw_measured": null,
+    "log10_eta_measured": -0.171984936,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.747,
+    "aw_measured": null,
+    "log10_eta_measured": 0.604226053,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.7993,
+    "aw_measured": null,
+    "log10_eta_measured": 1.388456453,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.829,
+    "aw_measured": null,
+    "log10_eta_measured": 2.14420046,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.8521,
+    "aw_measured": null,
+    "log10_eta_measured": 3.042154007,
+    "T_K": 293.15
+   }
+  ]
+ },
+ {
+  "name": "sucrose",
+  "source": "Song2016",
+  "smiles": "C(C1C(C(C(C(O1)OC2(C(C(C(O2)CO)O)O)CO)O)O)O)O",
+  "tg_measured_K": 335.0,
+  "n_points": 8,
+  "points": [
+   {
+    "wtf_organic": 0.979,
+    "aw_measured": 0.31,
+    "log10_eta_measured": 8.526,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.962,
+    "aw_measured": 0.41,
+    "log10_eta_measured": 6.258,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.926,
+    "aw_measured": 0.52,
+    "log10_eta_measured": 4.635,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.868,
+    "aw_measured": 0.555,
+    "log10_eta_measured": 3.805,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.877,
+    "aw_measured": 0.529,
+    "log10_eta_measured": 3.751,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.872,
+    "aw_measured": 0.62,
+    "log10_eta_measured": 2.283,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.836,
+    "aw_measured": 0.67,
+    "log10_eta_measured": 1.687,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.641,
+    "aw_measured": 0.83,
+    "log10_eta_measured": -1.297,
+    "T_K": 293.0
+   }
+  ]
+ },
+ {
+  "name": "sucrose",
+  "source": "Swindells1958",
+  "smiles": "C(C1C(C(C(C(O1)OC2(C(C(C(O2)CO)O)O)CO)O)O)O)O",
+  "tg_measured_K": 335.0,
+  "n_points": 56,
+  "points": [
+   {
+    "wtf_organic": 0.2,
+    "aw_measured": null,
+    "log10_eta_measured": -2.711080394,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.21,
+    "aw_measured": null,
+    "log10_eta_measured": -2.692290077,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.22,
+    "aw_measured": null,
+    "log10_eta_measured": -2.672845488,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.23,
+    "aw_measured": null,
+    "log10_eta_measured": -2.652865217,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.24,
+    "aw_measured": null,
+    "log10_eta_measured": -2.632457726,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.25,
+    "aw_measured": null,
+    "log10_eta_measured": -2.611366031,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.26,
+    "aw_measured": null,
+    "log10_eta_measured": -2.595679533,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.27,
+    "aw_measured": null,
+    "log10_eta_measured": -2.56735134,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.28,
+    "aw_measured": null,
+    "log10_eta_measured": -2.544393887,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.29,
+    "aw_measured": null,
+    "log10_eta_measured": -2.520712684,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.3,
+    "aw_measured": null,
+    "log10_eta_measured": -2.496617937,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.31,
+    "aw_measured": null,
+    "log10_eta_measured": -2.471597562,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.32,
+    "aw_measured": null,
+    "log10_eta_measured": -2.445995679,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.33,
+    "aw_measured": null,
+    "log10_eta_measured": -2.419531216,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.34,
+    "aw_measured": null,
+    "log10_eta_measured": -2.392330563,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.35,
+    "aw_measured": null,
+    "log10_eta_measured": -2.364214764,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.36,
+    "aw_measured": null,
+    "log10_eta_measured": -2.335264031,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.37,
+    "aw_measured": null,
+    "log10_eta_measured": -2.303643611,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.38,
+    "aw_measured": null,
+    "log10_eta_measured": -2.274496731,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.39,
+    "aw_measured": null,
+    "log10_eta_measured": -2.242755849,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.4,
+    "aw_measured": null,
+    "log10_eta_measured": -2.209926052,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.41,
+    "aw_measured": null,
+    "log10_eta_measured": -2.175809059,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.42,
+    "aw_measured": null,
+    "log10_eta_measured": -2.140621496,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.43,
+    "aw_measured": null,
+    "log10_eta_measured": -2.10419085,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.44,
+    "aw_measured": null,
+    "log10_eta_measured": -2.066563332,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.45,
+    "aw_measured": null,
+    "log10_eta_measured": -2.027658284,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.46,
+    "aw_measured": null,
+    "log10_eta_measured": -1.987162775,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.47,
+    "aw_measured": null,
+    "log10_eta_measured": -1.94577009,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.48,
+    "aw_measured": null,
+    "log10_eta_measured": -1.90274269,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.49,
+    "aw_measured": null,
+    "log10_eta_measured": -1.857923539,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.5,
+    "aw_measured": null,
+    "log10_eta_measured": -1.811634074,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.51,
+    "aw_measured": null,
+    "log10_eta_measured": -1.763462739,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.52,
+    "aw_measured": null,
+    "log10_eta_measured": -1.71354353,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.53,
+    "aw_measured": null,
+    "log10_eta_measured": -1.66174277,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.54,
+    "aw_measured": null,
+    "log10_eta_measured": -1.607654845,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.55,
+    "aw_measured": null,
+    "log10_eta_measured": -1.551757587,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.56,
+    "aw_measured": null,
+    "log10_eta_measured": -1.493224463,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.57,
+    "aw_measured": null,
+    "log10_eta_measured": -1.432385557,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.58,
+    "aw_measured": null,
+    "log10_eta_measured": -1.36875922,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.59,
+    "aw_measured": null,
+    "log10_eta_measured": -1.302421966,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.6,
+    "aw_measured": null,
+    "log10_eta_measured": -1.232918379,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.61,
+    "aw_measured": null,
+    "log10_eta_measured": -1.160145015,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.62,
+    "aw_measured": null,
+    "log10_eta_measured": -1.08396739,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.63,
+    "aw_measured": null,
+    "log10_eta_measured": -1.004014002,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.64,
+    "aw_measured": null,
+    "log10_eta_measured": -0.999565923,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.65,
+    "aw_measured": null,
+    "log10_eta_measured": -0.83209219,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.66,
+    "aw_measured": null,
+    "log10_eta_measured": -0.739928612,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.67,
+    "aw_measured": null,
+    "log10_eta_measured": -0.64244628,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.68,
+    "aw_measured": null,
+    "log10_eta_measured": -0.539854183,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.69,
+    "aw_measured": null,
+    "log10_eta_measured": -0.431680915,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.7,
+    "aw_measured": null,
+    "log10_eta_measured": -0.317313522,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.71,
+    "aw_measured": null,
+    "log10_eta_measured": -0.196338077,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.72,
+    "aw_measured": null,
+    "log10_eta_measured": -0.068084683,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.73,
+    "aw_measured": null,
+    "log10_eta_measured": 0.068185862,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.74,
+    "aw_measured": null,
+    "log10_eta_measured": 0.212453961,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.75,
+    "aw_measured": null,
+    "log10_eta_measured": 0.366982976,
+    "T_K": 293.15
+   }
+  ]
+ },
+ {
+  "name": "sucrose",
+  "source": "Telis2007",
+  "smiles": "C(C1C(C(C(C(O1)OC2(C(C(C(O2)CO)O)O)CO)O)O)O)O",
+  "tg_measured_K": 335.0,
+  "n_points": 6,
+  "points": [
+   {
+    "wtf_organic": 0.1,
+    "aw_measured": null,
+    "log10_eta_measured": -2.899629455,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.2,
+    "aw_measured": null,
+    "log10_eta_measured": -2.707743929,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.3,
+    "aw_measured": null,
+    "log10_eta_measured": -2.493494968,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.4,
+    "aw_measured": null,
+    "log10_eta_measured": -2.207608311,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.5,
+    "aw_measured": null,
+    "log10_eta_measured": -1.822752164,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.6,
+    "aw_measured": null,
+    "log10_eta_measured": -1.245957613,
+    "T_K": 293.15
+   }
+  ]
+ },
+ {
+  "name": "trehalose",
+  "source": "Magazu1999",
+  "smiles": "C(C1C(C(C(C(O1)OC2C(C(C(C(O2)CO)O)O)O)O)O)O)O",
+  "tg_measured_K": 383.0,
+  "n_points": 9,
+  "points": [
+   {
+    "wtf_organic": 0.037,
+    "aw_measured": null,
+    "log10_eta_measured": -2.951558196,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.049,
+    "aw_measured": null,
+    "log10_eta_measured": -2.795880017,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.066,
+    "aw_measured": null,
+    "log10_eta_measured": -2.915781313,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.087,
+    "aw_measured": null,
+    "log10_eta_measured": -2.894830572,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.112,
+    "aw_measured": null,
+    "log10_eta_measured": -2.85667287,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.159,
+    "aw_measured": null,
+    "log10_eta_measured": -2.784891419,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.188,
+    "aw_measured": null,
+    "log10_eta_measured": -2.738261453,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.322,
+    "aw_measured": null,
+    "log10_eta_measured": -2.477816682,
+    "T_K": 293.15
+   },
+   {
+    "wtf_organic": 0.487,
+    "aw_measured": null,
+    "log10_eta_measured": -1.962095643,
+    "T_K": 293.15
+   }
+  ]
+ },
+ {
+  "name": "trehalose",
+  "source": "Miller1999",
+  "smiles": "C(C1C(C(C(C(O1)OC2C(C(C(C(O2)CO)O)O)O)O)O)O)O",
+  "tg_measured_K": 383.0,
+  "n_points": 4,
+  "points": [
+   {
+    "wtf_organic": 0.382716822,
+    "aw_measured": null,
+    "log10_eta_measured": -2.161969917,
+    "T_K": 293.2
+   },
+   {
+    "wtf_organic": 0.480951339,
+    "aw_measured": null,
+    "log10_eta_measured": -1.763966853,
+    "T_K": 293.2
+   },
+   {
+    "wtf_organic": 0.548519817,
+    "aw_measured": null,
+    "log10_eta_measured": -1.387216143,
+    "T_K": 293.2
+   },
+   {
+    "wtf_organic": 0.60604263,
+    "aw_measured": null,
+    "log10_eta_measured": -0.917933066,
+    "T_K": 293.0
+   }
+  ]
+ },
+ {
+  "name": "trehalose",
+  "source": "Rampp2000",
+  "smiles": "C(C1C(C(C(C(O1)OC2C(C(C(C(O2)CO)O)O)O)O)O)O)O",
+  "tg_measured_K": 383.0,
+  "n_points": 3,
+  "points": [
+   {
+    "wtf_organic": 0.1,
+    "aw_measured": null,
+    "log10_eta_measured": -2.829738285,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.3,
+    "aw_measured": null,
+    "log10_eta_measured": -2.450996738,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.5,
+    "aw_measured": null,
+    "log10_eta_measured": -1.761953897,
+    "T_K": 293.0
+   }
+  ]
+ },
+ {
+  "name": "trehalose",
+  "source": "Song2016",
+  "smiles": "C(C1C(C(C(C(O1)OC2C(C(C(C(O2)CO)O)O)O)O)O)O)O",
+  "tg_measured_K": 383.0,
+  "n_points": 15,
+  "points": [
+   {
+    "wtf_organic": 0.875,
+    "aw_measured": 0.43,
+    "log10_eta_measured": 6.841,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.85,
+    "aw_measured": 0.5,
+    "log10_eta_measured": 5.588,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.845,
+    "aw_measured": 0.5144,
+    "log10_eta_measured": 4.807,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.841,
+    "aw_measured": 0.526,
+    "log10_eta_measured": 4.737,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.825,
+    "aw_measured": 0.5644,
+    "log10_eta_measured": 3.777,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.81,
+    "aw_measured": 0.6,
+    "log10_eta_measured": 4.318,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.807,
+    "aw_measured": 0.6058,
+    "log10_eta_measured": 2.774,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.801,
+    "aw_measured": 0.6202,
+    "log10_eta_measured": 2.645,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.796,
+    "aw_measured": 0.63,
+    "log10_eta_measured": 2.446,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.79,
+    "aw_measured": 0.6414,
+    "log10_eta_measured": 2.37,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.786,
+    "aw_measured": 0.65,
+    "log10_eta_measured": 3.464,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.76,
+    "aw_measured": 0.6992,
+    "log10_eta_measured": 1.821,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.75,
+    "aw_measured": 0.71,
+    "log10_eta_measured": 1.012,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.691,
+    "aw_measured": 0.8,
+    "log10_eta_measured": -0.307,
+    "T_K": 293.0
+   },
+   {
+    "wtf_organic": 0.68,
+    "aw_measured": 0.8166,
+    "log10_eta_measured": -0.709,
+    "T_K": 293.0
+   }
+  ]
+ }
+]

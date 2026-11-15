@@ -1,0 +1,532 @@
+[
+ {
+  "name": "1,2,4-butanetriol",
+  "source": "Romero2008",
+  "regime": "dilute",
+  "n": 4,
+  "log10_eta0_pipeline": 0.05231566776638276,
+  "log10_eta0_optimal": 9.614283169693955,
+  "mae_pipeline": 0.06503742282699365,
+  "mae_optimal_eta0": 0.006953509196089391
+ },
+ {
+  "name": "1,2,4-butanetriol",
+  "source": "Romero2008",
+  "regime": "dilute",
+  "n": 4,
+  "log10_eta0_pipeline": -0.1275348922638138,
+  "log10_eta0_optimal": 6.576051842550735,
+  "mae_pipeline": 0.04681778679349291,
+  "mae_optimal_eta0": 0.0020516719236370884
+ },
+ {
+  "name": "1,2,4-butanetriol",
+  "source": "Song2016",
+  "regime": "glassy",
+  "n": 9,
+  "log10_eta0_pipeline": 0.05791654393213183,
+  "log10_eta0_optimal": 0.1784879193239194,
+  "mae_pipeline": 0.2646613918165806,
+  "mae_optimal_eta0": 0.2625551089011837
+ },
+ {
+  "name": "1,2,6-hexanetriol",
+  "source": "Song2016",
+  "regime": "glassy",
+  "n": 11,
+  "log10_eta0_pipeline": 0.327634579133508,
+  "log10_eta0_optimal": 0.7559146773160689,
+  "mae_pipeline": 0.3220767620726552,
+  "mae_optimal_eta0": 0.18598705319779743
+ },
+ {
+  "name": "1,4-butanediol",
+  "source": "Hawrylak1998",
+  "regime": "glassy",
+  "n": 9,
+  "log10_eta0_pipeline": -1.828679229612661,
+  "log10_eta0_optimal": -0.8062362695162426,
+  "mae_pipeline": 0.656961979438183,
+  "mae_optimal_eta0": 0.24570613118045367
+ },
+ {
+  "name": "1,4-butanediol",
+  "source": "Romero2008",
+  "regime": "dilute",
+  "n": 4,
+  "log10_eta0_pipeline": -1.7338824505992978,
+  "log10_eta0_optimal": 5.881310450454298,
+  "mae_pipeline": 0.1061805970508245,
+  "mae_optimal_eta0": 0.003718023278060034
+ },
+ {
+  "name": "1,4-butanediol",
+  "source": "Romero2008",
+  "regime": "dilute",
+  "n": 4,
+  "log10_eta0_pipeline": -1.828679229612661,
+  "log10_eta0_optimal": 3.9311162925027325,
+  "mae_pipeline": 0.07920152448594686,
+  "mae_optimal_eta0": 0.003994751090125037
+ },
+ {
+  "name": "1,4-butanediol",
+  "source": "Song2016",
+  "regime": "glassy",
+  "n": 12,
+  "log10_eta0_pipeline": -1.7338824505992978,
+  "log10_eta0_optimal": -1.6147022505189033,
+  "mae_pipeline": 0.3203689221149328,
+  "mae_optimal_eta0": 0.31121072149367573
+ },
+ {
+  "name": "1,4-butanediol",
+  "source": "Yang2004",
+  "regime": "glassy",
+  "n": 11,
+  "log10_eta0_pipeline": -1.7338824505992978,
+  "log10_eta0_optimal": -0.5358949596784535,
+  "mae_pipeline": 0.5874804226734379,
+  "mae_optimal_eta0": 0.29804008577461705
+ },
+ {
+  "name": "acetic_acid",
+  "source": "CRCHandbook",
+  "regime": "dilute",
+  "n": 35,
+  "log10_eta0_pipeline": -1.3195540972396316,
+  "log10_eta0_optimal": -1.5352396368694279,
+  "mae_pipeline": 0.22456811027191595,
+  "mae_optimal_eta0": 0.22083552993073427
+ },
+ {
+  "name": "citric_acid",
+  "source": "CRCHandbook",
+  "regime": "dilute",
+  "n": 21,
+  "log10_eta0_pipeline": 9.492616233787821,
+  "log10_eta0_optimal": 6.14680345273328,
+  "mae_pipeline": 0.05537353139127978,
+  "mae_optimal_eta0": 0.014344798423514453
+ },
+ {
+  "name": "citric_acid",
+  "source": "Laguerie1976",
+  "regime": "dilute",
+  "n": 10,
+  "log10_eta0_pipeline": 8.493907684594568,
+  "log10_eta0_optimal": 17.388157216994976,
+  "mae_pipeline": 0.39680238940378015,
+  "mae_optimal_eta0": 0.04366329091728209
+ },
+ {
+  "name": "citric_acid",
+  "source": "Song2016",
+  "regime": "glassy",
+  "n": 15,
+  "log10_eta0_pipeline": 9.492616233787821,
+  "log10_eta0_optimal": 7.5661747707395515,
+  "mae_pipeline": 1.0203960819648803,
+  "mae_optimal_eta0": 0.4349182662256195
+ },
+ {
+  "name": "citric_acid",
+  "source": "Song2016Bulk",
+  "regime": "dilute",
+  "n": 5,
+  "log10_eta0_pipeline": 9.524866584329837,
+  "log10_eta0_optimal": 13.642854206845179,
+  "mae_pipeline": 0.2877015141671291,
+  "mae_optimal_eta0": 0.15567352646599594
+ },
+ {
+  "name": "erythritol",
+  "source": "Jiang2013",
+  "regime": "dilute",
+  "n": 5,
+  "log10_eta0_pipeline": 1.9741079296134876,
+  "log10_eta0_optimal": -3.0546627392014227,
+  "mae_pipeline": 0.022370980704548682,
+  "mae_optimal_eta0": 0.0016939464237001544
+ },
+ {
+  "name": "erythritol",
+  "source": "Romero2008",
+  "regime": "dilute",
+  "n": 4,
+  "log10_eta0_pipeline": 1.9741079296134876,
+  "log10_eta0_optimal": 11.785583221869649,
+  "mae_pipeline": 0.041130323996001916,
+  "mae_optimal_eta0": 0.011981056384231192
+ },
+ {
+  "name": "erythritol",
+  "source": "Romero2008",
+  "regime": "dilute",
+  "n": 4,
+  "log10_eta0_pipeline": 1.6772109427488324,
+  "log10_eta0_optimal": 10.900830064680278,
+  "mae_pipeline": 0.037842518526600144,
+  "mae_optimal_eta0": 0.013421739949464606
+ },
+ {
+  "name": "erythritol",
+  "source": "Song2016",
+  "regime": "glassy",
+  "n": 10,
+  "log10_eta0_pipeline": 1.9834233040478848,
+  "log10_eta0_optimal": 4.108666590315597,
+  "mae_pipeline": 0.7291125560265632,
+  "mae_optimal_eta0": 0.19998191693788542
+ },
+ {
+  "name": "erythritol",
+  "source": "Zhu2010",
+  "regime": "dilute",
+  "n": 10,
+  "log10_eta0_pipeline": 1.9741079296134876,
+  "log10_eta0_optimal": 1.2154169007795628,
+  "mae_pipeline": 0.004500579446736053,
+  "mae_optimal_eta0": 0.0036890038330968265
+ },
+ {
+  "name": "fructose",
+  "source": "CRCHandbook",
+  "regime": "dilute",
+  "n": 30,
+  "log10_eta0_pipeline": 8.70874920938829,
+  "log10_eta0_optimal": 5.141932868178596,
+  "mae_pipeline": 0.03903025578184952,
+  "mae_optimal_eta0": 0.027869962550011382
+ },
+ {
+  "name": "fructose",
+  "source": "Rampp2000",
+  "regime": "glassy",
+  "n": 7,
+  "log10_eta0_pipeline": 10.975002314174386,
+  "log10_eta0_optimal": 12.896721373103508,
+  "mae_pipeline": 0.20424960604134285,
+  "mae_optimal_eta0": 0.0581597800197337
+ },
+ {
+  "name": "fructose",
+  "source": "Rampp2000",
+  "regime": "glassy",
+  "n": 7,
+  "log10_eta0_pipeline": 8.70874920938829,
+  "log10_eta0_optimal": 10.087290471167325,
+  "mae_pipeline": 0.1606532663865227,
+  "mae_optimal_eta0": 0.03789644557752897
+ },
+ {
+  "name": "fructose",
+  "source": "Telis2007",
+  "regime": "dilute",
+  "n": 6,
+  "log10_eta0_pipeline": 10.975002314174386,
+  "log10_eta0_optimal": 13.105967139700692,
+  "mae_pipeline": 0.05696435062047526,
+  "mae_optimal_eta0": 0.04221633726291444
+ },
+ {
+  "name": "fructose",
+  "source": "Telis2007",
+  "regime": "dilute",
+  "n": 6,
+  "log10_eta0_pipeline": 8.70874920938829,
+  "log10_eta0_optimal": 8.430281479677465,
+  "mae_pipeline": 0.05646358686939168,
+  "mae_optimal_eta0": 0.05557488375404662
+ },
+ {
+  "name": "glucose",
+  "source": "Mazurkiewicz2001",
+  "regime": "dilute",
+  "n": 8,
+  "log10_eta0_pipeline": 8.32639210614928,
+  "log10_eta0_optimal": 19.996052756739388,
+  "mae_pipeline": 0.5041829780920949,
+  "mae_optimal_eta0": 0.23860903410057482
+ },
+ {
+  "name": "glucose",
+  "source": "Song2016",
+  "regime": "glassy",
+  "n": 9,
+  "log10_eta0_pipeline": 9.334265536825205,
+  "log10_eta0_optimal": 17.46950891993728,
+  "mae_pipeline": 1.9542494666614993,
+  "mae_optimal_eta0": 1.0443663074634326
+ },
+ {
+  "name": "glucose",
+  "source": "Telis2007",
+  "regime": "dilute",
+  "n": 4,
+  "log10_eta0_pipeline": 9.334265536825205,
+  "log10_eta0_optimal": 5.514712426297257,
+  "mae_pipeline": 0.047019856027846085,
+  "mae_optimal_eta0": 0.03396414743461984
+ },
+ {
+  "name": "glutaric_acid",
+  "source": "Chmielewska2007",
+  "regime": "dilute",
+  "n": 18,
+  "log10_eta0_pipeline": 3.994876008939558,
+  "log10_eta0_optimal": 3.5621930303725975,
+  "mae_pipeline": 0.06287856341414323,
+  "mae_optimal_eta0": 0.06048302030427904
+ },
+ {
+  "name": "glutaric_acid",
+  "source": "Song2016",
+  "regime": "dilute",
+  "n": 20,
+  "log10_eta0_pipeline": 4.499014942743338,
+  "log10_eta0_optimal": 0.8632797953886018,
+  "mae_pipeline": 0.5057393161718975,
+  "mae_optimal_eta0": 0.08343015268463572
+ },
+ {
+  "name": "glycerol",
+  "source": "CRCHandbook",
+  "regime": "dilute",
+  "n": 35,
+  "log10_eta0_pipeline": -0.48362833602449123,
+  "log10_eta0_optimal": 0.253374069768288,
+  "mae_pipeline": 0.11354649638698447,
+  "mae_optimal_eta0": 0.013955343285570103
+ },
+ {
+  "name": "glycerol",
+  "source": "Mazurkiewicz2001",
+  "regime": "dilute",
+  "n": 22,
+  "log10_eta0_pipeline": -0.6355351348136375,
+  "log10_eta0_optimal": -0.788015822908835,
+  "mae_pipeline": 0.03518815449684136,
+  "mae_optimal_eta0": 0.03467966719073481
+ },
+ {
+  "name": "glycerol",
+  "source": "Segur1951",
+  "regime": "glassy",
+  "n": 22,
+  "log10_eta0_pipeline": -0.48362833602449123,
+  "log10_eta0_optimal": 0.18216003964881164,
+  "mae_pipeline": 0.3164381313630267,
+  "mae_optimal_eta0": 0.020181353006162864
+ },
+ {
+  "name": "glycerol",
+  "source": "Song2016",
+  "regime": "glassy",
+  "n": 3,
+  "log10_eta0_pipeline": -0.4789075876858168,
+  "log10_eta0_optimal": 0.31466256170986856,
+  "mae_pipeline": 0.9245173149944307,
+  "mae_optimal_eta0": 0.27059578722735883
+ },
+ {
+  "name": "maleic_acid",
+  "source": "Chmielewska2007",
+  "regime": "dilute",
+  "n": 14,
+  "log10_eta0_pipeline": 3.9267180435791325,
+  "log10_eta0_optimal": -0.0773385939958477,
+  "mae_pipeline": 0.08703835249406078,
+  "mae_optimal_eta0": 0.04986416146624616
+ },
+ {
+  "name": "maleic_acid",
+  "source": "Gomez1986",
+  "regime": "dilute",
+  "n": 4,
+  "log10_eta0_pipeline": 3.9267180435791325,
+  "log10_eta0_optimal": 1.0928623195925233,
+  "mae_pipeline": 0.304720804235597,
+  "mae_optimal_eta0": 0.018554253653362385
+ },
+ {
+  "name": "maleic_acid",
+  "source": "Song2016",
+  "regime": "dilute",
+  "n": 7,
+  "log10_eta0_pipeline": 4.42433709238667,
+  "log10_eta0_optimal": -0.8475094884133915,
+  "mae_pipeline": 1.0183927758121196,
+  "mae_optimal_eta0": 0.034804685498668775
+ },
+ {
+  "name": "maltose",
+  "source": "Song2016",
+  "regime": "glassy",
+  "n": 8,
+  "log10_eta0_pipeline": 26.28343953663591,
+  "log10_eta0_optimal": 19.996052756739388,
+  "mae_pipeline": 2.1318111730792944,
+  "mae_optimal_eta0": 2.380833502511153
+ },
+ {
+  "name": "maltose",
+  "source": "Ueadaira1969",
+  "regime": "dilute",
+  "n": 8,
+  "log10_eta0_pipeline": 24.517999428715168,
+  "log10_eta0_optimal": -5.996052549085836,
+  "mae_pipeline": 0.0528087061620251,
+  "mae_optimal_eta0": 0.04797656703833364
+ },
+ {
+  "name": "raffinose",
+  "source": "Song2016",
+  "regime": "glassy",
+  "n": 9,
+  "log10_eta0_pipeline": 31.49501761589194,
+  "log10_eta0_optimal": 19.996052756739388,
+  "mae_pipeline": 2.896899612396262,
+  "mae_optimal_eta0": 3.007685496363823
+ },
+ {
+  "name": "sorbitol",
+  "source": "Song2016",
+  "regime": "glassy",
+  "n": 8,
+  "log10_eta0_pipeline": 7.653055014112576,
+  "log10_eta0_optimal": 10.433987503651212,
+  "mae_pipeline": 0.7435846230217151,
+  "mae_optimal_eta0": 0.677486671240365
+ },
+ {
+  "name": "sorbitol",
+  "source": "Zhu2010",
+  "regime": "dilute",
+  "n": 10,
+  "log10_eta0_pipeline": 7.627742743880416,
+  "log10_eta0_optimal": -5.996052549085836,
+  "mae_pipeline": 0.12172863373206119,
+  "mae_optimal_eta0": 0.10202859015489837
+ },
+ {
+  "name": "sucrose",
+  "source": "CRCHandbook",
+  "regime": "dilute",
+  "n": 33,
+  "log10_eta0_pipeline": 19.715731426840154,
+  "log10_eta0_optimal": -5.996052549085836,
+  "mae_pipeline": 0.2038490388940345,
+  "mae_optimal_eta0": 0.19919074715131152
+ },
+ {
+  "name": "sucrose",
+  "source": "Forst2002",
+  "regime": "dilute",
+  "n": 5,
+  "log10_eta0_pipeline": 19.715731426840154,
+  "log10_eta0_optimal": 18.373849451670573,
+  "mae_pipeline": 0.16504559343317698,
+  "mae_optimal_eta0": 0.16181409110805198
+ },
+ {
+  "name": "sucrose",
+  "source": "Mazurkiewicz2001",
+  "regime": "dilute",
+  "n": 14,
+  "log10_eta0_pipeline": 18.55149706689588,
+  "log10_eta0_optimal": -5.996052549085836,
+  "mae_pipeline": 0.15009206873039632,
+  "mae_optimal_eta0": 0.14134392451041994
+ },
+ {
+  "name": "sucrose",
+  "source": "Power2013",
+  "regime": "glassy",
+  "n": 118,
+  "log10_eta0_pipeline": 19.752439463404297,
+  "log10_eta0_optimal": 19.996052756739388,
+  "mae_pipeline": 1.047866828413549,
+  "mae_optimal_eta0": 1.0276153348895067
+ },
+ {
+  "name": "sucrose",
+  "source": "Quintas2006",
+  "regime": "glassy",
+  "n": 5,
+  "log10_eta0_pipeline": 19.715731426840154,
+  "log10_eta0_optimal": 19.996052756739388,
+  "mae_pipeline": 1.2200893184496355,
+  "mae_optimal_eta0": 1.2062723902717172
+ },
+ {
+  "name": "sucrose",
+  "source": "Song2016",
+  "regime": "glassy",
+  "n": 8,
+  "log10_eta0_pipeline": 19.752439463404297,
+  "log10_eta0_optimal": 12.79760235649896,
+  "mae_pipeline": 1.7436973822424506,
+  "mae_optimal_eta0": 1.2099986070162077
+ },
+ {
+  "name": "sucrose",
+  "source": "Swindells1958",
+  "regime": "dilute",
+  "n": 56,
+  "log10_eta0_pipeline": 19.715731426840154,
+  "log10_eta0_optimal": 19.996052756739388,
+  "mae_pipeline": 0.2806092679798519,
+  "mae_optimal_eta0": 0.2800052994877173
+ },
+ {
+  "name": "sucrose",
+  "source": "Telis2007",
+  "regime": "dilute",
+  "n": 6,
+  "log10_eta0_pipeline": 19.715731426840154,
+  "log10_eta0_optimal": -5.996052549085836,
+  "mae_pipeline": 0.2179714106591838,
+  "mae_optimal_eta0": 0.2104291151308332
+ },
+ {
+  "name": "trehalose",
+  "source": "Magazu1999",
+  "regime": "dilute",
+  "n": 9,
+  "log10_eta0_pipeline": 31.041604480640075,
+  "log10_eta0_optimal": -5.996052549085836,
+  "mae_pipeline": 0.1608635362403775,
+  "mae_optimal_eta0": 0.13421229035259852
+ },
+ {
+  "name": "trehalose",
+  "source": "Miller1999",
+  "regime": "glassy",
+  "n": 4,
+  "log10_eta0_pipeline": 31.018455282512285,
+  "log10_eta0_optimal": 19.996052756739388,
+  "mae_pipeline": 0.15531105857808492,
+  "mae_optimal_eta0": 0.17486468781833464
+ },
+ {
+  "name": "trehalose",
+  "source": "Rampp2000",
+  "regime": "dilute",
+  "n": 3,
+  "log10_eta0_pipeline": 31.111230956859146,
+  "log10_eta0_optimal": -5.996052549085836,
+  "mae_pipeline": 0.14755654511390434,
+  "mae_optimal_eta0": 0.08686386771250147
+ },
+ {
+  "name": "trehalose",
+  "source": "Song2016",
+  "regime": "glassy",
+  "n": 15,
+  "log10_eta0_pipeline": 31.111230956859146,
+  "log10_eta0_optimal": 19.996052756739388,
+  "mae_pipeline": 2.2256100620990256,
+  "mae_optimal_eta0": 2.8271575042931625
+ }
+]
